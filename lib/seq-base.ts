@@ -1801,12 +1801,12 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   window(size: number): Seq<Seq<T>>;
   window(size: number, step: number): Seq<Seq<T>>;
   window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
-  window(size: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
+  window(size: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
   window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
-  window(size: number, step: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
-  window(size: number, stepOrOpts?: number | { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; fixedSize?: boolean; }, opts?: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; fixedSize?: boolean; }): Seq<Seq<T>> {
+  window(size: number, step: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
+  window(size: number, stepOrOpts?: number | { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }, opts?: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }): Seq<Seq<T>> {
     if (size < 1) return internalEmpty<Seq<T>>();
-    const defaultOpts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; fixedSize?: boolean; } = {
+    const defaultOpts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; } = {
       leftOverflow: false,
       rightOverflow: false
     };
@@ -1820,7 +1820,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     const leftPadding = actualOpts?.leftOverflow && actualOpts?.padWith !== undefined;
     const rightPadding = actualOpts?.rightOverflow && actualOpts?.padWith !== undefined;
-    const overflowRight = actualOpts?.rightOverflow && !rightPadding && !actualOpts.fixedSize;
+    const overflowRight = actualOpts?.rightOverflow && !rightPadding && !actualOpts.exactSize;
 
     const optimize = SeqTags.optimize(this);
     const createSeq = (window: Iterable<T>): Seq<T> => {
@@ -1851,7 +1851,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       const initialSize = actualOpts.leftOverflow? 1: size;
       let lastSlidCount = window.slide(initialSize);
 
-      if (actualOpts.fixedSize && window.count < size) return;
+      if (actualOpts.exactSize && window.count < size) return;
 
       while (lastSlidCount) {
 

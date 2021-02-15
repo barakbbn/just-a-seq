@@ -2391,6 +2391,69 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('ofType()', () => {
+      this.it1('should return filtered sequence with only the values of requested type', Array<any>().concat(
+        array.oneToTen,
+        array.abc,
+        [false, true, false, true],
+        [Symbol.iterator, Symbol.hasInstance],
+        [() => 1, (x: number) => x, (() => void 0)],
+        array.truthyValues,
+        array.falsyValues,
+        array.grades,
+        array.folders), (source) => {
+
+        const sut = this.createSut(source);
+        const input = [...source];
+        const expectedNumber = input.filter(x => typeof x === 'number');
+        assert.deepEqual([...sut.ofType('number')], expectedNumber);
+
+        const expectedBoolean = input.filter(x => typeof x === 'boolean');
+        assert.deepEqual([...sut.ofType('boolean')], expectedBoolean);
+
+        const expectedObject = input.filter(x => typeof x === 'object');
+        assert.deepEqual([...sut.ofType('object')], expectedObject);
+
+        const expectedString = input.filter(x => typeof x === 'string');
+        assert.deepEqual([...sut.ofType('string')], expectedString);
+
+        const expectedFunction = input.filter(x => typeof x === 'function');
+        assert.deepEqual([...sut.ofType('function')], expectedFunction);
+
+        const expectedSymbol = input.filter(x => typeof x === 'symbol');
+        assert.deepEqual([...sut.ofType('symbol')], expectedSymbol);
+
+        assert.deepEqual([...sut.ofType(Number)], expectedNumber);
+        assert.deepEqual([...sut.ofType(String)], expectedString);
+        assert.deepEqual([...sut.ofType(Boolean)], expectedBoolean);
+        assert.deepEqual([...sut.ofType(Object)], expectedObject);
+        assert.deepEqual([...sut.ofType(Symbol)], expectedSymbol);
+
+        const expectedClass = input.filter(x => x instanceof Folder);
+        assert.deepEqual([...sut.ofType(Folder)], expectedClass);
+      });
+
+      this.it1('should return empty sequence is non of the values is of the requested type', array.abc, (input) => {
+        const expected: any[] = [];
+        let sut = this.createSut(input);
+        let actual = [...sut.ofType('number')];
+        assert.sameMembers(actual, expected);
+      });
+
+      it('should return empty sequence if requested type is not primitive and not a class', () => {
+        const input = array.abc;
+        const expected: any[] = [];
+        const fakeAnyType: any = {};
+        let sut = this.createSut(input);
+        let actual = [...sut.ofType(fakeAnyType)];
+        assert.sameMembers(actual, expected);
+
+        sut = this.createSut(generator.from(input));
+        actual = [...sut.ofType(fakeAnyType)];
+        assert.sameMembers(actual, expected);
+      });
+    });
+
     describe('partition()', () => {
       describe("matched sequence", () => {
         this.it1('should return only items that meet the condition - numbers', array.oneToTen, (input) => {
@@ -2532,69 +2595,6 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first');
           assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second');
         });
-    });
-
-    describe('ofType()', () => {
-      this.it1('should return filtered sequence with only the values of requested type', Array<any>().concat(
-        array.oneToTen,
-        array.abc,
-        [false, true, false, true],
-        [Symbol.iterator, Symbol.hasInstance],
-        [() => 1, (x: number) => x, (() => void 0)],
-        array.truthyValues,
-        array.falsyValues,
-        array.grades,
-        array.folders), (source) => {
-
-        const sut = this.createSut(source);
-        const input = [...source];
-        const expectedNumber = input.filter(x => typeof x === 'number');
-        assert.deepEqual([...sut.ofType('number')], expectedNumber);
-
-        const expectedBoolean = input.filter(x => typeof x === 'boolean');
-        assert.deepEqual([...sut.ofType('boolean')], expectedBoolean);
-
-        const expectedObject = input.filter(x => typeof x === 'object');
-        assert.deepEqual([...sut.ofType('object')], expectedObject);
-
-        const expectedString = input.filter(x => typeof x === 'string');
-        assert.deepEqual([...sut.ofType('string')], expectedString);
-
-        const expectedFunction = input.filter(x => typeof x === 'function');
-        assert.deepEqual([...sut.ofType('function')], expectedFunction);
-
-        const expectedSymbol = input.filter(x => typeof x === 'symbol');
-        assert.deepEqual([...sut.ofType('symbol')], expectedSymbol);
-
-        assert.deepEqual([...sut.ofType(Number)], expectedNumber);
-        assert.deepEqual([...sut.ofType(String)], expectedString);
-        assert.deepEqual([...sut.ofType(Boolean)], expectedBoolean);
-        assert.deepEqual([...sut.ofType(Object)], expectedObject);
-        assert.deepEqual([...sut.ofType(Symbol)], expectedSymbol);
-
-        const expectedClass = input.filter(x => x instanceof Folder);
-        assert.deepEqual([...sut.ofType(Folder)], expectedClass);
-      });
-
-      this.it1('should return empty sequence is non of the values is of the requested type', array.abc, (input) => {
-        const expected: any[] = [];
-        let sut = this.createSut(input);
-        let actual = [...sut.ofType('number')];
-        assert.sameMembers(actual, expected);
-      });
-
-      it('should return empty sequence if requested type is not primitive and not a class', () => {
-        const input = array.abc;
-        const expected: any[] = [];
-        const fakeAnyType: any = {};
-        let sut = this.createSut(input);
-        let actual = [...sut.ofType(fakeAnyType)];
-        assert.sameMembers(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = [...sut.ofType(fakeAnyType)];
-        assert.sameMembers(actual, expected);
-      });
     });
 
     describe('prepend()', () => {
@@ -3682,7 +3682,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
     describe('window()', () => {
       const overflowLeftArgs = [false, false];
       const overflowRightArgs = [false, true];
-      const fixedSizeArgs = [false, true];
+      const exactSizeArgs = [false, true];
       const padWithArgs = [undefined, -1];
 
       // ==========================================
@@ -3708,13 +3708,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       for (const source of sources) {
         this.it1(`combination of all parameters${source.length? '': ' - empty source'}`, source, (input, inputArray) => {
-          const test = (fixedSize: boolean, slidingStep: number, rightOverflow: boolean, leftOverflow: boolean, padWith: any, windowSize: number) => {
+          const test = (exactSize: boolean, slidingStep: number, rightOverflow: boolean, leftOverflow: boolean, padWith: any, windowSize: number) => {
             const size = Math.max(windowSize, 0);
             const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
             const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
             const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
 
-            const opts = {leftOverflow, rightOverflow, padWith, fixedSize};
+            const opts = {leftOverflow, rightOverflow, padWith, exactSize};
 
             const leftPadding = leftOverflow?
               padWith !== undefined?
@@ -3728,24 +3728,25 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               [];
 
             const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
-            const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}, fixedSize: ${fixedSize}`;
+            const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}, exactSize: ${exactSize}`;
 
             // console.log('window - combined', testInfo);
 
             const expectedBase = leftPadding.concat(inputArray, rightPadding);
-            const expected = buildExpected(expectedBase, step, size, fixedSize);
+            const expected = buildExpected(expectedBase, step, size, exactSize);
 
             const sut = this.createSut(input).window(windowSize, slidingStep, opts);
             const actual = [...sut].map(s => [...s]);
             assert.deepEqual(actual, expected, testInfo);
           };
-          for (const fixedSize of fixedSizeArgs) {
+
+          for (const exactSize of exactSizeArgs) {
             for (let slidingStep = 0; slidingStep <= inputArray.length * 2; slidingStep++) {
               for (const rightOverflow of overflowRightArgs) {
                 for (const leftOverflow of overflowLeftArgs) {
                   for (const padWith of padWithArgs) {
                     for (let windowSize = 0; windowSize <= inputArray.length * 2; windowSize++) {
-                      test(fixedSize, slidingStep, rightOverflow, leftOverflow, padWith, windowSize);
+                      test(exactSize, slidingStep, rightOverflow, leftOverflow, padWith, windowSize);
                     }
                   }
                 }

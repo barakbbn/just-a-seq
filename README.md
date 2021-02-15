@@ -203,48 +203,48 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 
 #### Immediate actions
 
-|            |                    |                    |                     |          |
-|------------|--------------------|--------------------|---------------------|----------|
-| all        | any                | at                 | average             |
-| consume    | count              |
-| endsWith   | every              |
-| find       | findIndex          | findLast           | findLastIndex       | first    |
-| forEach    |
-| hasAtLeast |
-| includes   | includesAll        | includesAny        | includesSubSequence |
-| indexOf    | indexOfSubSequence | isEmpty            |
-| last       | lastIndexOf        | length             |
-| max        | min                |
-| reduce     | reduceRight        |
-| sameItems  | sameOrderedItems   | some               | startsWith          | sum      |
-| toArray    | toMap              | toMapOfOccurrences | toSet               | toString |
+|            |                    |                    |                     |       |          |
+|------------|--------------------|--------------------|---------------------|-------|----------|
+| all        | any                | at                 | average             |       |          |
+| consume    | count              |                    |                     |       |          |
+| endsWith   | every              |                    |                     |       |          |
+| find       | findIndex          | findLast           | findLastIndex       | first |          |
+| forEach    |                    |                    |                     |       |          |
+| hasAtLeast |                    |                    |                     |       |          |
+| includes   | includesAll        | includesAny        | includesSubSequence |       |          |
+| indexOf    | indexOfSubSequence | isEmpty            |                     |       |          |
+| last       | lastIndexOf        | length             |                     |       |          |
+| max        | min                |                    |                     |       |          |
+| reduce     | reduceRight        |                    |                     |       |          |
+| sameItems  | sameOrderedItems   | some               | startsWith          | sum   |          |
+| toArray    | toMap              | toMapOfOccurrences | [toObject]          | toSet | toString | 
 
 #### Deferred actions
 
-|              |              |              |                   |                 |
-|--------------|--------------|--------------|-------------------|-----------------|
-| append       |              |              |                   |                 |
-| cache        | chunk        | chunkBy      | chunkByLimit      | concat          |
-| diff         | diffDistinct | distinct     |                   |                 |
-| entries      |              |              |                   |                 |
-| filter       |              |              |                   |                 |
-| firstAndRest | flat         | flatMap      | **flatHierarchy** |                 |
-| groupBy      | **groupBy$** | groupJoin    | groupJoinRight    | **thenGroupBy** |
-| ifEmpty      | innerJoin    | insert       | insertAfter       | insertBefore    |
-| intersect    | intersectBy  | intersperse  |                   |                 |
-| join         |              |              |                   |                 |
-| map          | partition    |              |                   |                 |
-| ofType       |              |              |                   |                 |
-| prepend      | push         |              |                   |                 |
-| reduce       | reduceRight  | remove       | removeAll         | removeFalsy     |
-| removeKeys   | removeNulls  | repeat       | reverse           |                 |
-| skip         | skipFirst    | skipLast     |                   |                 |
-| skipWhile    | slice        | sort         | sortBy            | **thenSortBy**  |
-| sorted       | split        | splitAt      |                   |                 |
-| take         | takeLast     | takeOnly     | takeWhile         | **tap**         |
-| transform    |              |              |                   |                 |
-| union        | unshift      |              |                   |                 |
-| zip          | zipAll       | zipWithIndex |                   |                 |
+|              |              |              |                      |                |                    |
+|--------------|--------------|--------------|----------------------|----------------|--------------------|
+| append       | [aggregate]  |              |                      |                |                    |
+| cache        | cartesian    | chunk        | chunkBy              | chunkByLimit   | concat             |
+| diff         | diffDistinct | distinct     | distinctUntilChanged |                |                    |
+| entries      |              |              |                      |                |                    |
+| filter       |              |              |                      |                |                    |
+| firstAndRest | flat         | flatMap      | **flatHierarchy**    |                |                    |
+| groupBy      | **groupBy$** | groupJoin    | groupJoinRight       |                |                    |
+| ifEmpty      | innerJoin    | insert       | insertAfter          | insertBefore   |                    |
+| intersect    | interleave   | intersectBy  | intersperse          | intersperseBy  |                    |
+| join         |              |              |                      |                |                    |
+| map          | [mapInGroup] | partition    | partitionWhile       |                |                    |
+| ofType       |              |              |                      |                |                    |
+| prepend      | push         |              |                      |                |                    |
+| reduce       | reduceRight  | remove       | removeAll            | removeFalsy    |                    |
+| removeKeys   | removeNulls  | repeat       | reverse              |                |                    |
+| skip         | skipFirst    | skipLast     |                      |                |                    |
+| skipWhile    | slice        | sort         | sortBy               | [thenGroupBy]  | &lt;thenSortBy&gt; |
+| sorted       | split        | splitAt      |                      |                |                    |
+| take         | takeLast     | takeOnly     | takeWhile            | **tap**        |                    |
+| transform    |              |              |                      |                |                    |
+| union        | unionRight   | unshift      | window               |                |                    |        
+| zip          | zipAll       | zipWithIndex |                      |                |                    |
 
 #### Factories
 
