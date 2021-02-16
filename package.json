@@ -9,7 +9,7 @@
     "pack": "pushd dist && npm pack || popd",
     "deploy": "npm install && npm run build && npm test && npm run pack",
     "_test_old": "mocha -r ts-node/register test/**/*.ts",
-    "_deleteDist": "rm -rf ./dist 2>dev/null || if exist dist rd /S /Q dist >nul 2>&1"
+    "_deleteDist": "rm -rf ./dist 2> .err || rd /S /Q dist 2> .err"
   },
   "keywords": [],
   "author": "barakbbn",
