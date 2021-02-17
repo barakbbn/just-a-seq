@@ -904,7 +904,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   removeNulls(): Seq<T> {
-    return this.generate(function* removeFalsy(self) {
+    return this.generate(function* removeNulls(self) {
       for (const item of self) {
         if (item != null) yield item;
       }
@@ -1279,6 +1279,8 @@ export abstract class SeqBase<T> implements Seq<T> {
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T> {
     return this.concat(second).distinct(keySelector);
   }
+
+  readonly unshift = this.prepend;
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self) {

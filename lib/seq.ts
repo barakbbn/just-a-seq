@@ -122,11 +122,11 @@ export interface Seq<T> extends Iterable<T> {
   insert(atIndex: number, items: Iterable<T>): Seq<T>;  // Overload
   insert(atIndex: number, ...items: T[]): Seq<T>;
 
-  insertBefore(condition: Condition<T>, items: Iterable<T>): Seq<T>;  // Overload
-  insertBefore(condition: Condition<T>, ...items: T[]): Seq<T>;
-
   insertAfter(condition: Condition<T>, items: Iterable<T>): Seq<T>;  // Overload
   insertAfter(condition: Condition<T>, ...items: T[]): Seq<T>;
+
+  insertBefore(condition: Condition<T>, items: Iterable<T>): Seq<T>;  // Overload
+  insertBefore(condition: Condition<T>, ...items: T[]): Seq<T>;
 
   intersect<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
 
@@ -256,6 +256,9 @@ export interface Seq<T> extends Iterable<T> {
 
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T>;
 
+  unshift(...items: T[]): Seq<T>; // Same as prepend()
+  unshift(items: Iterable<T>): Seq<T>;
+
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]>;
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;
@@ -288,37 +291,6 @@ export interface GroupedSeq<K, T> extends Seq<T>, IHaveKey<K> {
   map<U>(mapFn: Selector<T, U>): GroupedSeq<K, U>;
 }
 
-
-export interface CachedSeqFactory {
-  <T>(source: Iterable<T>, now?: boolean): CachedSeq<T>;
-}
-
-export interface OrderedSeqFactory {
-  <T, K = T>(items: Iterable<T>,
-             keySelector?: (x: T) => K,
-             comparer?: Comparer<K>,
-             descending?: boolean): OrderedSeq<T>;
-}
-
-export interface GroupedSeqFactory {
-  <K, T>(key: K, items: Iterable<T>): GroupedSeq<K, T>;
-}
-
-export const factories: {
-  Seq: SeqFactory;
-  CachedSeq: CachedSeqFactory;
-  OrderedSeq: OrderedSeqFactory;
-  GroupedSeq: GroupedSeqFactory;
-  SeqOfGroups: SeqOfGroupsFactory;
-} = <any>{};
-
-export interface SeqOfGroupsFactory {
-  <K, T = K, U = T>(source: Iterable<T>,
-                    keySelector?: Selector<T, K>,
-                    toComparableKey?: ToComparableKey<K>,
-                    valueSelector?: Selector<T, U>): SeqOfGroups<K, U>
-}
-
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   tap(callback: Selector<GroupedSeq<K, T>, void>, thisArg?: any): this;
 
@@ -333,11 +305,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   cache(): this & CachedSeq<GroupedSeq<K, T>>
 }
 
-export type NarrowGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
-  ? MultiGroupedSeq<[K2, K3, ...KRest], T>
-  : GroupedSeq<Ks[1], T>;
-
-export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<NarrowGroupedSeq<Ks, T>> {
+export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<SubGroupedSeq<Ks, T>> {
   readonly key: Ks[0];
 }
 
@@ -355,6 +323,41 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
   cache(): this & CachedSeq<MultiGroupedSeq<Ks, T>>
 }
 
+export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
+  ? MultiGroupedSeq<[K2, K3, ...KRest], T>
+  : GroupedSeq<Ks[1], T>;
+
 export interface SeqFactory {
   <T>(source?: Iterable<T>): Seq<T>;
 }
+
+export interface CachedSeqFactory {
+  <T>(source: Iterable<T>, now?: boolean): CachedSeq<T>;
+}
+
+export interface OrderedSeqFactory {
+  <T, K = T>(items: Iterable<T>,
+             keySelector?: (x: T) => K,
+             comparer?: Comparer<K>,
+             descending?: boolean): OrderedSeq<T>;
+}
+
+export interface GroupedSeqFactory {
+  <K, T>(key: K, items: Iterable<T>): GroupedSeq<K, T>;
+}
+
+export interface SeqOfGroupsFactory {
+  <K, T = K, U = T>(source: Iterable<T>,
+                    keySelector?: Selector<T, K>,
+                    toComparableKey?: ToComparableKey<K>,
+                    valueSelector?: Selector<T, U>): SeqOfGroups<K, U>
+}
+
+export const factories: {
+  Seq: SeqFactory;
+  CachedSeq: CachedSeqFactory;
+  OrderedSeq: OrderedSeqFactory;
+  GroupedSeq: GroupedSeqFactory;
+  SeqOfGroups: SeqOfGroupsFactory;
+} = <any>{};
+

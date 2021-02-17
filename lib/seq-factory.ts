@@ -12,9 +12,11 @@ export function empty<T = any>(_ofType?: T): Seq<T> {
 }
 
 export function range(start: number, end?: number, step: number = 1): Seq<number> {
-  if (step === 0) throw new Error('step parameter cannot be zero');
   if (Number.isNaN(start)) throw new Error('start parameter cannot be NaN');
-  if (!Number.isFinite(start)) throw new Error(`step cannot be ${start}`);
+  if (!Number.isFinite(start)) throw new Error(`start parameter cannot be Infinite`);
+  if (step === 0) throw new Error('step parameter cannot be zero');
+  if (Number.isNaN(step)) throw new Error('step parameter cannot be NaN');
+  if (!Number.isFinite(step)) throw new Error(`step parameter cannot be Infinite`);
 
   return factories.Seq(generate(function* range() {
     if (end !== undefined && start > end && step > 0) step *= -1;
