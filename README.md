@@ -5,7 +5,7 @@ Operations are lazy/deferred and immutable (Similar to .NET LINQ) with an api th
 ___
 ### Functionality summary
 
-###`Seq Interface`
+### `Seq` Interface
 | Method      | Description |
 | ----------- | ----------- |
 | all | *(same as **every**)* Checks whether all items match a condition |
