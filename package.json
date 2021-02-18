@@ -8,6 +8,7 @@
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
     "pack": "pushd dist && npm pack || popd",
     "deploy": "npm install && npm run build && npm test && npm run pack",
+    "coverage": "nyc --reporter=lcov npm test",
     "_test_old": "mocha -r ts-node/register test/**/*.ts",
     "_deleteDist": "rm -rf ./dist 2> .err || rd /S /Q dist 2> .err"
   },
