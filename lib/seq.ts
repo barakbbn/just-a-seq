@@ -148,6 +148,8 @@ export interface Seq<T> extends Iterable<T> {
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number;
 
+  length(): number;
+
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
   max(): T extends number ? number : void; // Overload

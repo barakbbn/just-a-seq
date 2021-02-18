@@ -5,6 +5,8 @@ import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
 import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Ordering_Tests} from "./seq-base/seq-base-ordering";
+import {array} from "./test-data";
+import {assert} from "chai";
 
 function createSut<T>(input?: Iterable<T>): CachedSeqImpl<T> {
   return new CachedSeqImpl(input ?? []);
@@ -32,12 +34,29 @@ class CachedSeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
 
 export class CachedSeqImpl_Tests {
 
+  protected readonly createSut = createSut;
+
   readonly run = () => describe('CachedSeqImpl', () => {
     new CachedSeqImpl_Deferred_GetIterator_Tests().run();
     new CachedSeqImpl_Deferred_Tests().run();
     new CachedSeqImpl_Immediate_Tests().run();
     new CachedSeqImpl_OrderedSeq_Tests().run();
     new CachedSeqImpl_CachedSeq_Tests().run();
+
+    describe('array property', () => {
+      it('should contain exactly same items as if sequence iterated', () => {
+        const source = array.oneToTen;
+        let sut = this.createSut(source);
+        let expected = sut.array;
+        let actual = [...sut];
+        assert.deepEqual(actual, expected);
+
+        sut = this.createSut(source);
+        actual = [...sut];
+        expected = sut.array;
+        assert.deepEqual(actual, expected);
+      });
+    });
   });
 }
 

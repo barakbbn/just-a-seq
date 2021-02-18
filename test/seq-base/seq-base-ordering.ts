@@ -6,7 +6,7 @@ import {Comparer, Seq} from "../../lib";
 export abstract class SeqBase_Ordering_Tests {
   readonly run = () => describe('SeqBase - Ordering functionality', () => {
     describe('orderBy', () => {
-      it('should sort sequence of objects by one of the properties', ()=> {
+      it('should sort sequence of objects by one of the properties', () => {
         const unsorted = array.gradesFiftyAndAbove.concat(array.gradesFiftyAndBelow);
         const expectedByGrade = unsorted.slice().sort((a, b) => a.grade - b.grade);
         const expectedByName = unsorted.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -26,7 +26,7 @@ export abstract class SeqBase_Ordering_Tests {
         actual = [...sut2.orderBy(x => x.name)];
         assert.deepEqual(actual, expectedByName);
       });
-      it('should sort sequence of objects by one of the properties and a comparer', ()=> {
+      it('should sort sequence of objects by one of the properties and a comparer', () => {
         const input1 = array.gradesFiftyAndAbove.map(x => ({...x, name: x.name.toUpperCase()}));
         const input2 = array.gradesFiftyAndBelow.map(x => ({...x, name: x.name.toLowerCase()}));
         const unsorted = input1.concat(input2);
@@ -70,7 +70,7 @@ export abstract class SeqBase_Ordering_Tests {
     });
 
     describe('orderByDescending', () => {
-      it('should sort sequence of objects by one of the properties', ()=> {
+      it('should sort sequence of objects by one of the properties', () => {
         const unsorted = array.gradesFiftyAndBelow.concat(array.gradesFiftyAndAbove);
         const expectedByGrade = unsorted.slice().sort((a, b) => b.grade - a.grade);
         const expectedByName = unsorted.slice().sort((a, b) => b.name.localeCompare(a.name));
@@ -111,7 +111,7 @@ export abstract class SeqBase_Ordering_Tests {
     });
 
     describe('sort()', () => {
-      it('should return same result as Array.sort when not using comparer and values are not strings',  () =>{
+      it('should return same result as Array.sort when not using comparer and values are not strings', () => {
         const unsorted = [3, 2, 8, undefined, 100, 6, 9, 0, 10, null, 7, 6, 4];
         const expected = unsorted.slice().sort();
         let sut = this.createSut(unsorted);
@@ -131,7 +131,7 @@ export abstract class SeqBase_Ordering_Tests {
     });
 
     describe('sorted()', () => {
-      describe('should sort sequence of numbers',  ()=> {
+      describe('should sort sequence of numbers', () => {
         const unsorted = [50, 10, -5, 100, 7, 70, 30, 0, -100];
         const sut = this.createSut(unsorted);
         const sut2 = this.createSut(generator.from(unsorted));
@@ -152,7 +152,7 @@ export abstract class SeqBase_Ordering_Tests {
         });
       });
 
-      describe('should sort sequence of strings',  ()=> {
+      describe('should sort sequence of strings', () => {
         const unsorted = ['ddd', null, 'a', 'd', 'cc', 'aaa', null, 'a', 'aa', undefined, 'b', 'c', 'abc', 'abb', undefined];
         const sut = this.createSut(unsorted);
         const sut2 = this.createSut(generator.from(unsorted));
@@ -179,15 +179,9 @@ export abstract class SeqBase_Ordering_Tests {
       });
     });
 
-    describe('tap()', () => {
-      it.skip('TODO: should produce same results before and after tap', ()=> {
-        assert.fail('Test Not Implemented');
-      });
-    });
-
     describe('Chaining', () => {
       describe('Ordering chain', () => {
-        it('orderBy().thenBy...',  ()=> {
+        it('orderBy().thenBy...', () => {
           const unordered = array.samples;
 
           const expectedByAscDescAscDesc = unordered.slice().sort((x, y) => {
@@ -207,7 +201,7 @@ export abstract class SeqBase_Ordering_Tests {
           assert.sameDeepOrderedMembers(actualByAscDescAscDesc, expectedByAscDescAscDesc);
         });
 
-        it('orderByDescending().thenBy...',  ()=> {
+        it('orderByDescending().thenBy...', () => {
           const unordered = array.samples;
 
           const expectedByDescDescAscAsc = unordered.slice().sort((x, y) => {
@@ -225,7 +219,7 @@ export abstract class SeqBase_Ordering_Tests {
           assert.sameDeepOrderedMembers(actualByDescDescAscAsc, expectedByDescDescAscAsc);
         });
 
-        it('sort(/* no comparer*/).thenBy...',  () => {
+        it('sort(/* no comparer*/).thenBy...', () => {
           const unordered = array.flatFolders;
           const expectedByDescDescAscAsc = unordered.slice().sort().sort((f1, f2) => f1.depth - f2.depth);
           const sut = this.createSut(unordered)
@@ -236,7 +230,7 @@ export abstract class SeqBase_Ordering_Tests {
         });
       });
 
-      it('Ordering chain - immutability',  () => {
+      it('Ordering chain - immutability', () => {
         const unordered = array.samples;
 
         const expectedByTypeThenByPeriod = unordered.slice().sort((a, b) => a.type.localeCompare(b.type) || (a.period - b.period));

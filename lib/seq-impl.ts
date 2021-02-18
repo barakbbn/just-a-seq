@@ -28,6 +28,9 @@ import {
 
 export abstract class SeqBase<T> implements Seq<T> {
 
+  readonly length = this.count;
+  readonly unshift = this.prepend;
+
   protected abstract get items(): Iterable<T>;
 
   protected static isArray<T>(items: Iterable<T>): items is Array<T> {
@@ -349,9 +352,10 @@ export abstract class SeqBase<T> implements Seq<T> {
     // }
   }
 
-
   groupBy<K>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
+
   groupBy<K, U>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
     return factories.SeqOfGroups(this, keySelector, toComparableKey, valueSelector);
   }
@@ -1148,20 +1152,10 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   takeLast(count: number): Seq<T> {
     if (count <= 0) return factories.Seq<T>();
-    const self = this;
-    return this.generate(function* takeLast() {
-      const items = self.items;
-      if (SeqBase.isArray(items)) {
-        let index = items.length - count;
-        if (index < 0) index = 0;
-        for (; index < items.length; index++) {
-          yield items[index];
-        }
-      } else {
-        const buffer = new CyclicBuffer<T>(count);
-        buffer.writeMany(items);
-        yield* buffer;
-      }
+    return this.generate(function* takeLast(self) {
+      const buffer = new CyclicBuffer<T>(count);
+      buffer.writeMany(self);
+      yield* buffer;
     });
   }
 
@@ -1279,8 +1273,6 @@ export abstract class SeqBase<T> implements Seq<T> {
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T> {
     return this.concat(second).distinct(keySelector);
   }
-
-  readonly unshift = this.prepend;
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self) {
@@ -1636,19 +1628,12 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 
   writeMany(values: Iterable<T>): number {
-    if (Array.isArray(values)) {
-      this.buffer = values.slice(-this.bufferSize);
-      this.start = 0;
-      this.end = this.bufferSize - 1;
-      return values.length;
-    } else {
-      let count = 0;
-      for (const value of values) {
-        this.write(value);
-        count++;
-      }
-      return count;
+    let count = 0;
+    for (const value of values) {
+      this.write(value);
+      count++;
     }
+    return count;
   }
 }
 

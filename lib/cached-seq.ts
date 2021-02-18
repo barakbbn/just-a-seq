@@ -37,7 +37,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   tap(callback: Selector<T, void>, thisArg?: any): CachedSeq<T> {
     const tappable = this.createTappableSeq();
-    tappable.tapCallback = callback;
+    tappable.tapCallback = thisArg ? callback.bind(thisArg) : callback;
     return tappable;
   }
 

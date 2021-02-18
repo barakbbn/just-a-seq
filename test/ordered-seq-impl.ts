@@ -1,5 +1,4 @@
 import {describe} from "mocha";
-import {Seq} from "../lib";
 import {OrderedSeqImpl} from "../lib/ordered-seq";
 import {SeqBase_Deferred_GetIterator_Tests} from "./seq-base/deferred-get-iterator";
 import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
@@ -8,6 +7,8 @@ import {SeqBase_Ordering_Tests} from "./seq-base/seq-base-ordering";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
 import {DONT_COMPARE} from "../lib/common";
+import {array} from "./test-data";
+import {assert} from "chai";
 
 function createSut<T>(input: Iterable<T>): OrderedSeqImpl<T> {
   return OrderedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
@@ -40,6 +41,8 @@ class OrderedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
 
 export class OrderedSeqImpl_Tests {
 
+  protected createSut = createSut
+
   readonly run = () => describe('OrderedSeqImpl', () => {
     new OrderedSeqImpl_Deferred_GetIterator_Tests().run();
     new OrderedSeqImpl_Deferred_Tests().run();
@@ -47,6 +50,18 @@ export class OrderedSeqImpl_Tests {
     new OrderedSeqImpl_OrderedSeq_Tests().run();
     new OrderedSeqImpl_CachedSeq_Tests().run();
     new OrderedSeqImpl_Grouping_Tests().run();
+
+    describe('takeLast()', () => {
+      it('should return last item after ordering', () => {
+        const input = array.oneToTen;
+        const expected = input.slice(0, 1);
+        const sut = OrderedSeqImpl.create(input ?? [], undefined, (a, b) => b - a);
+        const last = sut.takeLast(1);
+        const actual = [...last];
+        assert.sameOrderedMembers(actual, expected);
+      });
+    });
   });
+
 }
 

@@ -1,7 +1,7 @@
 # just-a-seq
 Query functionalities over JavaScript Iterable.  
 Using a Sequence/Collection written in Typescript that wraps any Iterable object (Array, Generator function)  
-Operations are lazy/deferred and immutable (Similar to .NET LINQ) with an api that more resemble to JavaScript Array.  
+Operations are lazy/deferred and immutable (Similar to .NET LINQ) with a fluent api that more resemble to JavaScript Array.  
 ___
 ### Functionality summary
 
@@ -17,7 +17,7 @@ ___
 | chunk | split the sequence into sub sequences with fixes number of items |
 | concat | Concat several Iterables to the sequence |
 | consume | iterating over the items without performing any action |
-| count | Count number of items in the sequence either all or those that match a condition |
+| count | Count number of items in the sequence that match a condition |
 | diffDistinct | Perform diff with another sequence and keep only distinct items |
 | diff | Perform diff with another sequence |
 | distinct | Remove duplicate items |
@@ -58,6 +58,7 @@ ___
 | join | *(same as **toString**)* Join the items into a string (with some more abilities than Array.join) |
 | last | Return last item in the sequence |
 | lastIndexOf | return the index of item being searched from the end of the sequence |
+| length | return number of items in the sequence |
 | map | Like Array.map |
 | max | Return maximum value of sequence of numbers |
 | min | Return minimum value of sequence of numbers |

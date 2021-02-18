@@ -554,5 +554,4 @@ export abstract class SeqBase_Grouping_Tests {
   });
 
   protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
-
 }
