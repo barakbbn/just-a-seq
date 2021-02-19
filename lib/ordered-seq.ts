@@ -1,6 +1,6 @@
 import {Comparer, OrderedSeq, Selector} from "./seq";
 import {DONT_COMPARE, LEGACY_COMPARER, sameValueZero} from "./common";
-import {SeqBase} from "./seq-impl";
+import {SeqBase} from "./seq-base";
 
 export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T> {
   protected readonly comparer?: (a: any, b: any) => number;
@@ -47,6 +47,12 @@ export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T
     else if (aIsNullOrUndefined || bIsNullOrUndefined) return aIsNullOrUndefined ? 1 : -1;
 
     return a > b ? 1 : -1;
+  }
+
+  hasAtLeast(count: number): boolean {
+    if (count <= 0) throw new RangeError('count must be positive');
+    if (Array.isArray(this.items)) return this.items.length >= count;
+    return super.hasAtLeast(count);
   }
 
   thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {

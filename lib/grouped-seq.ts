@@ -10,7 +10,7 @@ import {
   ToComparableKey
 } from "./seq";
 import {consume, entries, Gen, IGNORED_ITEM} from "./common";
-import {SeqBase} from "./seq-impl";
+import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
   constructor(public readonly key: K, protected items: Iterable<T>) {
@@ -50,7 +50,7 @@ class GroupingSelector {
 
   selectValue(value: any, index: number): any {
     return this.values?.reduce((v, selector) => {
-      if(v === IGNORED_ITEM) return value;
+      if (v === IGNORED_ITEM) return value;
       return selector(v, index);
     }, value) ?? value;
   }
@@ -107,7 +107,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   private cacheable: boolean = false;
 
   constructor(protected source: Iterable<TIn>,
-                      protected selectors: GroupingSelector[] = []
+              protected selectors: GroupingSelector[] = []
   ) {
     super();
   }
@@ -128,6 +128,12 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
                                         valueSelector?: Selector<TIn, TOut>) {
     const selector = GroupingSelector.from(keySelector, toComparableKey, valueSelector);
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
+  }
+
+  hasAtLeast(count: number): boolean {
+    if (count <= 0) throw new RangeError('count must be positive');
+    if (Array.isArray(this.items)) return this.items.length >= count;
+    return super.hasAtLeast(count);
   }
 
   mapInGroup<U>(mapFn: Selector<TOut, U>): any {
@@ -193,9 +199,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return realMap;
   }
 
-  cache(now?:boolean): any {
+  cache(now?: boolean): any {
     if (this.cacheable) {
-      if(now && !this._cache) this.consume();
+      if (now && !this._cache) this.consume();
       return this;
     }
 
@@ -209,11 +215,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
     return instance;
   }
-
-  consume(): void {
-    consume(this);
-  }
-
 
   * [Symbol.iterator](): any {
     yield* this.sessionIterator();

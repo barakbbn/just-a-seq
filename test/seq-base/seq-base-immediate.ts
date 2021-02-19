@@ -1,7 +1,7 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
 import {array, generator, iterables} from "../test-data"
-import { SeqBase } from "../../lib/seq-impl";
+import { SeqBase } from "../../lib/seq-base";
 
 export abstract class SeqBase_Immediate_Tests {
   readonly run = () => describe('SeqBase - Immediate Execution', () => {

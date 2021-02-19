@@ -1820,7 +1820,7 @@ export abstract class SeqBase_Deferred_Tests {
           const input = array.oneToTen;
           const expected = [[], input.filter(n => n > 0)];
           const sut = this.createSut(input);
-          const split = sut.split(n => false);
+          const split = sut.split(() => false);
           const actual = [[...split[0]], [...split[1]]];
           assert.deepEqual(actual, expected);
         });

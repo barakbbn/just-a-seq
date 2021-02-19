@@ -43,30 +43,6 @@ export abstract class SeqBase_Ordering_Tests {
         actual = [...sut2.orderBy(x => x.name, comparer)];
         assert.deepEqual(actual, expected);
       });
-      // it('should call comparer function the item correct index', () => {
-      //   const input = array.zeroToNine;
-      //
-      //   const expectedA: {a: any; indexA: number;}[] = [];
-      //   const expectedB: {b: any; indexB: number;}[] = [];
-      //   [...input].sort((a, b) => {
-      //     expectedA.push({a, indexA: a});
-      //     expectedB.push({b, indexB: b});
-      //     return a - b;
-      //   });
-      //
-      //   const actualA: {a: any; indexA: number;}[] = [];
-      //   const actualB: {b: any; indexB: number;}[] = [];
-      //
-      //   const sut = new OrderedSeqImpl(input, (a, b, indexA, indexB) => {
-      //     actualA.push({a, indexA});
-      //     actualB.push({b, indexB});
-      //     return b-a;
-      //   });
-      //
-      //   const actual = [...sut];
-      //   assert.deepEqual(actualA, expectedA);
-      //   assert.deepEqual(actualB, expectedB);
-      // });
     });
 
     describe('orderByDescending', () => {
