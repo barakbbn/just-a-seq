@@ -8,7 +8,6 @@ export type Comparer<T> = (a: T, b: T) => number;
 export type ComparableType = string | number | boolean | undefined | null;
 export type ToComparableKey<T> = (x: T) => ComparableType;
 export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
-export type SkipFirst<Ks extends any[]> = Ks extends [infer Head, ...infer Tail] ? Tail extends any[] ? Tail : Head : never;
 export type Iterables<Ts extends any[]> = { [k in keyof Ts]: Iterable<Ts[k]> }
 
 export interface Seq<T> extends Iterable<T> {
@@ -40,9 +39,9 @@ export interface Seq<T> extends Iterable<T> {
 
   count(condition?: Condition<T>): number;
 
-  diffDistinct<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
-
   diff<K = T>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
+
+  diffDistinct<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
 
   distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
 
@@ -75,13 +74,7 @@ export interface Seq<T> extends Iterable<T> {
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
 
-  // flatMapTree<R = T>(getNext: Selector<T, T | undefined>, resultSelector?: (x: T, index: number) => R, stopCondition?: Condition<T>): Seq<T>;
-  //
-  // flatMapTree<U = T, R = T>(getNext: Selector<T, U | undefined>, continueWhile: Condition<U>, resultSelector: (x: U, index: number) => R): Seq<R>;
-
   flatMap<R>(selector?: Selector<T, Iterable<R>>): Seq<R>; // JS2019, Scala
-
-  // forEachTree<U = T>(getNext: Selector<T, U | undefined>, stopCondition: Condition<U>, callback: (x: U, index: number) => void): void;
 
   flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 

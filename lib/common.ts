@@ -94,3 +94,4 @@ export function consume(iterable: Iterable<any>): void {
 export const IGNORED_ITEM: any = {};
 export const LEGACY_COMPARER: any = {};
 export const DONT_COMPARE: any = {};
+export const EMPTY_ARRAY: any[] = []

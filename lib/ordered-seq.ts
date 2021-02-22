@@ -1,11 +1,11 @@
 import {Comparer, OrderedSeq, Selector} from "./seq";
-import {DONT_COMPARE, LEGACY_COMPARER, sameValueZero} from "./common";
+import {DONT_COMPARE, EMPTY_ARRAY, LEGACY_COMPARER, sameValueZero} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T> {
   protected readonly comparer?: (a: any, b: any) => number;
 
-  constructor(protected readonly items: Iterable<T> = [],
+  constructor(protected readonly items: Iterable<T> = EMPTY_ARRAY,
               comparer?: (a: K, b: K) => number) {
     super();
     this.comparer = comparer;
@@ -73,7 +73,8 @@ export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T
       return;
     }
     const array = [...this.items];
-    yield* array.sort(this.comparer as Comparer<T>);
+    const sorted = array.sort(this.comparer as Comparer<T>);
+    yield* sorted;
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer?: Comparer<K>, descending: boolean = false): OrderedSeq<T> {

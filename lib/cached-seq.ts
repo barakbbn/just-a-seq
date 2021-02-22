@@ -14,12 +14,6 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return this.getCached();
   }
 
-  protected get items(): Iterable<T> {
-    return this.source;
-    // if (this._cache !== undefined) return this._cache;
-    // return this._cache = SeqBase.isArray(this.source) ? this.source : [...this.source];
-  }
-
   static create<T>(source: Iterable<T>): CachedSeqImpl<T> {
     return new CachedSeqImpl<T>(source);
   }
@@ -75,7 +69,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   startsWith<K>(items: Iterable<T>, keySelector: Selector<T, K> = t => t as unknown as K): boolean {
     const array = this.array;
-    if (SeqBase.isArray(items)) {
+    if (Array.isArray(items)) {
       if (items.length === 0) return true;
       if (array.length < items.length) return false;
     }
@@ -104,7 +98,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   private getCached(): T[] {
     if (this._cache) return this._cache;
-    if (SeqBase.isArray(this.source)) this._cache = this.source;
+    if (Array.isArray(this.source)) this._cache = this.source;
     if (isCachedSeq(this.source)) this._cache = this.source.array as T[];
     else this._cache = [...this.source];
     return this._cache;

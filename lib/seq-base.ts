@@ -30,12 +30,6 @@ export abstract class SeqBase<T> implements Seq<T> {
   readonly length = this.count;
   readonly unshift = this.prepend;
 
-  protected abstract get items(): Iterable<T>;
-
-  protected static isArray<T>(items: Iterable<T>): items is Array<T> {
-    return Array.isArray(items);
-  }
-
   all(condition: Condition<T>): boolean {
     let index = 0;
     for (const item of this) if (!condition(item, index++)) return false;
@@ -96,7 +90,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1) return factories.Seq<Seq<T>>();
     return this.generate(function* chunk(items) {
-      if (SeqBase.isArray(items)) {
+      if (Array.isArray(items)) {
         for (let skip = 0; skip < items.length; skip += size) {
           yield factories.Seq<T>(items.slice(skip, skip + size));
         }
@@ -222,7 +216,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   endsWith<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean {
-    const first = mapAsArray<T, K>(this.items, keySelector);
+    const first = mapAsArray<T, K>(this, keySelector);
     const second = mapAsArray<T, K>(items, keySelector);
 
     let offset = first.length - second.length;
@@ -234,12 +228,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   every(condition: Condition<T>): boolean {
-    let index = 0;
-    for (const item of this) {
-      if (!condition(item, index++)) return false;
-    }
-
-    return true;
+    return this.all(condition);
   }
 
   entries(): Seq<[number, T]> {
@@ -766,11 +755,11 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-    return factories.OrderedSeq(this.items, keySelector, comparer);
+    return factories.OrderedSeq(this, keySelector, comparer);
   }
 
   orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-    return factories.OrderedSeq(this.items, keySelector, comparer, true);
+    return factories.OrderedSeq(this, keySelector, comparer, true);
   }
 
   prepend(...items: T[]): Seq<T>;
@@ -1008,12 +997,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   some(condition: Condition<T> = () => true): boolean {
-    let index = 0;
-    for (const item of this) {
-      if (condition(item, index++)) return true;
-    }
-
-    return false;
+    return this.any(condition);
   }
 
   sort(comparer?: Comparer<T>): OrderedSeq<T> {
@@ -1035,7 +1019,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   startsWith<K>(items: Iterable<T>, keySelector: Selector<T, K> = t => t as unknown as K): boolean {
-    if (SeqBase.isArray(items) && items.length === 0) return true;
+    if (Array.isArray(items) && items.length === 0) return true;
 
     let index = 0;
     const secondIterator = getIterator(items);
@@ -1079,7 +1063,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   takeLast(count: number): Seq<T> {
     if (count <= 0) return factories.Seq<T>();
     return this.generate(function* takeLast(items) {
-      if (SeqBase.isArray(items)) {
+      if (Array.isArray(items)) {
         let index = items.length - count;
         if (index < 0) index = 0;
         for (; index < items.length; index++) {
@@ -1150,7 +1134,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   toArray(): T[] {
-    return [...this.items];
+    return [...this];
   }
 
   toMap<K, V>(keySelector: Selector<T, K>, valueSelector: Selector<T, V> = t => t as unknown as V, toStringKey?: ToComparableKey<K>): Map<K, V> {
@@ -1212,10 +1196,10 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.generate(function* zip(self) {
       const allIterables: any[] = [self, items, ...moreItems];
       const iterables = allIterables.map(getIterator);
-      let nexts = iterables.map(it => it.next());
-      while (nexts.every(next => !next.done)) {
-        yield nexts.map(next => next.value);
-        nexts = iterables.map(it => it.next());
+      let next = iterables.map(it => it.next());
+      while (next.every(next => !next.done)) {
+        yield next.map(next => next.value);
+        next = iterables.map(it => it.next());
       }
     }) as any;
   }
@@ -1235,10 +1219,10 @@ export abstract class SeqBase<T> implements Seq<T> {
       }
       const defaults = opts?.defaults ?? [];
       const iterables = allIterables.map(getIterator);
-      let nexts = iterables.map(it => it.next());
-      while (!nexts.every(next => next.done)) {
-        yield nexts.map((next, i) => next.done ? defaults[i] : next.value);
-        nexts = iterables.map(it => it.next());
+      let next = iterables.map(it => it.next());
+      while (!next.every(next => next.done)) {
+        yield next.map((next, i) => next.done ? defaults[i] : next.value);
+        next = iterables.map(it => it.next());
       }
     });
 
@@ -1249,9 +1233,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.map((item, index) => [item, index]);
   }
 
-  [Symbol.iterator](): Iterator<T> {
-    return this.items[Symbol.iterator]();
-  }
+  abstract [Symbol.iterator](): Iterator<T>;
 
   findSubSequence<K = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: Selector<T, K>): [number, number] {
     // console.log(`includesSubSequence()`);

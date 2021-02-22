@@ -9,7 +9,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
-import {consume, entries, Gen, IGNORED_ITEM} from "./common";
+import {entries, Gen, IGNORED_ITEM} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
@@ -29,6 +29,10 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
     return new GroupedSeqImpl<K, U>(this.key, new Gen(this, function* map(self: Iterable<T>) {
       for (const {value, index} of entries(self)) yield mapFn(value, index);
     }));
+  }
+
+  [Symbol.iterator](): Iterator<T> {
+    return this.items[Symbol.iterator]();
   }
 }
 
@@ -118,10 +122,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return this._cache;
   }
 
-  protected get items(): Iterable<MultiGroupedSeq<Ks, TOut>> {
-    return this;
-  }
-
   static create<K, TIn = K, TOut = TIn>(source: Iterable<TIn>,
                                         keySelector?: Selector<TIn, K>,
                                         toComparableKey?: ToComparableKey<K>,
@@ -130,9 +130,26 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
+  cache(now?: boolean): any {
+    if (this.cacheable) {
+      if (now && !this._cache) this.consume();
+      return this;
+    }
+
+    const instance = new SeqOfMultiGroupsImpl(
+      this.source,
+      this.selectors
+    );
+    instance.cacheable = true;
+    instance.tapCallbacks = this.tapCallbacks;
+    instance.key = this.key;
+
+    return instance;
+  }
+
   hasAtLeast(count: number): boolean {
     if (count <= 0) throw new RangeError('count must be positive');
-    if (Array.isArray(this.items)) return this.items.length >= count;
+    if (Array.isArray(this.source)) return this.source.length >= count;
     return super.hasAtLeast(count);
   }
 
@@ -199,26 +216,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return realMap;
   }
 
-  cache(now?: boolean): any {
-    if (this.cacheable) {
-      if (now && !this._cache) this.consume();
-      return this;
-    }
-
-    const instance = new SeqOfMultiGroupsImpl(
-      this.source,
-      this.selectors
-    );
-    instance.cacheable = true;
-    instance.tapCallbacks = this.tapCallbacks;
-    instance.key = this.key;
-
-    return instance;
-  }
-
-  * [Symbol.iterator](): any {
-    yield* this.sessionIterator();
-    // yield *this.lazyIterator();
+  [Symbol.iterator](): any {
+    return this.sessionIterator();
+    // return this.lazyIterator();
   }
 
   // private* lazyIterator(): any {

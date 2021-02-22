@@ -1,57 +1,76 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
-import {array, generator, iterables} from "../test-data"
+import {array, generator, iterables, Sample} from "../test-data"
 import { SeqBase } from "../../lib/seq-base";
 
 export abstract class SeqBase_Immediate_Tests {
   readonly run = () => describe('SeqBase - Immediate Execution', () => {
     describe('all()', () => {
       it("Return true on empty sequence", () => {
-        const sut = this.createSut([]);
+        const sut = this.createSut();
+        const sut2 = this.createSut(generator.from([]));
         const actual = sut.all(() => false);
+        const actual2 = sut2.all(() => false);
         assert.isTrue(actual);
+        assert.isTrue(actual2);
       });
 
       describe("On non-empty sequence", () => {
         it("Return true if all items match a condition", () => {
           const alwaysTrueCondition = () => true;
-          const sut = this.createSut(array.oneToTen);
-
-          assert.isTrue(sut.all(alwaysTrueCondition));
+          const input = array.oneToTen;
+          const sut = this.createSut(input);
+          const sut2 = this.createSut(generator.from(input));
+          const actual = sut.all(alwaysTrueCondition);
+          const actual2 = sut2.all(alwaysTrueCondition);
+          assert.isTrue(actual);
+          assert.isTrue(actual2);
         });
 
         it("Return false if at least one item doesn't pass the condition", () => {
 
           const alwaysFalseCondition = () => false;
           const sut = this.createSut(iterables.truthyValues);
+          const sut2 = this.createSut(array.truthyValues);
 
           assert.isFalse(sut.all(alwaysFalseCondition));
+          assert.isFalse(sut2.all(alwaysFalseCondition));
         });
 
         it("Return false if condition return falsy value", () => {
           const falsyValue = 0;
           const nonEmpty = [...array.oneToTen, falsyValue];
           const sut = this.createSut(nonEmpty);
+          const sut2 = this.createSut(generator.from(nonEmpty));
 
           const actual = sut.all(value => value);
+          const actual2 = sut2.all(value => value);
           assert.isFalse(actual);
+          assert.isFalse(actual2);
         });
 
         it("Return true if condition return truthy value for all items", () => {
           const sut = this.createSut(array.truthyValues);
+          const sut2 = this.createSut(iterables.truthyValues);
 
           const actual = sut.all(value => value);
+          const actual2 = sut2.all(value => value);
           assert.isTrue(actual);
+          assert.isTrue(actual2);
         });
 
         it('should call condition with expected item and index', () => {
           const expected = array.oneToTen.map((x, i) => ({x, i}));
           const actual: { x: number, i: number }[] = [];
+          const actual2: { x: number, i: number }[] = [];
 
           const sut = this.createSut(array.oneToTen);
+          const sut2 = this.createSut(iterables.oneToTen);
 
           sut.all((x, i) => actual.push({x, i}) + 1);
+          sut2.all((x, i) => actual2.push({x, i}) + 1);
           assert.sameDeepOrderedMembers(actual, expected);
+          assert.sameDeepOrderedMembers(actual2, expected);
         });
       });
     });
@@ -131,41 +150,54 @@ export abstract class SeqBase_Immediate_Tests {
 
       it("Return default value at non-existing index", () => {
         const input = array.zeroToNine;
-        const sut = this.createSut(generator.from(input));
+        const sut = this.createSut(input);
+        const sut2 = this.createSut(generator.from(input));
         const expectedValueNotInSequence = -1;
         const outOfRangeIndex = input.length + 2;
         let actual = sut.at(outOfRangeIndex, expectedValueNotInSequence);
+        let actual2 = sut2.at(outOfRangeIndex, expectedValueNotInSequence);
 
         assert.equal(actual, expectedValueNotInSequence);
+        assert.equal(actual2, expectedValueNotInSequence);
 
         const negativeIndex = -outOfRangeIndex;
         actual = sut.at(negativeIndex, expectedValueNotInSequence);
+        actual2 = sut2.at(negativeIndex, expectedValueNotInSequence);
 
         assert.equal(actual, expectedValueNotInSequence);
+        assert.equal(actual2, expectedValueNotInSequence);
       });
 
       it("Return undefined at non-existing index when no default value specified", () => {
         const input = array.zeroToNine;
         const sut = this.createSut(input);
+        const sut2 = this.createSut(generator.from(input));
 
         const outOfRangeIndex = input.length;
         let actual = sut.at(outOfRangeIndex);
+        let actual2 = sut2.at(outOfRangeIndex);
         assert.isUndefined(actual);
+        assert.isUndefined(actual2);
 
         const negativeIndex = -outOfRangeIndex - 2;
         actual = sut.at(negativeIndex);
+        actual2 = sut2.at(negativeIndex);
 
         assert.isUndefined(actual);
+        assert.isUndefined(actual2);
       });
 
       it('when index is negative, should return an item from the end of the sequence', () => {
         const input = array.zeroToNine;
         const expected = input.slice();
-        const sut = this.createSut(generator.from(input));
+        const sut = this.createSut(input);
+        const sut2 = this.createSut(generator.from(input));
         expected.forEach((exp, index) => {
           const negativeIndex = -expected.length + index;
           const actual = sut.at(negativeIndex);
+          const actual2 = sut2.at(negativeIndex);
           assert.equal(actual, exp);
+          assert.equal(actual2, exp);
         });
       });
     });
@@ -199,13 +231,25 @@ export abstract class SeqBase_Immediate_Tests {
         assert.sameDeepOrderedMembers(input, array.grades);
       });
 
-      it('should NaN on empty sequence', () => {
-        const sut = this.createSut<number>();
-        const actual = sut.average();
+      it('should return NaN on empty sequence', () => {
+        let sut = this.createSut<number>();
+        let actual = sut.average();
+        assert.isNaN(actual);
+        sut = this.createSut<number>([]);
+        actual = sut.average();
+        assert.isNaN(actual);
+        sut = this.createSut<number>(generator.from([]));
+        actual = sut.average();
         assert.isNaN(actual);
 
-        const sut2 = this.createSut<{ age: number; }>();
-        const actual2 = sut2.average(x => x.age);
+        let sut2 = this.createSut<{ age: number; }>();
+        let actual2 = sut2.average(x => x.age);
+        assert.isNaN(actual2);
+        sut2 = this.createSut<{ age: number; }>([]);
+        actual2 = sut2.average(x => x.age);
+        assert.isNaN(actual2);
+        sut2 = this.createSut<{ age: number; }>(generator.from([]));
+        actual2 = sut2.average(x => x.age);
         assert.isNaN(actual2);
       });
     });
@@ -295,8 +339,12 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith);
           assert.isFalse(actual);
+          actual = sut.endsWith(generator.from(endsWith));
+          assert.isFalse(actual);
 
           sut = this.createSut(generator.from(input));
+          actual = sut.endsWith(endsWith);
+          assert.isFalse(actual);
           actual = sut.endsWith(generator.from(endsWith));
           assert.isFalse(actual);
         });
@@ -307,9 +355,13 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith);
           assert.isTrue(actual);
+          actual = sut.endsWith(generator.from(endsWith));
+          assert.isTrue(actual);
 
           sut = this.createSut(generator.from(input));
           actual = sut.endsWith(generator.from(endsWith));
+          assert.isTrue(actual);
+          actual = sut.endsWith(endsWith);
           assert.isTrue(actual);
         });
 
@@ -319,42 +371,61 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith);
           assert.isFalse(actual);
+          actual = sut.endsWith(generator.from(endsWith));
+          assert.isFalse(actual);
 
           sut = this.createSut(generator.from(input));
           actual = sut.endsWith(generator.from(endsWith));
           assert.isFalse(actual);
+          actual = sut.endsWith(endsWith);
+          assert.isFalse(actual);
         });
 
         it('should return true if items to check for is an empty sequence', () => {
-          let emptyItems: Iterable<any> = [];
+          const emptyItems: number[] = [];
+          const emptyItemsGenerator = generator.from(emptyItems);
 
           const sut = this.createSut(array.oneToTen);
           let actual = sut.endsWith(emptyItems);
+          assert.isTrue(actual);
+          actual = sut.endsWith(emptyItemsGenerator);
           assert.isTrue(actual);
 
           const generatorOfNumbersSut = this.createSut(generator.from(array.oneToTen));
           actual = generatorOfNumbersSut.endsWith(emptyItems);
           assert.isTrue(actual);
+          actual = generatorOfNumbersSut.endsWith(emptyItemsGenerator);
+          assert.isTrue(actual);
 
           const emptyArraySut = this.createSut(emptyItems);
           actual = emptyArraySut.endsWith(emptyItems);
           assert.isTrue(actual);
+          actual = emptyArraySut.endsWith(emptyItemsGenerator);
+          assert.isTrue(actual);
 
           const emptySequenceSut = this.createSut();
           actual = emptySequenceSut.endsWith(emptyItems);
+          assert.isTrue(actual);
+          actual = emptySequenceSut.endsWith(emptyItemsGenerator);
           assert.isTrue(actual);
         });
 
         it('should return true if sequence is checked with itself', () => {
           const input = array.oneToTen;
 
-          let sut = this.createSut(input);
+          const sut = this.createSut(input);
           let actual = sut.endsWith(sut);
           assert.isTrue(actual);
 
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(sut);
+          const sut2 = this.createSut(generator.from(input));
+          let actual2 = sut2.endsWith(sut);
+          assert.isTrue(actual2);
+
+          actual = sut.endsWith(sut2);
           assert.isTrue(actual);
+
+          actual2 = sut2.endsWith(sut);
+          assert.isTrue(actual2);
         });
       });
 
@@ -365,9 +436,13 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith, x => x.grade);
           assert.isFalse(actual);
+          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
+          assert.isFalse(actual);
 
           sut = this.createSut(generator.from(input));
           actual = sut.endsWith(generator.from(endsWith), x => x.grade);
+          assert.isFalse(actual);
+          actual = sut.endsWith(endsWith, x => x.grade);
           assert.isFalse(actual);
         });
 
@@ -377,9 +452,13 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith, x => x.grade);
           assert.isTrue(actual);
+          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
+          assert.isTrue(actual);
 
           sut = this.createSut(generator.from(input));
           actual = sut.endsWith(generator.from(endsWith), x => x.grade);
+          assert.isTrue(actual);
+          actual = sut.endsWith(endsWith, x => x.grade);
           assert.isTrue(actual);
         });
 
@@ -389,20 +468,28 @@ export abstract class SeqBase_Immediate_Tests {
           let sut = this.createSut(input);
           let actual = sut.endsWith(endsWith, x => x.grade);
           assert.isFalse(actual);
+          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
+          assert.isFalse(actual);
 
           sut = this.createSut(generator.from(input));
           actual = sut.endsWith(generator.from(endsWith), x => x.grade);
           assert.isFalse(actual);
+          actual = sut.endsWith(endsWith, x => x.grade);
+          assert.isFalse(actual);
         });
 
         it('should return true if items to check for is an empty sequence', () => {
-          let emptyItems: Iterable<any> = [];
+          let emptyItems: Sample[] = [];
 
-          const sut = this.createSut(array.grades);
+          const sut = this.createSut(array.samples);
           let actual = sut.endsWith(emptyItems);
           assert.isTrue(actual);
+          actual = sut.endsWith(generator.from(emptyItems));
+          assert.isTrue(actual);
 
-          const generatorOfNumbersSut = this.createSut(generator.from(array.grades));
+          const generatorOfNumbersSut = this.createSut(generator.from(array.samples));
+          actual = generatorOfNumbersSut.endsWith(generator.from(emptyItems));
+          assert.isTrue(actual);
           actual = generatorOfNumbersSut.endsWith(emptyItems);
           assert.isTrue(actual);
         });
@@ -410,15 +497,20 @@ export abstract class SeqBase_Immediate_Tests {
         it('should return true if sequence is checked with itself', () => {
           const input = array.grades;
 
-          let sut = this.createSut(input);
+          const sut = this.createSut(input);
           let actual = sut.endsWith(sut, x => x.grade);
           assert.isTrue(actual);
 
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(sut, x => x.grade);
-          assert.isTrue(actual);
-        });
+          const sut2 = this.createSut(generator.from(input));
+          let actual2 = sut2.endsWith(sut2, x => x.grade);
+          assert.isTrue(actual2);
 
+          actual = sut.endsWith(sut2, x => x.grade);
+          assert.isTrue(actual);
+
+          actual2 = sut2.endsWith(sut, x => x.grade);
+          assert.isTrue(actual2);
+        });
       });
     });
 

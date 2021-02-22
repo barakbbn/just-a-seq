@@ -11,7 +11,6 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
           return [0][Symbol.iterator]();
         }
       };
-      asSeq(iterable);
       const seq = this.createSut(iterable);
       onSeq(seq);
       assert.isFalse(iterable.getIteratorWasCalled);

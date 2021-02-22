@@ -1,10 +1,10 @@
-import {Gen} from './common'
+import {EMPTY_ARRAY, Gen} from './common'
 
 import {CachedSeq, Condition, factories, Selector, Seq} from './seq'
 import {SeqBase} from "./seq-base";
 
 export class SeqImpl<T = any> extends SeqBase<T> {
-  constructor(protected readonly items: Iterable<T> = []) {
+  constructor(protected readonly items: Iterable<T> = EMPTY_ARRAY) {
     super();
   }
 
@@ -13,7 +13,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   at(index: number, fallback?: T): T | undefined {
-    if (SeqBase.isArray(this.items)) {
+    if (Array.isArray(this.items)) {
       if (index < 0) index = this.items.length + index;
       if (index < 0) return fallback;
       return this.items[index] ?? fallback;
@@ -40,7 +40,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   includes(itemToFind: T, fromIndex: number = 0): boolean {
-    if (SeqBase.isArray(this.items)) {
+    if (Array.isArray(this.items)) {
       return this.items.includes(itemToFind, fromIndex);
     }
     return super.includes(itemToFind, fromIndex);
@@ -80,7 +80,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   skip(count: number): Seq<T> {
-    if (SeqBase.isArray(this.items)) return factories.Seq<T>(this.items.slice(count));
+    if (Array.isArray(this.items)) return factories.Seq<T>(this.items.slice(count));
     return super.skip(count);
   }
 
@@ -92,7 +92,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   startsWith<K>(items: Iterable<T>, keySelector: Selector<T, K> = t => t as unknown as K): boolean {
-    if (SeqBase.isArray(this.items) && SeqBase.isArray(items)) {
+    if (Array.isArray(this.items) && Array.isArray(items)) {
       if (items.length === 0) return true;
       if (this.items.length < items.length) return false;
     }
@@ -100,7 +100,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   take(count: number): Seq<T> {
-    if (SeqBase.isArray(this.items)) return factories.Seq<T>(this.items.slice(0, count));
+    if (Array.isArray(this.items)) return factories.Seq<T>(this.items.slice(0, count));
     return super.take(count);
   }
 
@@ -134,7 +134,11 @@ export class SeqImpl<T = any> extends SeqBase<T> {
   }
 
   protected joinInternal(start: string, separator: string, end: string): string {
-    return start + ((SeqBase.isArray(this.items)) ? this.items : [...this]).join(separator) + end;
+    return start + ((Array.isArray(this.items)) ? this.items : [...this]).join(separator) + end;
+  }
+
+  [Symbol.iterator](): Iterator<T> {
+    return this.items[Symbol.iterator]();
   }
 }
 
