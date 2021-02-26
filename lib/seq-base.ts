@@ -287,7 +287,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     const level = depth ?? 1;
 
     function* flatten<U>(maybeIterable: U, level: number): any {
-      if (level >= 0 && typeof maybeIterable !== 'string' && isIterable(maybeIterable)) {
+      if (level >= 0 && isIterable(maybeIterable, true)) {
         for (const item of maybeIterable) {
           yield* flatten(item, level - 1);
         }
@@ -299,23 +299,21 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  flatMap<R>(selector?: Selector<T, Iterable<R>>): Seq<R>;
-
-  flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;
-
-  flatMap<U, R = U>(selector?: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
-    return factories.Seq(this.generate(function* flatMap(items) {
+  flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
+    return this.generate(function* flatMap(items) {
       let index = 0;
       for (const item of items) {
-        const subItems = selector ? selector(item, index++) : isIterable<U>(item) ? item : undefined;
+        const subItems = selector(item, index++);
         if (subItems) {
           if (mapResult) {
             let subIndex = 0;
             for (const subItem of subItems) yield mapResult(subItem, item, subIndex++);
-          } else yield* (subItems as unknown as Iterable<R>);
+
+          } else if(isIterable(subItems, true)) yield* (subItems as unknown as Iterable<R>);
+          else yield subItems;
         }
       }
-    }));
+    });
   }
 
   forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void {
@@ -500,7 +498,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     if (!items || items.length === 0) return this;
 
     return this.generate(function* insert(self) {
-      const toInsert = (items.length === 1 && typeof items[0] !== 'string' && isIterable(items[0])) ? items[0] as Iterable<T> : items as T[];
+      const toInsert = (items.length === 1 && isIterable(items[0], true)) ? items[0] as Iterable<T> : items as T[];
       let index = -1;
       if (atIndex < 0) atIndex = 0;
       for (const item of self) {
@@ -520,7 +518,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     if (!items || items.length === 0) return this;
 
     return this.generate(function* insertBefore(self) {
-      const toInsert = (items.length === 1 && typeof items[0] !== 'string' && isIterable(items[0])) ? items[0] as Iterable<T> : items as T[];
+      const toInsert = (items.length === 1 && isIterable(items[0], true)) ? items[0] as Iterable<T> : items as T[];
       let index = 0;
       const iterator = getIterator(self);
       let next = iterator.next();
@@ -545,7 +543,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     if (!items || items.length === 0) return this;
 
     return this.generate(function* insertAfter(self) {
-      const toInsert = (items.length === 1 && typeof items[0] !== 'string' && isIterable(items[0])) ? items[0] as Iterable<T> : items as T[];
+      const toInsert = (items.length === 1 && isIterable(items[0], true)) ? items[0] as Iterable<T> : items as T[];
       let index = 0;
       const iterator = getIterator(self);
       let next = iterator.next();

@@ -84,8 +84,6 @@ export interface Seq<T> extends Iterable<T> {
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
-  flatMap<R>(selector?: Selector<T, Iterable<R>>): Seq<R>; // JS2019, Scala
-
   flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
   forEach(callback: (x: T, index: number, breakLoop: object) => void, thisArg?: any): void;

@@ -10,6 +10,47 @@ export abstract class SeqBase_Deferred_Tests {
     it(title + ' - sequence source', () => testFn(this.createSut(input)));
   }
 
+  its1<T>(title: string, input: T[][], testFn: (input: Iterable<Iterable<T>>) => void) {
+    let first = input[0];
+    let last = input.length > 1 ? input[input.length - 1] : undefined;
+    const entitle = (baseTitle: string, iterables: Iterable<Iterable<T>>) => {
+      let f = [...iterables][0];
+      let s = [...iterables].slice(-1)[0];
+      const firstType = Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence';
+      const secondType = s ? Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence' : undefined;
+      return `${baseTitle} - [${firstType}, ..., ${secondType}]`
+    }
+
+    if (!last) {
+      it(title + ' - array', () => testFn(input));
+      it(title + ' - generator source', () => testFn(generator.from(input)));
+      it(title + ' - sequence source', () => testFn(this.createSut(input)));
+
+    } else {
+      let iterables: Iterable<Iterable<T>>;
+      iterables = [first, ...input.slice(1, -1), last];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [first, ...input.slice(1, -1), generator.from(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [first, ...input.slice(1, -1), this.createSut(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+
+      iterables = [generator.from(first), ...input.slice(1, -1), last];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [generator.from(first), ...input.slice(1, -1), generator.from(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [generator.from(first), ...input.slice(1, -1), this.createSut(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+
+      iterables = [this.createSut(first), ...input.slice(1, -1), last];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [this.createSut(first), ...input.slice(1, -1), generator.from(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+      iterables = [this.createSut(first), ...input.slice(1, -1), this.createSut(last)];
+      it(entitle(title, iterables), () => testFn(iterables));
+    }
+  }
+
   it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
     it(title + ' - first array, second array', () => testFn(first, second));
     it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
@@ -615,6 +656,7 @@ export abstract class SeqBase_Deferred_Tests {
         function* split(toSplit: any[]) {
           for (let i = 0; i < toSplit.length; i += itemsPerUnit) yield toSplit.slice(i, i + itemsPerUnit);
         }
+
         let results = items;
         for (let level = 0; level < depth; level++) results = [...split(results)]
         return results;
@@ -627,13 +669,13 @@ export abstract class SeqBase_Deferred_Tests {
         const actual = [...sut.flat()];
         assert.deepEqual(actual, expected);
 
-        const depth2 = [[1, 2], [3, 4], [5, 6],[7,8],[9,10]];
+        const depth2 = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]];
         const expected2 = array.oneToTen;
         const sut2 = this.createSut(depth2);
         const actual2 = [...sut2.flat()];
         assert.deepEqual(actual2, expected2);
 
-        const depth3 = [[[1, 2], [3, 4]], [[5, 6],[7,8]],[[9,10]]];
+        const depth3 = [[[1, 2], [3, 4]], [[5, 6], [7, 8]], [[9, 10]]];
         const expected3 = depth2;
         const sut3 = this.createSut(depth3);
         const actual3 = [...sut3.flat()];
@@ -656,23 +698,36 @@ export abstract class SeqBase_Deferred_Tests {
 
       });
 
-      it('should flatten a sequence with sequences of mixed depths, by specified depth', function () {
+      it('should flatten a sequence with sequences of mixed depths, by specified depth', () => {
+      });
 
+      this.it1('should return empty sequence if all items have empty sub sequence', [[], [], []], (input) => {
+        const expected: any[] = [];
+        let sut = this.createSut(input);
+        let actual = [...sut.flat(2)];
+        assert.sameOrderedMembers(actual, expected);
       });
     });
 
     describe("flatMap()", () => {
-      this.it1('should flattened items from a sequence of items having child items', [array.oneToTen, array.abc, array.truthyValues, array.falsyValues], (input) => {
+      this.it1('should flattened items from a sequence of items having child items - strings', array.strings, (input) => {
         const expected = [...input].slice(0, 0).concat(...input);
         let sut = this.createSut(input);
-        let actual = [...sut.flatMap()];
+        let actual = [...sut.flatMap(x => x)];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should flattened items from a sequence of items having child items - objects', array.folders, (input) => {
+        const expected = [...input].slice(0, 0).concat(...[...input].map(f => f.subFolders));
+        let sut = this.createSut(input);
+        let actual = [...sut.flatMap(f => f.subFolders)];
         assert.deepEqual(actual, expected);
       });
 
       this.it1('should return empty sequence if all items have empty sub sequence', [[], [], []], (input) => {
         const expected: any[] = [];
         let sut = this.createSut(input);
-        let actual = [...sut.flatMap()];
+        let actual = [...sut.flatMap(x => x)];
         assert.sameOrderedMembers(actual, expected);
       });
 
@@ -687,7 +742,7 @@ export abstract class SeqBase_Deferred_Tests {
         this.it1('should return empty sequence if all items have empty children sequence', [new Folder("1"), new Folder('2'), new Folder('2')], (input) => {
           const expected: string[] = [];
           let sut = this.createSut(input);
-          let actual = [...sut.flatMap()];
+          let actual = [...sut.flatMap(f => f.subFolders)];
           assert.sameDeepOrderedMembers(actual, expected);
         });
       });

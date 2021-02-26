@@ -76,6 +76,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
       });
     });
 
+    describe('flat()', () => {
+      it('should not get iterator', function () {
+        testGetIterator(sut => sut.flat(5));
+      });
+    });
+
     describe('flatMap()', () => {
       it('should not get iterator', function () {
         testGetIterator(sut => sut.flatMap(() => [1, 2]));

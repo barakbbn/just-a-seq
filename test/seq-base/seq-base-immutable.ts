@@ -38,6 +38,7 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('findLast()', array.oneToTen, seq => seq.findLast(() => false));
     testImmutable('first()', array.oneToTen, seq => seq.first(-1));
     testImmutable('firstAndRest()', array.oneToTen, seq => seq.firstAndRest(-1)[1]);
+    testImmutable('flat()', array.strings, seq => seq.flat(3));
     testImmutable('flatMap()', array.folders, seq => seq.flatMap(f => f.subFolders));
     testImmutable('forEach()', array.oneToTen, seq => seq.forEach(n => n));
     testImmutable('groupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3));
