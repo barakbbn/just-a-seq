@@ -301,16 +301,14 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
     return this.generate(function* flatMap(items) {
-      let index = 0;
-      for (const item of items) {
-        const subItems = selector(item, index++);
-        if (subItems) {
-          if (mapResult) {
-            let subIndex = 0;
-            for (const subItem of subItems) yield mapResult(subItem, item, subIndex++);
-
-          } else if(isIterable(subItems, true)) yield* (subItems as unknown as Iterable<R>);
-          else yield subItems;
+      for (const {value, index} of entries(items)) {
+        const subItems = selector(value, index);
+        if (!isIterable(subItems, true)) {
+          const finalValue = mapResult?.(subItems, value, index) ?? subItems as unknown as R;
+          yield finalValue;
+        } else for (const {value: subValue, index: subIndex} of entries(subItems)) {
+          const finalValue = mapResult?.(subValue, value, subIndex) ?? subValue as unknown as R;
+          yield finalValue;
         }
       }
     });
