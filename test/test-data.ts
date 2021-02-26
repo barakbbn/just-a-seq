@@ -35,6 +35,10 @@ export const array = new class {
     return ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
   }
 
+  get strings(): string[] {
+    return ['boolean', 'string', 'number', 'symbol', 'null', 'undefined', '', 'object','array',' '];
+  }
+
   get grades(): { name: string; grade: number; }[] {
     return [
       {name: "0", grade: 0},

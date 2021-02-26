@@ -1,8 +1,26 @@
 # just-a-seq
-Query functionalities over JavaScript Iterable.  
-Using a Sequence/Collection written in Typescript that wraps any Iterable object (Array, Generator function)  
-Operations are lazy/deferred and immutable (Similar to .NET LINQ) with a fluent api that more resemble to JavaScript Array.  
+
+This is just a **sequence** that wraps an array or other Iterable object, Generator function.  
+It provides query functionalities and helpers over the items.  
 ___
+### Features
+* Typescript type definitions
+* Lazy/Deferred and immutable functionalities, similar to .NET LINQ
+* Fluent API - chain functions calls that only really work when iterating the items or performing a consuming action
+* API that more resemble to JavaScript Array  
+  (Since most existing libraries already mimics .Net IEnumerable).
+* Additional useful functionalities that can make you more productive.
+
+#### Examples
+```typescript
+interface ArrayMethod {name: string; mutable?: boolean; }
+const data = [
+  {x:0, y:0, color:'green', shape:'circle', selected: false },
+  {x:0, y:0, color:'green', shape:'circle', selected: false },
+  {x:0, y:0, color:'green', shape:'circle', selected: false },
+];
+asSeq()
+```
 ### Functionality summary
 
 ### `Seq` Interface
@@ -31,6 +49,7 @@ ___
 | findLast | Find the last item that matches a condition | 
 | first | Get first item in the sequence (at index 0) |
 | firstAndRest | Split the sequence into a tuple of the first item and the rest of the items |
+| flat | flatten arrays of arrays or iterables by specified depth |
 | flatMap | Map each item into Iterable and flat them all into a new sequence |
 | forEach | Like Array.forEach, but with ability to break the loop |
 | groupBy | Group items in the sequence |

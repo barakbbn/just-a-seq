@@ -4,6 +4,7 @@ import {
   Comparer,
   Condition,
   factories,
+  FlatSeq,
   Iterables,
   OrderedSeq,
   Selector,
@@ -282,15 +283,30 @@ export abstract class SeqBase<T> implements Seq<T> {
     return [this.first(defaultIfEmpty) as T, this.skip(1)];
   }
 
+  flat<T, D extends number = 1>(depth?: D): Seq<FlatSeq<T, D>> {
+    const level = depth ?? 1;
+
+    function* flatten<U>(maybeIterable: U, level: number): any {
+      if (level >= 0 && typeof maybeIterable !== 'string' && isIterable(maybeIterable)) {
+        for (const item of maybeIterable) {
+          yield* flatten(item, level - 1);
+        }
+      } else yield maybeIterable;
+    }
+
+    return this.generate(function* flat(items) {
+      yield* flatten(items, level);
+    });
+  }
+
   flatMap<R>(selector?: Selector<T, Iterable<R>>): Seq<R>;
 
   flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;
 
   flatMap<U, R = U>(selector?: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
-    const self = this;
-    return factories.Seq(this.generate(function* flatMap() {
+    return factories.Seq(this.generate(function* flatMap(items) {
       let index = 0;
-      for (const item of self) {
+      for (const item of items) {
         const subItems = selector ? selector(item, index++) : isIterable<U>(item) ? item : undefined;
         if (subItems) {
           if (mapResult) {

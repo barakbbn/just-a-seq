@@ -1,129 +1,114 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
 import {array, generator, iterables, Sample} from "../test-data"
-import { SeqBase } from "../../lib/seq-base";
+import {SeqBase} from "../../lib/seq-base";
 
 export abstract class SeqBase_Immediate_Tests {
+  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
+    it(title + ' - array source', () => testFn(input));
+    it(title + ' - generator source', () => testFn(generator.from(input)));
+    it(title + ' - sequence source', () => testFn(this.createSut(input)));
+  }
+
+  it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
+    it(title + ' - first array, second array', () => testFn(first, second));
+    it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
+    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
+
+    it(title + ' - first generator, second array', () => testFn(generator.from(first), second));
+    it(title + ' - first generator, second generator', () => testFn(generator.from(first), generator.from(second)));
+    it(title + ' - first generator, second sequence', () => testFn(generator.from(first), this.createSut(second)));
+
+    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second));
+    it(title + ' - first sequence, second generator', () => testFn(this.createSut(first), generator.from(second)));
+    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
+  }
+
   readonly run = () => describe('SeqBase - Immediate Execution', () => {
     describe('all()', () => {
-      it("Return true on empty sequence", () => {
-        const sut = this.createSut();
-        const sut2 = this.createSut(generator.from([]));
+      this.it1("should return true on empty sequence", [], (input) => {
+        const sut = this.createSut(input);
         const actual = sut.all(() => false);
-        const actual2 = sut2.all(() => false);
         assert.isTrue(actual);
-        assert.isTrue(actual2);
       });
 
       describe("On non-empty sequence", () => {
-        it("Return true if all items match a condition", () => {
+        this.it1("should return true if all items match a condition", array.oneToTen, (input) => {
           const alwaysTrueCondition = () => true;
-          const input = array.oneToTen;
           const sut = this.createSut(input);
-          const sut2 = this.createSut(generator.from(input));
           const actual = sut.all(alwaysTrueCondition);
-          const actual2 = sut2.all(alwaysTrueCondition);
           assert.isTrue(actual);
-          assert.isTrue(actual2);
         });
 
-        it("Return false if at least one item doesn't pass the condition", () => {
-
+        this.it1("should return false if at least one item doesn't pass the condition", array.truthyValues, (input) => {
           const alwaysFalseCondition = () => false;
-          const sut = this.createSut(iterables.truthyValues);
-          const sut2 = this.createSut(array.truthyValues);
-
+          const sut = this.createSut(input);
           assert.isFalse(sut.all(alwaysFalseCondition));
-          assert.isFalse(sut2.all(alwaysFalseCondition));
         });
 
-        it("Return false if condition return falsy value", () => {
-          const falsyValue = 0;
-          const nonEmpty = [...array.oneToTen, falsyValue];
-          const sut = this.createSut(nonEmpty);
-          const sut2 = this.createSut(generator.from(nonEmpty));
-
+        this.it1("should return false if condition return falsy value", [...array.oneToTen, 0/*falsy value*/], (input) => {
+          const sut = this.createSut(input);
           const actual = sut.all(value => value);
-          const actual2 = sut2.all(value => value);
           assert.isFalse(actual);
-          assert.isFalse(actual2);
         });
 
-        it("Return true if condition return truthy value for all items", () => {
-          const sut = this.createSut(array.truthyValues);
-          const sut2 = this.createSut(iterables.truthyValues);
-
+        this.it1("should return true if condition return truthy value for all items", array.truthyValues, (input) => {
+          const sut = this.createSut(input);
           const actual = sut.all(value => value);
-          const actual2 = sut2.all(value => value);
           assert.isTrue(actual);
-          assert.isTrue(actual2);
         });
 
-        it('should call condition with expected item and index', () => {
-          const expected = array.oneToTen.map((x, i) => ({x, i}));
+        this.it1('should call condition with expected item and index', array.oneToTen, (input) => {
+          const expected = [...input].map((x, i) => ({x, i}));
           const actual: { x: number, i: number }[] = [];
-          const actual2: { x: number, i: number }[] = [];
 
-          const sut = this.createSut(array.oneToTen);
-          const sut2 = this.createSut(iterables.oneToTen);
-
+          const sut = this.createSut(input);
           sut.all((x, i) => actual.push({x, i}) + 1);
-          sut2.all((x, i) => actual2.push({x, i}) + 1);
           assert.sameDeepOrderedMembers(actual, expected);
-          assert.sameDeepOrderedMembers(actual2, expected);
         });
       });
     });
 
     describe('any()', () => {
-      it("Return false on empty sequence", () => {
-        const sut = this.createSut([]);
+      this.it1("should return false on empty sequence", [], (input) => {
+        const sut = this.createSut(input);
         const actual = sut.any(x => !!x);
         assert.isFalse(actual);
-        assert.isFalse(sut.any());
       });
 
       describe("On non-empty sequence", () => {
-        it("Return true if any item match a condition", () => {
+        this.it1("should return true if any item match a condition", array.falsyValues, (input) => {
           const alwaysTrueCondition = () => true;
-
-          const sut = this.createSut(iterables.falsyValues);
-
+          const sut = this.createSut(input);
           const actual = sut.any(alwaysTrueCondition);
           assert.isTrue(actual);
         });
 
-        it("Return false if all items don't pass the condition", () => {
+        this.it1("should return false if all items don't pass the condition", array.truthyValues, (input) => {
           const alwaysFalseCondition = () => false;
-          const sut = this.createSut(array.truthyValues);
-
+          const sut = this.createSut(input);
           const actual = sut.all(alwaysFalseCondition);
           assert.isFalse(actual);
         });
 
-        it("Return false if condition return falsy value for all items", () => {
-          const sut = this.createSut(array.falsyValues);
-
+        this.it1("should return false if condition return falsy value for all items", array.falsyValues, (input) => {
+          const sut = this.createSut(input);
           const actual = sut.all(value => value);
           assert.isFalse(actual);
         });
 
-        it("Return true if condition return truthy value on any item", () => {
-          const truthyValue = -1;
-          const actualNonEmpty = [...array.falsyValues, truthyValue];
-          const expectedNonEmpty = actualNonEmpty.slice();
-          const sut = this.createSut(actualNonEmpty);
+        this.it1("should return true if condition return truthy value on any item", [...array.falsyValues, -1 /*truthy value*/], (input) => {
+          const sut = this.createSut(input);
 
           const actual = sut.any(value => value);
           assert.isTrue(actual);
-          assert.deepEqual(actualNonEmpty, expectedNonEmpty);
         });
 
-        it('should call condition with expected item and index', () => {
-          const expected = array.oneToTen.map((x, i) => ({x, i}));
+        this.it1('should call condition with expected item and index', array.oneToTen, (input) => {
+          const expected = [...input].map((x, i) => ({x, i}));
           const actual: { x: number, i: number }[] = [];
 
-          const sut = this.createSut(array.oneToTen);
+          const sut = this.createSut(input);
 
           sut.any((x, i) => {
             actual.push({x, i});
@@ -135,111 +120,72 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe("at()", () => {
-      it("Return an item at expected index", () => {
-        const input = array.zeroToNine;
-        const expected = input.slice();
+      this.it1("should return an item at expected index", array.zeroToNine, (input) => {
+        const expected = [...input];
         const sut = this.createSut(input);
-        const sut2 = this.createSut(generator.from(input));
         expected.forEach((exp, index) => {
           let actual = sut.at(index);
-          assert.equal(actual, exp);
-          actual = sut2.at(index);
           assert.equal(actual, exp);
         });
       });
 
-      it("Return default value at non-existing index", () => {
-        const input = array.zeroToNine;
+      this.it1("should return default value at non-existing index", array.zeroToNine, (input) => {
         const sut = this.createSut(input);
-        const sut2 = this.createSut(generator.from(input));
         const expectedValueNotInSequence = -1;
-        const outOfRangeIndex = input.length + 2;
+        const outOfRangeIndex = [...input].length + 2;
         let actual = sut.at(outOfRangeIndex, expectedValueNotInSequence);
-        let actual2 = sut2.at(outOfRangeIndex, expectedValueNotInSequence);
 
         assert.equal(actual, expectedValueNotInSequence);
-        assert.equal(actual2, expectedValueNotInSequence);
 
         const negativeIndex = -outOfRangeIndex;
         actual = sut.at(negativeIndex, expectedValueNotInSequence);
-        actual2 = sut2.at(negativeIndex, expectedValueNotInSequence);
 
         assert.equal(actual, expectedValueNotInSequence);
-        assert.equal(actual2, expectedValueNotInSequence);
       });
 
-      it("Return undefined at non-existing index when no default value specified", () => {
-        const input = array.zeroToNine;
+      this.it1("should return undefined at non-existing index when no default value specified", array.zeroToNine, (input) => {
         const sut = this.createSut(input);
-        const sut2 = this.createSut(generator.from(input));
 
-        const outOfRangeIndex = input.length;
+        const outOfRangeIndex = [...input].length;
         let actual = sut.at(outOfRangeIndex);
-        let actual2 = sut2.at(outOfRangeIndex);
         assert.isUndefined(actual);
-        assert.isUndefined(actual2);
 
         const negativeIndex = -outOfRangeIndex - 2;
         actual = sut.at(negativeIndex);
-        actual2 = sut2.at(negativeIndex);
 
         assert.isUndefined(actual);
-        assert.isUndefined(actual2);
       });
 
-      it('when index is negative, should return an item from the end of the sequence', () => {
-        const input = array.zeroToNine;
-        const expected = input.slice();
+      this.it1('should return an item from the end of the sequence, when index is negative', array.zeroToNine, (input) => {
+        const expected = [...input];
         const sut = this.createSut(input);
-        const sut2 = this.createSut(generator.from(input));
         expected.forEach((exp, index) => {
           const negativeIndex = -expected.length + index;
           const actual = sut.at(negativeIndex);
-          const actual2 = sut2.at(negativeIndex);
           assert.equal(actual, exp);
-          assert.equal(actual2, exp);
         });
       });
     });
 
     describe("average()", () => {
-      it('should return average for all items when no selector provided', () => {
-        const input = array.oneToTen;
-        const expected = input.reduce((sum, x) => sum + x) / input.length;
-
+      this.it1('should return average for all items when no selector provided', array.oneToTen, (input) => {
+        const expected = [...input].reduce((sum, x) => sum + x) / [...input].length;
         let sut = this.createSut(input);
         let actual = sut.average();
         assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.average();
-        assert.equal(actual, expected);
-        assert.sameOrderedMembers(input, array.oneToTen);
       });
 
-      it("should return average on item's property", () => {
-        const input = array.grades;
-        const expected = input.reduce((sum, x) => sum + x.grade, 0) / input.length;
+      this.it1("should return average on item's property", array.grades, (input) => {
+        const expected = [...input].reduce((sum, x) => sum + x.grade, 0) / [...input].length;
 
         let sut = this.createSut(input);
         let actual = sut.average(x => x.grade);
         assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.average(x => x.grade);
-        assert.equal(actual, expected);
-        assert.sameDeepOrderedMembers(input, array.grades);
       });
 
-      it('should return NaN on empty sequence', () => {
-        let sut = this.createSut<number>();
+      this.it1('should return NaN on empty sequence - numbers', [], (input: Iterable<number>) => {
+        let sut = this.createSut(input);
         let actual = sut.average();
-        assert.isNaN(actual);
-        sut = this.createSut<number>([]);
-        actual = sut.average();
-        assert.isNaN(actual);
-        sut = this.createSut<number>(generator.from([]));
-        actual = sut.average();
         assert.isNaN(actual);
 
         let sut2 = this.createSut<{ age: number; }>();
@@ -252,890 +198,461 @@ export abstract class SeqBase_Immediate_Tests {
         actual2 = sut2.average(x => x.age);
         assert.isNaN(actual2);
       });
+
+      this.it1('should return NaN on empty sequence - objects', [], (input: Iterable<{ age: number; }>) => {
+        let sut = this.createSut<{ age: number; }>(input);
+        let actual = sut.average(x => x.age);
+        assert.isNaN(actual);
+      });
     });
 
     describe("consume()", () => {
-      it('should iterate all items', () => {
-        function* iterate<T>(input: Iterable<T>, consumed: T[]) {
-          for (const item of input) {
+      this.it1('should iterate all items', array.oneToTen, (input) => {
+        function* iterate<T>(items: Iterable<T>, consumed: T[]) {
+          for (const item of items) {
             consumed.push(item);
             yield item;
           }
         }
 
-        const input = array.oneToTen;
         const actual: number[] = [];
         const sut = this.createSut(iterate(input, actual));
         sut.consume();
-        assert.sameOrderedMembers(actual, input);
-
-        const input2 = generator.from(array.oneToTen);
-        const actual2: number[] = [];
-        const sut2 = this.createSut(iterate(input2, actual2));
-        sut2.consume();
-        assert.sameOrderedMembers(actual2, [...input2]);
-
+        assert.sameOrderedMembers(actual, [...input]);
       });
-
     });
 
     describe("count()", () => {
-      it('should return number of items in non empty sequence without condition', () => {
-        const input = array.oneToTen;
-        const expected = input.length;
+      this.it1('should return number of items in non empty sequence without condition', array.oneToTen, (input) => {
+        const expected = [...input].length;
         let sut = this.createSut(input);
         let actual = sut.count();
         assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.count();
-        assert.equal(actual, expected);
       });
 
-      it('should return number of items in non empty sequence that met a condition', () => {
-        const input = array.oneToTen;
+      this.it1('should return number of items in non empty sequence that met a condition', array.oneToTen, (input) => {
         const condition = (x: number) => x % 2 === 0;
-        const expected = input.filter(condition).length;
+        const expected = [...input].filter(condition).length;
         let sut = this.createSut(input);
         let actual = sut.count(condition);
         assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.count(condition);
-        assert.equal(actual, expected);
       });
 
-      it('should return count of zero on when no item met the condition', () => {
-        const input: number[] = [];
+      this.it1('should return count of zero on when no item met the condition', [], (input) => {
         const alwaysFalseCondition = () => false;
         const expected = 0;
         let sut = this.createSut(input);
         let actual = sut.count(alwaysFalseCondition);
         assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.count(alwaysFalseCondition);
-        assert.equal(actual, expected);
       });
 
-      it('should return zero count on empty sequence', () => {
-        const input: number[] = [];
+      this.it1('should return zero count on empty sequence', [], (input) => {
         const expected = 0;
         let sut = this.createSut(input);
         let actual = sut.count();
-        assert.equal(actual, expected);
-
-        sut = this.createSut(generator.from(input));
-        actual = sut.count();
         assert.equal(actual, expected);
       });
     });
 
     describe("endsWith()", () => {
       describe("without key selector", () => {
-        it("should return false if sequence doesn't end with all the specified items", () => {
-          const input = array.oneToTen;
-          const endsWith = [...generator.range(1, -10)];
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith);
-          assert.isFalse(actual);
-          actual = sut.endsWith(generator.from(endsWith));
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(endsWith);
-          assert.isFalse(actual);
-          actual = sut.endsWith(generator.from(endsWith));
+        this.it2("should return false if sequence doesn't end with all the specified items", array.oneToTen, array.range(1, -10), (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second);
           assert.isFalse(actual);
         });
 
-        it('should return true if sequence ends with the specified items in same order', () => {
-          const input = array.oneToTen;
-          const endsWith = array.oneToTen.slice(-5);
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith);
-          assert.isTrue(actual);
-          actual = sut.endsWith(generator.from(endsWith));
-          assert.isTrue(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(generator.from(endsWith));
-          assert.isTrue(actual);
-          actual = sut.endsWith(endsWith);
+        this.it2('should return true if sequence ends with the specified items in same order', array.oneToTen, array.oneToTen.slice(-5), (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second);
           assert.isTrue(actual);
         });
 
-        it('should return false if sequence ends with the specified items but NOT in same order', () => {
-          const input = array.oneToTen;
-          const endsWith = input.slice(5).reverse();
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith);
+        this.it2('should return false if sequence ends with the specified items but NOT in same order', array.oneToTen, array.oneToTen.slice(5).reverse(), (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second);
           assert.isFalse(actual);
-          actual = sut.endsWith(generator.from(endsWith));
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(generator.from(endsWith));
-          assert.isFalse(actual);
-          actual = sut.endsWith(endsWith);
+        });
+        this.it2('should return true if source sequence is not empty and checking if ends with empty iterable', array.oneToTen, [], (first, second) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second);
+          assert.isTrue(actual);
+        });
+        this.it2('should return true if source sequence is empty and checking if ends with an empty iterable', [], [], (first, second) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second);
+          assert.isTrue(actual);
+        });
+        this.it2('should return false if source sequence is empty and checked if ends with non empty iterable', [], array.oneToTen, (first: Iterable<number>, second) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second);
           assert.isFalse(actual);
         });
 
-        it('should return true if items to check for is an empty sequence', () => {
-          const emptyItems: number[] = [];
-          const emptyItemsGenerator = generator.from(emptyItems);
-
-          const sut = this.createSut(array.oneToTen);
-          let actual = sut.endsWith(emptyItems);
-          assert.isTrue(actual);
-          actual = sut.endsWith(emptyItemsGenerator);
-          assert.isTrue(actual);
-
-          const generatorOfNumbersSut = this.createSut(generator.from(array.oneToTen));
-          actual = generatorOfNumbersSut.endsWith(emptyItems);
-          assert.isTrue(actual);
-          actual = generatorOfNumbersSut.endsWith(emptyItemsGenerator);
-          assert.isTrue(actual);
-
-          const emptyArraySut = this.createSut(emptyItems);
-          actual = emptyArraySut.endsWith(emptyItems);
-          assert.isTrue(actual);
-          actual = emptyArraySut.endsWith(emptyItemsGenerator);
-          assert.isTrue(actual);
-
-          const emptySequenceSut = this.createSut();
-          actual = emptySequenceSut.endsWith(emptyItems);
-          assert.isTrue(actual);
-          actual = emptySequenceSut.endsWith(emptyItemsGenerator);
-          assert.isTrue(actual);
-        });
-
-        it('should return true if sequence is checked with itself', () => {
-          const input = array.oneToTen;
-
+        this.it1('should return true if sequence is checked with itself', array.oneToTen, (input) => {
           const sut = this.createSut(input);
           let actual = sut.endsWith(sut);
           assert.isTrue(actual);
-
-          const sut2 = this.createSut(generator.from(input));
-          let actual2 = sut2.endsWith(sut);
-          assert.isTrue(actual2);
-
-          actual = sut.endsWith(sut2);
-          assert.isTrue(actual);
-
-          actual2 = sut2.endsWith(sut);
-          assert.isTrue(actual2);
         });
       });
 
       describe("with key selector", () => {
-        it("should return false if sequence doesn't end with all the specified items", () => {
-          const input = array.gradesFiftyAndAbove.reverse();
-          const endsWith = array.gradesFiftyAndBelow;
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith, x => x.grade);
-          assert.isFalse(actual);
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isFalse(actual);
-          actual = sut.endsWith(endsWith, x => x.grade);
+        this.it2("should return false if sequence doesn't end with all the specified items", array.gradesFiftyAndAbove.reverse(), array.gradesFiftyAndBelow, (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.grade);
           assert.isFalse(actual);
         });
 
-        it('should return true if sequence ends with the specified items in same order', () => {
-          const input = array.grades;
-          const endsWith = array.gradesFiftyAndAbove;
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith, x => x.grade);
-          assert.isTrue(actual);
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isTrue(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isTrue(actual);
-          actual = sut.endsWith(endsWith, x => x.grade);
+        this.it2('should return true if sequence ends with the specified items in same order', array.grades, array.gradesFiftyAndAbove, (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.grade);
           assert.isTrue(actual);
         });
 
-        it('should return false if sequence ends with the specified items but NOT in same order', () => {
-          const input = array.grades;
-          const endsWith = array.gradesFiftyAndAbove.reverse();
-          let sut = this.createSut(input);
-          let actual = sut.endsWith(endsWith, x => x.grade);
-          assert.isFalse(actual);
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(input));
-          actual = sut.endsWith(generator.from(endsWith), x => x.grade);
-          assert.isFalse(actual);
-          actual = sut.endsWith(endsWith, x => x.grade);
+        this.it2('should return false if sequence ends with the specified items but NOT in same order', array.grades, array.gradesFiftyAndAbove.reverse(), (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.grade);
           assert.isFalse(actual);
         });
 
-        it('should return true if items to check for is an empty sequence', () => {
-          let emptyItems: Sample[] = [];
-
-          const sut = this.createSut(array.samples);
-          let actual = sut.endsWith(emptyItems);
-          assert.isTrue(actual);
-          actual = sut.endsWith(generator.from(emptyItems));
-          assert.isTrue(actual);
-
-          const generatorOfNumbersSut = this.createSut(generator.from(array.samples));
-          actual = generatorOfNumbersSut.endsWith(generator.from(emptyItems));
-          assert.isTrue(actual);
-          actual = generatorOfNumbersSut.endsWith(emptyItems);
+        this.it2('should return true if source sequence not empty and items to check for is an empty sequence', array.samples, [], (first, second: Iterable<Sample>) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.period);
           assert.isTrue(actual);
         });
 
-        it('should return true if sequence is checked with itself', () => {
-          const input = array.grades;
+        this.it2('should return true if source sequence is empty and items to check for is an empty sequence', [], [], (first: Iterable<Sample>, second: Iterable<Sample>) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.period);
+          assert.isTrue(actual);
+        });
+        this.it2('should return false if source sequence is empty and checked if ends with non empty iterable', [], array.samples, (first: Iterable<Sample>, second) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.period);
+          assert.isFalse(actual);
+        });
 
+        this.it1('should return true if sequence is checked with itself', array.grades, (input) => {
           const sut = this.createSut(input);
           let actual = sut.endsWith(sut, x => x.grade);
           assert.isTrue(actual);
-
-          const sut2 = this.createSut(generator.from(input));
-          let actual2 = sut2.endsWith(sut2, x => x.grade);
-          assert.isTrue(actual2);
-
-          actual = sut.endsWith(sut2, x => x.grade);
-          assert.isTrue(actual);
-
-          actual2 = sut2.endsWith(sut, x => x.grade);
-          assert.isTrue(actual2);
         });
       });
     });
 
     describe("every()", () => {
-      it('should return true if all items met a condition', () => {
-        const input = array.grades;
+      this.it1('should return true if all items met a condition', array.grades, (input) => {
         const sut = this.createSut(input);
         let actual = sut.every(x => x.grade <= Number.MAX_VALUE);
         assert.isTrue(actual);
-
-        const sut2 = this.createSut(generator.from(input));
-        actual = sut2.every(x => x.grade <= Number.MAX_VALUE);
-        assert.isTrue(actual);
       });
 
-      it("should return false if one of the items doesn't met the condition", () => {
-        const input = array.grades;
+      this.it1("should return false if one of the items doesn't met the condition", array.grades, (input) => {
         const sut = this.createSut(input);
         let actual = sut.every(x => x.grade < 0);
         assert.isFalse(actual);
-
-        const sut2 = this.createSut(generator.from(input));
-        actual = sut2.every(x => x.grade < 0);
-        assert.isFalse(actual);
       });
 
-      it('should return true on empty sequence', () => {
-        const input: { name: string, grade: number }[] = [];
+      this.it1('should return true on empty sequence', [], (input: Iterable<{ name: string, grade: number }>) => {
         const sut = this.createSut(input);
         let actual = sut.every(() => false);
-        assert.isTrue(actual);
-
-        const sut2 = this.createSut();
-        actual = sut2.every(() => false);
         assert.isTrue(actual);
       });
     });
 
     describe("find()", () => {
-      it('should return undefined if non of the items meet the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
+      this.it1('should return undefined if non of the items met the condition', array.grades.concat(array.grades.reverse()), (input) => {
         let sut = this.createSut(input);
         let actual = sut.find(() => false);
         assert.isUndefined(actual);
-        sut = this.createSut(generator.from(input));
-        actual = sut.find(() => false);
-        assert.isUndefined(actual);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.find(() => false);
-        assert.isUndefined(actual2);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.find(() => false);
-        assert.isUndefined(actual2);
       });
 
-      it('should return undefined if sequence is empty', () => {
-        let sut = this.createSut([]);
+      this.it1('should return undefined if sequence is empty', [], (input) => {
+        let sut = this.createSut(input);
         let actual = sut.find(() => true);
         assert.isUndefined(actual);
-        sut = this.createSut();
-        actual = sut.find(() => true);
-        assert.isUndefined(actual);
       });
 
-      it('should return first item that meets the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
-        const expected = input.find(x => x > 5);
+      this.it1('should return first item that meets the condition', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
+        const expected = [...input].find(x => x > 5);
         let sut = this.createSut(input);
         let actual = sut.find(x => x > 5);
         assert.equal(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = sut.find(x => x > 5);
-        assert.equal(actual, expected);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        const expected2 = input2.find(x => x.grade > 50);
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.find(x => x.grade > 50);
-        assert.equal(actual2, expected2);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.find(x => x.grade > 50);
-        assert.equal(actual2, expected2);
       });
 
       describe("starting from index", () => {
-        it('should return undefined if non of the items from the specified from-index, meet the condition', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
-          const fromIndex = array.oneToTen.length;
+        this.it1('should return undefined if non of the items from the specified from-index, meet the condition', array.oneToTen, (input) => {
+          const fromIndex = [...input].length;
           let sut = this.createSut(input);
           let actual = sut.find(fromIndex, () => false);
           assert.isUndefined(actual);
-          sut = this.createSut(generator.from(input));
-          actual = sut.find(fromIndex, () => false);
-          assert.isUndefined(actual);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.find(fromIndex2, () => false);
-          assert.isUndefined(actual2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.find(fromIndex2, () => false);
-          assert.isUndefined(actual2);
         });
 
-        it('should return undefined if sequence is empty', () => {
-          let sut = this.createSut([]);
+        this.it1('should return undefined if sequence is empty', [], (input) => {
+          let sut = this.createSut(input);
           let actual = sut.find(1, () => true);
           assert.isUndefined(actual);
-          sut = this.createSut();
-          actual = sut.find(1, () => true);
-          assert.isUndefined(actual);
         });
 
-        it('should return first item that meets the condition, after the specified from-index', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return first item that meets the condition, after the specified from-index- numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
           const fromIndex = array.oneToTen.length;
-          const expected = input.find((x, index) => index >= fromIndex && x > 5);
+          const expected = [...input].find((x, index) => index >= fromIndex && x > 5);
           let sut = this.createSut(input);
           let actual = sut.find(fromIndex, x => x > 5);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.find(fromIndex, x => x > 5);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length;
-          const expected2 = input2.find((x, index) => index >= fromIndex2 && x.grade > 50);
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.find(fromIndex2, x => x.grade > 50);
-          assert.deepEqual(actual2, expected2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.find(fromIndex2, x => x.grade > 50);
-          assert.deepEqual(actual2, expected2);
         });
 
-        it('should return undefined if from-index is out of range', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
-          const fromIndex = input.length;
+        this.it1('should return first item that meets the condition, after the specified from-index - objects', array.grades.concat(array.grades.reverse()), (input) => {
+          const fromIndex = array.grades.length;
+          const expected = [...input].find((x, index) => index >= fromIndex && x.grade > 50);
+          let sut = this.createSut(input);
+          let actual = sut.find(fromIndex, x => x.grade > 50);
+          assert.deepEqual(actual, expected);
+        });
+
+        this.it1('should return undefined if from-index is out of range', array.oneToTen, (input) => {
+          const fromIndex = [...input].length;
           let sut = this.createSut(input);
           let actual = sut.find(fromIndex, () => true);
           assert.isUndefined(actual);
-          sut = this.createSut(generator.from(input));
-          actual = sut.find(fromIndex, () => true);
-          assert.isUndefined(actual);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = input2.length;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.find(fromIndex2, () => true);
-          assert.isUndefined(actual2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.find(fromIndex2, () => true);
-          assert.isUndefined(actual2);
         });
       });
 
       describe("with default value", () => {
-        it('should return default value if non of the items meet the condition', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return default value if non of the items meet the condition', array.oneToTen, (input) => {
           const expected = -1;
           let sut = this.createSut(input);
           let actual = sut.find(() => false, expected);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.find(() => false, expected);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const expected2 = {name: "test", grade: -1};
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.find(() => false, expected2);
-          assert.deepEqual(actual2, expected2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.find(() => false, expected2);
-          assert.deepEqual(actual2, expected2);
         });
 
-        it('should return default value if sequence is empty', () => {
+        this.it1('should return default value if sequence is empty', [], (input) => {
           const expected = -1;
-          let sut = this.createSut<number>([]);
+          let sut = this.createSut<number>(input);
           let actual = sut.find(() => true, expected);
-          assert.equal(actual, expected);
-          sut = this.createSut<number>();
-          actual = sut.find(() => true, expected);
           assert.equal(actual, expected);
         });
 
         describe("starting from index", () => {
-          it('should return default value if non of the items from the specified from-index, meet the condition', () => {
-            const input = array.oneToTen.concat(array.zeroToNine.reverse());
-            const fromIndex = array.oneToTen.length;
+          this.it1('should return default value if non of the items from the specified from-index, meet the condition', array.oneToTen, (input) => {
+            const fromIndex = [...input].length;
             const expected = -1;
             let sut = this.createSut(input);
             let actual = sut.find(fromIndex, () => false, expected);
             assert.equal(actual, expected);
-            sut = this.createSut(generator.from(input));
-            actual = sut.find(fromIndex, () => false, expected);
-            assert.equal(actual, expected);
-
-            const input2 = array.grades.concat(array.grades.reverse());
-            const expected2 = {name: "test", grade: -1};
-            const fromIndex2 = array.grades.length;
-            let sut2 = this.createSut(input2);
-            let actual2 = sut2.find(fromIndex2, () => false, expected2);
-            assert.deepEqual(actual2, expected2);
-
-            sut2 = this.createSut(generator.from(input2));
-            actual2 = sut2.find(fromIndex2, () => false, expected2);
-            assert.deepEqual(actual2, expected2);
           });
 
-          it('should return default value if sequence is empty', () => {
+          this.it1('should return default value if sequence is empty', [], (input) => {
             const expected = -1;
-            let sut = this.createSut<number>([]);
+            let sut = this.createSut<number>(input);
             let actual = sut.find(1, () => true, expected);
             assert.equal(actual, expected);
-            sut = this.createSut<number>();
-            actual = sut.find(1, () => true, expected);
-            assert.equal(actual, expected);
           });
 
-          it('should return default value if from-index is out of range', () => {
-            const input = array.oneToTen.concat(array.zeroToNine.reverse());
-            const fromIndex = input.length;
+          this.it1('should return default value if from-index is out of range', array.oneToTen, (input) => {
+            const fromIndex = [...input].length;
             const expected = -1;
             let sut = this.createSut(input);
             let actual = sut.find(fromIndex, () => true, expected);
             assert.equal(actual, expected);
-            sut = this.createSut(generator.from(input));
-            actual = sut.find(fromIndex, () => true, expected);
-            assert.equal(actual, expected);
-
-            const input2 = array.grades.concat(array.grades.reverse());
-            const expected2 = {name: "test", grade: -1};
-            const fromIndex2 = input2.length;
-            let sut2 = this.createSut(input2);
-            let actual2 = sut2.find(fromIndex2, () => true, expected2);
-            assert.equal(actual2, expected2);
-
-            sut2 = this.createSut(generator.from(input2));
-            actual2 = sut2.find(fromIndex2, () => true, expected2);
-            assert.equal(actual2, expected2);
           });
         });
       });
     });
 
     describe("findIndex()", () => {
-      it('should return -1 if non of the items meet the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
+      this.it1('should return -1 if non of the items meet the condition', array.oneToTen, (input) => {
         const expected = -1;
         let sut = this.createSut(input);
         let actual = sut.findIndex(() => false);
         assert.equal(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = sut.findIndex(() => false);
-        assert.equal(actual, expected);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.findIndex(() => false);
-        assert.equal(actual2, expected);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.findIndex(() => false);
-        assert.equal(actual2, expected);
       });
 
-      it('should return -1 if sequence is empty', () => {
+      this.it1('should return -1 if sequence is empty', [], (input) => {
         const expected = -1;
-        let sut = this.createSut([]);
+        let sut = this.createSut(input);
         let actual = sut.findIndex(() => true);
         assert.equal(actual, expected);
-        sut = this.createSut();
-        actual = sut.findIndex(() => true);
-        assert.equal(actual, expected);
       });
 
-      it('should return index of first item that meets the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
-        const expected = input.findIndex(x => x > 5);
+      this.it1('should return index of first item that meets the condition - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
+        const expected = [...input].findIndex(x => x > 5);
         let sut = this.createSut(input);
         let actual = sut.findIndex(x => x > 5);
         assert.equal(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = sut.findIndex(x => x > 5);
+      });
+      this.it1('should return index of first item that meets the condition - objects', array.grades.concat(array.grades.reverse()), (input) => {
+        const expected = [...input].findIndex(x => x.grade > 50);
+        let sut = this.createSut(input);
+        let actual = sut.findIndex(x => x.grade > 50);
         assert.equal(actual, expected);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        const expected2 = input2.findIndex(x => x.grade > 50);
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.findIndex(x => x.grade > 50);
-        assert.equal(actual2, expected2);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.findIndex(x => x.grade > 50);
-        assert.equal(actual2, expected2);
       });
 
       describe("starting from index", () => {
-        it('should return -1 if non of the items from the specified from-index, meet the condition', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return -1 if non of the items from the specified from-index, meet the condition', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
           const fromIndex = array.oneToTen.length;
           const expected = -1;
           let sut = this.createSut(input);
           let actual = sut.findIndex(fromIndex, () => false);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findIndex(fromIndex, () => false);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findIndex(fromIndex2, () => false);
-          assert.equal(actual2, expected);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findIndex(fromIndex2, () => false);
-          assert.equal(actual2, expected);
         });
 
-        it('should return -1 if sequence is empty', () => {
+        this.it1('should return -1 if sequence is empty', [], (input) => {
           const expected = -1;
-          let sut = this.createSut([]);
+          let sut = this.createSut(input);
           let actual = sut.findIndex(1, () => true);
           assert.equal(actual, expected);
-          sut = this.createSut();
-          actual = sut.findIndex(1, () => true);
-          assert.equal(actual, expected);
         });
 
-        it('should return index of first item that meets the condition, after the specified from-index', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return index of first item that meets the condition, after the specified from-index - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
           const fromIndex = array.oneToTen.length;
-          const expected = input.findIndex((x, index) => index >= fromIndex && x > 5);
+          const expected = [...input].findIndex((x, index) => index >= fromIndex && x > 5);
           let sut = this.createSut(input);
           let actual = sut.findIndex(fromIndex, x => x > 5);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findIndex(fromIndex, x => x > 5);
+        });
+        this.it1('should return index of first item that meets the condition, after the specified from-index - objects', array.grades.concat(array.grades.reverse()), (input) => {
+          const fromIndex = array.grades.length;
+          const expected = [...input].findIndex((x, index) => index >= fromIndex && x.grade > 50);
+          let sut = this.createSut(input);
+          let actual = sut.findIndex(fromIndex, x => x.grade > 50);
           assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length;
-          const expected2 = input2.findIndex((x, index) => index >= fromIndex2 && x.grade > 50);
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findIndex(fromIndex2, x => x.grade > 50);
-          assert.equal(actual2, expected2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findIndex(fromIndex2, x => x.grade > 50);
-          assert.equal(actual2, expected2);
         });
 
-        it('should return -1 if from-index is out of range', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
-          const fromIndex = input.length;
+        this.it1('should return -1 if from-index is out of range', array.oneToTen, (input) => {
+          const fromIndex = [...input].length;
           const expected = -1;
           let sut = this.createSut(input);
           let actual = sut.findIndex(fromIndex, () => true);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findIndex(fromIndex, () => true);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = input2.length;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findIndex(fromIndex2, () => true);
-          assert.equal(actual2, expected);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findIndex(fromIndex2, () => true);
-          assert.equal(actual2, expected);
         });
       });
     });
 
     describe("findLast()", () => {
-      it('should return undefined if non of the items meet the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
+      this.it1('should return undefined if non of the items meet the condition', array.oneToTen, (input) => {
         let sut = this.createSut(input);
         let actual = sut.findLast(() => false);
         assert.isUndefined(actual);
-        sut = this.createSut(generator.from(input));
-        actual = sut.findLast(() => false);
-        assert.isUndefined(actual);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.findLast(() => false);
-        assert.isUndefined(actual2);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.findLast(() => false);
-        assert.isUndefined(actual2);
       });
 
-      it('should return undefined if sequence is empty', () => {
-        let sut = this.createSut([]);
+      this.it1('should return undefined if sequence is empty', [], (input) => {
+        let sut = this.createSut(input);
         let actual = sut.findLast(() => true);
         assert.isUndefined(actual);
-        sut = this.createSut();
-        actual = sut.findLast(() => true);
-        assert.isUndefined(actual);
       });
 
-      it('should return last item that meets the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
-        const expected = input.slice().reverse().find(x => x > 5);
+      this.it1('should return last item that meets the condition - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
+        const expected = [...input].reverse().find(x => x > 5);
         let sut = this.createSut(input);
         let actual = sut.findLast(x => x > 5);
         assert.equal(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = sut.findLast(x => x > 5);
+      });
+      this.it1('should return last item that meets the condition - objects', array.grades.concat(array.grades.reverse()), (input) => {
+        const expected = [...input].reverse().find(x => x.grade > 50);
+        let sut = this.createSut(input);
+        let actual = sut.findLast(x => x.grade > 50);
         assert.equal(actual, expected);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        const expected2 = input2.slice().reverse().find(x => x.grade > 50);
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.findLast(x => x.grade > 50);
-        assert.equal(actual2, expected2);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.findLast(x => x.grade > 50);
-        assert.equal(actual2, expected2);
       });
 
-      describe("starting till index", () => {
-        it('should return undefined if non of the items from the specified till-index, meet the condition', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
-          const fromIndex = array.oneToTen.length;
+      describe("find till index", () => {
+        this.it1('should return undefined if non of the items from the specified till-index, meet the condition', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
+          const tillIndex = array.oneToTen.length;
           let sut = this.createSut(input);
-          let actual = sut.findLast(fromIndex, () => false);
+          let actual = sut.findLast(tillIndex, () => false);
           assert.isUndefined(actual);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findLast(fromIndex, () => false);
-          assert.isUndefined(actual);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findLast(fromIndex2, () => false);
-          assert.isUndefined(actual2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findLast(fromIndex2, () => false);
-          assert.isUndefined(actual2);
         });
 
-        it('should return undefined if sequence is empty', () => {
-          let sut = this.createSut([]);
+        this.it1('should return undefined if sequence is empty', [], (input) => {
+          let sut = this.createSut(input);
           let actual = sut.findLast(1, () => true);
           assert.isUndefined(actual);
-          sut = this.createSut();
-          actual = sut.findLast(1, () => true);
-          assert.isUndefined(actual);
         });
 
-        it('should return last item that meets the condition, after the specified till-index', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
-          const fromIndex = array.oneToTen.length - 1;
-          const expected = input.slice().reverse().find((x, index) => index > fromIndex && x > 5);
+        this.it1('should return last item that meets the condition, not after the specified till-index - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
+          const tillIndex = array.oneToTen.length - 1;
+          const expected = [...input].slice().reverse().find((x, index) => index > tillIndex && x > 5);
           let sut = this.createSut(input);
-          let actual = sut.findLast(fromIndex, x => x > 5);
+          let actual = sut.findLast(tillIndex, x => x > 5);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findLast(fromIndex, x => x > 5);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = array.grades.length - 1;
-          const expected2 = input2.slice().reverse().find((x, index) => index > fromIndex2 && x.grade > 50);
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findLast(fromIndex2, x => x.grade > 50);
-          assert.deepEqual(actual2, expected2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findLast(fromIndex2, x => x.grade > 50);
-          assert.deepEqual(actual2, expected2);
+        });
+        this.it1('should return last item that meets the condition, not after the specified till-index - objects', array.grades.concat(array.grades.reverse()), (input) => {
+          const tillIndex = array.grades.length - 1;
+          const expected2 = [...input].reverse().find((x, index) => index > tillIndex && x.grade > 50);
+          let sut = this.createSut(input);
+          let actual = sut.findLast(tillIndex, x => x.grade > 50);
+          assert.deepEqual(actual, expected2);
         });
 
-        it('should return undefined if till-index is out of range', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return undefined if till-index is out of range', array.oneToTen, (input) => {
           const fromIndex = -1;
           let sut = this.createSut(input);
           let actual = sut.findLast(fromIndex, () => true);
           assert.isUndefined(actual);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findLast(fromIndex, () => true);
-          assert.isUndefined(actual);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const fromIndex2 = -1;
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findLast(fromIndex2, () => true);
-          assert.isUndefined(actual2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findLast(fromIndex2, () => true);
-          assert.isUndefined(actual2);
         });
       });
 
       describe("with default value", () => {
-        it('should return default value if non of the items meet the condition', () => {
-          const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        this.it1('should return default value if non of the items meet the condition', array.oneToTen, (input) => {
           const expected = -1;
           let sut = this.createSut(input);
           let actual = sut.findLast(() => false, expected);
           assert.equal(actual, expected);
-          sut = this.createSut(generator.from(input));
-          actual = sut.findLast(() => false, expected);
-          assert.equal(actual, expected);
-
-          const input2 = array.grades.concat(array.grades.reverse());
-          const expected2 = {name: "test", grade: -1};
-          let sut2 = this.createSut(input2);
-          let actual2 = sut2.findLast(() => false, expected2);
-          assert.deepEqual(actual2, expected2);
-
-          sut2 = this.createSut(generator.from(input2));
-          actual2 = sut2.findLast(() => false, expected2);
-          assert.deepEqual(actual2, expected2);
         });
 
-        it('should return default value if sequence is empty', () => {
+        this.it1('should return default value if sequence is empty', [], (input) => {
           const expected = -1;
-          let sut = this.createSut<number>([]);
+          let sut = this.createSut<number>(input);
           let actual = sut.findLast(() => true, expected);
           assert.equal(actual, expected);
-          sut = this.createSut<number>();
-          actual = sut.findLast(() => true, expected);
-          assert.equal(actual, expected);
         });
 
-        describe("starting from index", () => {
-          it('should return default value if non of the items from the specified till-index, meet the condition', () => {
-            const input = array.oneToTen.concat(array.zeroToNine.reverse());
+        describe("find till index", () => {
+          this.it1('should return default value if non of the items from the specified till-index, meet the condition - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input) => {
             const fromIndex = array.oneToTen.length;
             const expected = -1;
             let sut = this.createSut(input);
             let actual = sut.findLast(fromIndex, () => false, expected);
             assert.equal(actual, expected);
-            sut = this.createSut(generator.from(input));
-            actual = sut.findLast(fromIndex, () => false, expected);
-            assert.equal(actual, expected);
-
-            const input2 = array.grades.concat(array.grades.reverse());
-            const expected2 = {name: "test", grade: -1};
-            const fromIndex2 = array.grades.length;
-            let sut2 = this.createSut(input2);
-            let actual2 = sut2.findLast(fromIndex2, () => false, expected2);
-            assert.deepEqual(actual2, expected2);
-
-            sut2 = this.createSut(generator.from(input2));
-            actual2 = sut2.findLast(fromIndex2, () => false, expected2);
-            assert.deepEqual(actual2, expected2);
           });
-
-          it('should return default value if sequence is empty', () => {
+          this.it1('should return default value if non of the items from the specified till-index, meet the condition - objects', array.grades.concat(array.grades.reverse()), (input) => {
+            const expected = {name: "test", grade: -1};
+            const fromIndex = array.grades.length;
+            let sut = this.createSut(input);
+            let actual = sut.findLast(fromIndex, () => false, expected);
+            assert.deepEqual(actual, expected);
+          });
+          this.it1('should return default value if sequence is empty', [], (input) => {
             const expected = -1;
-            let sut = this.createSut<number>([]);
+            let sut = this.createSut<number>(input);
             let actual = sut.findLast(1, () => true, expected);
             assert.equal(actual, expected);
-            sut = this.createSut<number>();
-            actual = sut.findLast(1, () => true, expected);
-            assert.equal(actual, expected);
           });
 
-          it('should return default value if till-index is out of range', () => {
-            const input = array.oneToTen.concat(array.zeroToNine.reverse());
+          this.it1('should return default value if till-index is out of range - numbers', array.oneToTen, (input) => {
             const fromIndex = -1;
             const expected = -1;
             let sut = this.createSut(input);
             let actual = sut.findLast(fromIndex, () => true, expected);
             assert.equal(actual, expected);
-            sut = this.createSut(generator.from(input));
-            actual = sut.findLast(fromIndex, () => true, expected);
+          });
+          this.it1('should return default value if till-index is out of range - objects', array.grades, (input) => {
+            const expected = {name: "test", grade: -1};
+            const tillIndex = -1;
+            let sut = this.createSut(input);
+            let actual = sut.findLast(tillIndex, () => true, expected);
             assert.equal(actual, expected);
-
-            const input2 = array.grades.concat(array.grades.reverse());
-            const expected2 = {name: "test", grade: -1};
-            const fromIndex2 = -1;
-            let sut2 = this.createSut(input2);
-            let actual2 = sut2.findLast(fromIndex2, () => true, expected2);
-            assert.equal(actual2, expected2);
-
-            sut2 = this.createSut(generator.from(input2));
-            actual2 = sut2.findLast(fromIndex2, () => true, expected2);
-            assert.equal(actual2, expected2);
           });
         });
       });
     });
 
     describe("findLastIndex()", () => {
-      it('should return -1 if non of the items meet the condition', () => {
-        const input = array.oneToTen.concat(array.zeroToNine.reverse());
+      this.it1('should return -1 if non of the items meet the condition', array.oneToTen,(input) => {
         const expected = -1;
         let sut = this.createSut(input);
         let actual = sut.findLastIndex(() => false);
         assert.equal(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = sut.findLastIndex(() => false);
-        assert.equal(actual, expected);
-
-        const input2 = array.grades.concat(array.grades.reverse());
-        let sut2 = this.createSut(input2);
-        let actual2 = sut2.findLastIndex(() => false);
-        assert.equal(actual2, expected);
-
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = sut2.findLastIndex(() => false);
-        assert.equal(actual2, expected);
       });
 
       it('should return -1 if sequence is empty', () => {
@@ -2151,7 +1668,7 @@ export abstract class SeqBase_Immediate_Tests {
           const first = array.tenOnes;
           const second = [1, 1, 1];
           const fromIndex = 5;
-          const expectedScannedTillIndex = fromIndex + second.length-1;
+          const expectedScannedTillIndex = fromIndex + second.length - 1;
           let sut = this.createSut(first);
           let actual = sut.findSubSequence(second, fromIndex);
           assert.equal(actual[0], fromIndex);
@@ -2316,7 +1833,7 @@ export abstract class SeqBase_Immediate_Tests {
             const first = input;
             const second = input.slice(0, 3);
             const fromIndex = 5;
-            const expectedScannedTillIndex = fromIndex + second.length-1;
+            const expectedScannedTillIndex = fromIndex + second.length - 1;
 
             let sut = this.createSut(first);
             let actual = sut.findSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
@@ -3438,7 +2955,7 @@ export abstract class SeqBase_Immediate_Tests {
         it('without initial value', () => test());
         it('with initial value', () => test(-10));
 
-        const test = (initialValue?: number): void =>{
+        const test = (initialValue?: number): void => {
           const input = array.oneToTen;
           const expectedPreviousValues: number[] = [];
           const expectedCurrentValues: number[] = [];

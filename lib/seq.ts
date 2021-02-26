@@ -10,6 +10,14 @@ export type ToComparableKey<T> = (x: T) => ComparableType;
 export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
 export type Iterables<Ts extends any[]> = { [k in keyof Ts]: Iterable<Ts[k]> }
 
+// Based on Typescript FlatArray
+export type FlatSeq<Arr, Depth extends number> = {
+  "done": Arr,
+  "recur": Arr extends Iterable<infer InnerArr>
+    ? FlatSeq<InnerArr, [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20][Depth]>
+    : Arr
+}[Depth extends 0 ? "done" : "recur"];
+
 export interface Seq<T> extends Iterable<T> {
   // same as every
   all(condition: Condition<T>): boolean; // C#
@@ -73,6 +81,8 @@ export interface Seq<T> extends Iterable<T> {
   first(fallback?: T): T | undefined; // take(1) ?? fallback; use find() to get first by condition
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
+
+  flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
   flatMap<R>(selector?: Selector<T, Iterable<R>>): Seq<R>; // JS2019, Scala
 
