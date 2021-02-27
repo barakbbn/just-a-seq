@@ -464,14 +464,14 @@ export abstract class SeqBase_Grouping_Tests {
       describe('hasAtLeast()', ()=>{
         it('should return true if sequence as number of expected items', () => {
           const input = array.oneToTen;
-          let sut = this.createSut(input);
-          for (let count = 1; count <= input.length; count++) {
+          let sut = this.createSut(input).groupBy(n => n % 3);
+          for (let count = 1; count <= 3; count++) {
             let actual = sut.hasAtLeast(count);
             assert.isTrue(actual);
           }
 
-          sut = this.createSut(generator.from(input));
-          for (let count = 1; count <= input.length; count++) {
+          sut = this.createSut(generator.from(input)).groupBy(n => n % 3);
+          for (let count = 1; count <= 3; count++) {
             let actual = sut.hasAtLeast(count);
             assert.isTrue(actual);
           }
@@ -479,26 +479,21 @@ export abstract class SeqBase_Grouping_Tests {
 
         it('should return false if sequence has less items than expected', () => {
           const input = array.oneToTen;
-          let sut = this.createSut(input);
+          let sut = this.createSut(input).groupBy(n => n % 3);
           let actual = sut.hasAtLeast(input.length + 1);
           assert.isFalse(actual);
 
-          sut = this.createSut(generator.from(input));
-          actual = sut.hasAtLeast(input.length + 1);
-          assert.isFalse(actual);
-
-          sut = this.createSut();
+          sut = this.createSut(generator.from(input)).groupBy(n => n % 3);
           actual = sut.hasAtLeast(input.length + 1);
           assert.isFalse(actual);
         });
 
         it('should throw exception if count parameter is not positive', () => {
           const input = array.oneToTen;
-          let sut = this.createSut(input);
+          let sut = this.createSut(input).groupBy(n => n % 3);
           assert.throws(() => sut.hasAtLeast(0));
           assert.throws(() => sut.hasAtLeast(-1));
         });
-
       });
     });
 
