@@ -224,6 +224,7 @@ export abstract class SeqBase_Grouping_Tests {
         it('should group items into hierarchy when iterating each group and before moving to the next group', () => {
 
         });
+
         describe('toMap()', () => {
           it('should group items into hierarchy by several grouped key', () => {
             const {expected, input} = expectedSamplesHierarchy();
@@ -232,7 +233,8 @@ export abstract class SeqBase_Grouping_Tests {
               .thenGroupBy(s => s.type)
               .thenGroupBy(s => s.period);
 
-            assert.deepEqual(sut.toMap(), expected);
+            const actual = sut.toMap();
+            assert.deepEqual(actual, expected);
           });
 
           it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors', () => {
@@ -246,7 +248,6 @@ export abstract class SeqBase_Grouping_Tests {
             assert.deepEqual(sut.toMap(), expected);
           });
         });
-
       });
 
       describe('mapInGroup()', () => {
@@ -327,11 +328,11 @@ export abstract class SeqBase_Grouping_Tests {
           assert.deepEqual(actual, expected);
         });
 
-        describe('on each grouped sequence', ()=>{
+        describe('on each grouped sequence', () => {
           it('should produce same results before and after tap', () => {
             const input = array.oneToTen;
             const sut = this.createSut(input).groupBy(n => n % 3);
-            for (const group of sut){
+            for (const group of sut) {
               const tapped = group.tap(() => void (0)).tap(() => void (0));
               const expected = [...group];
               const actual = [...tapped];
@@ -342,10 +343,10 @@ export abstract class SeqBase_Grouping_Tests {
           it('should call tap callback for each item', () => {
             const input = array.oneToTen;
             const sut = this.createSut(input).groupBy(n => n % 3);
-            for (const group of sut){
+            for (const group of sut) {
               const actual: { value: number; index: number; }[] = [];
               const tapped = group.tap((value, index) => actual.push({value, index}));
-              const expected = [...group].map((value, index)=>({value, index}));
+              const expected = [...group].map((value, index) => ({value, index}));
               for (const x of tapped) {
               }
               assert.deepEqual(actual, expected);
@@ -382,13 +383,14 @@ export abstract class SeqBase_Grouping_Tests {
       describe('cache()', () => {
         it('should not iterate items', () => {
           let wasIterated = false;
-          const input = new class{
-            *[Symbol.iterator](){
-            for (const n of array.oneToTen) {
-            wasIterated = true;
-            yield n;
+          const input = new class {
+            * [Symbol.iterator]() {
+              for (const n of array.oneToTen) {
+                wasIterated = true;
+                yield n;
+              }
+            }
           }
-        }}
 
           this.createSut(input).groupBy(n => n % 3).cache();
 
@@ -397,7 +399,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         it('should not iterate source items again after being cached', () => {
           let wasIterated: boolean;
-          const input = new  class {
+          const input = new class {
             * [Symbol.iterator]() {
               for (const n of array.oneToTen) {
                 wasIterated = true;
@@ -461,7 +463,7 @@ export abstract class SeqBase_Grouping_Tests {
         });
       });
 
-      describe('hasAtLeast()', ()=>{
+      describe('hasAtLeast()', () => {
         it('should return true if sequence as number of expected items', () => {
           const input = array.oneToTen;
           let sut = this.createSut(input).groupBy(n => n % 3);

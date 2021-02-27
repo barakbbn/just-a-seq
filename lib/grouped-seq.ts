@@ -89,7 +89,7 @@ class Container {
     if (!isLast) this.map = new Map<any, any>();
   }
 
-  getOrAddChild(isLast: boolean, key: any, comparable: any) {
+  getOrAddChild(isLast: boolean, key: any, comparable: any): Container {
     if (!this.map) throw Error('Cannot call getOrAddChild on leaf container');
     let container = this.map.get(comparable);
     if (!container) {
@@ -111,8 +111,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   private cacheable: boolean = false;
 
   constructor(protected source: Iterable<TIn>,
-              protected selectors: GroupingSelector[] = []
-  ) {
+              protected selectors: GroupingSelector[] = []) {
     super();
   }
 
@@ -269,8 +268,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
       * [Symbol.iterator](): any {
         if (this.container.isLast) yield* this.containerGenerator;
-        else for (const entry of this.containerGenerator as Iterable<Container>) {
-          yield factories.GroupedSeq(entry.key, new Generator(entry))
+        else for (const container of this.containerGenerator as Iterable<Container>) {
+          yield factories.GroupedSeq(container.key, new Generator(container))
         }
       }
     }
