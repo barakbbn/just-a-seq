@@ -1,6 +1,6 @@
-import {asSeq, Seq, SeqOfGroups} from "../../lib";
+import {Seq, SeqOfGroups} from "../../lib";
 import {describe, it} from "mocha";
-import {array, Sample} from "../test-data";
+import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
 
 export abstract class SeqBase_Grouping_Tests {
@@ -286,11 +286,15 @@ export abstract class SeqBase_Grouping_Tests {
         it('should produce same results before and after tap', () => {
           const input = array.oneToTen;
           const expectedSeq = this.createSut(input).groupBy(n => n % 3);
-          const actualSeq = expectedSeq.tap(() => void (0));
+          let actualSeq = expectedSeq.tap(() => void (0));
 
           const expected = [...expectedSeq].map(group => [group.key, [...group]]);
-          const actual = [...actualSeq].map(group => [group.key, [...group]]);
+          let actual = [...actualSeq].map(group => [group.key, [...group]]);
 
+          assert.deepEqual(actual, expected);
+
+          actualSeq = actualSeq.tap(() => void (0));
+          actual = [...actualSeq].map(group => [group.key, [...group]]);
           assert.deepEqual(actual, expected);
         });
 
@@ -308,7 +312,7 @@ export abstract class SeqBase_Grouping_Tests {
           assert.deepEqual(actual, expected);
         });
 
-        it('should call tap call back for each top level group after performing thenGroupBy()', () => {
+        it('should call tap callback for each top level group after performing thenGroupBy()', () => {
           const input = array.oneToTen;
           const expected = [{key: 1, index: 0}, {key: 2, index: 1}, {key: 0, index: 2}];
           const actual: { key: number; index: number; }[] = [];
@@ -322,6 +326,32 @@ export abstract class SeqBase_Grouping_Tests {
 
           assert.deepEqual(actual, expected);
         });
+
+        describe('on each grouped sequence', ()=>{
+          it('should produce same results before and after tap', () => {
+            const input = array.oneToTen;
+            const sut = this.createSut(input).groupBy(n => n % 3);
+            for (const group of sut){
+              const tapped = group.tap(() => void (0)).tap(() => void (0));
+              const expected = [...group];
+              const actual = [...tapped];
+              assert.deepEqual(actual, expected);
+            }
+          });
+
+          it('should call tap callback for each item', () => {
+            const input = array.oneToTen;
+            const sut = this.createSut(input).groupBy(n => n % 3);
+            for (const group of sut){
+              const actual: { value: number; index: number; }[] = [];
+              const tapped = group.tap((value, index) => actual.push({value, index}));
+              const expected = [...group].map((value, index)=>({value, index}));
+              for (const x of tapped) {
+              }
+              assert.deepEqual(actual, expected);
+            }
+          });
+        });
       });
 
       describe('consume()', () => {
@@ -329,7 +359,7 @@ export abstract class SeqBase_Grouping_Tests {
           const expected = array.oneToTen;
           const actual: number[] = [];
           const source = expected.map(n => actual.push(n));
-          const sut = asSeq(source).groupBy(n => n % 3);
+          const sut = this.createSut(source).groupBy(n => n % 3);
           sut.consume();
 
           assert.deepEqual(actual, expected);
@@ -339,7 +369,7 @@ export abstract class SeqBase_Grouping_Tests {
           const input = array.oneToTen;
           const expected = [{key: 1, index: 0}, {key: 2, index: 1}, {key: 0, index: 2}];
           const actual: { key: number; index: number; }[] = [];
-          const sut = asSeq(input)
+          const sut = this.createSut(input)
             .groupBy(n => n % 3)
             .tap((group, index) => actual.push({key: group.key, index}));
 
@@ -352,28 +382,31 @@ export abstract class SeqBase_Grouping_Tests {
       describe('cache()', () => {
         it('should not iterate items', () => {
           let wasIterated = false;
-          const input = function* () {
+          const input = new class{
+            *[Symbol.iterator](){
             for (const n of array.oneToTen) {
-              wasIterated = true;
-              yield n;
-            }
-          };
+            wasIterated = true;
+            yield n;
+          }
+        }}
 
-          asSeq(input).groupBy(n => n % 3).cache();
+          this.createSut(input).groupBy(n => n % 3).cache();
 
           assert.isFalse(wasIterated);
         });
 
         it('should not iterate source items again after being cached', () => {
-          let wasIterated = true;
-          const input = function* () {
-            for (const n of array.oneToTen) {
-              wasIterated = true;
-              yield n;
+          let wasIterated: boolean;
+          const input = new  class {
+            * [Symbol.iterator]() {
+              for (const n of array.oneToTen) {
+                wasIterated = true;
+                yield n;
+              }
             }
-          };
+          }
 
-          const sut = asSeq(input).groupBy(n => n % 3).cache();
+          const sut = this.createSut(input).groupBy(n => n % 3).cache();
           for (const x of sut) {
           }
           wasIterated = false;
@@ -384,7 +417,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         it('should produce same results before and after cached', () => {
           const input = array.oneToTen;
-          const sut = asSeq(input).groupBy(n => n % 3);
+          const sut = this.createSut(input).groupBy(n => n % 3);
           const expected = [...sut].map(group => [group.key, [...group]]);
 
           const cached = sut.cache();
@@ -397,7 +430,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         it('should return same items on re-iteration although source sequence changed', () => {
           const input = array.oneToTen;
-          const sut = asSeq(input).groupBy(n => n % 3);
+          const sut = this.createSut(input).groupBy(n => n % 3);
           const expected = [...sut].map(group => [group.key, [...group]]);
 
           const cached = sut.cache();
@@ -410,7 +443,7 @@ export abstract class SeqBase_Grouping_Tests {
         });
 
         it('should return same instance if calling cache again', () => {
-          const expected = asSeq(array.oneToTen).groupBy(n => n % 3).cache();
+          const expected = this.createSut(array.oneToTen).groupBy(n => n % 3).cache();
           const actual = expected.cache();
 
           assert.equal(actual, expected);
@@ -418,7 +451,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         it('should save cached results in array property', () => {
           const input = array.oneToTen;
-          const sut = asSeq(input).groupBy(n => n % 3);
+          const sut = this.createSut(input).groupBy(n => n % 3);
 
           const cached = sut.cache();
           const actual = [...cached].map(group => [group.key, [...group]]);
@@ -426,6 +459,46 @@ export abstract class SeqBase_Grouping_Tests {
 
           assert.deepEqual(actual, expected);
         });
+      });
+
+      describe('hasAtLeast()', ()=>{
+        it('should return true if sequence as number of expected items', () => {
+          const input = array.oneToTen;
+          let sut = this.createSut(input);
+          for (let count = 1; count <= input.length; count++) {
+            let actual = sut.hasAtLeast(count);
+            assert.isTrue(actual);
+          }
+
+          sut = this.createSut(generator.from(input));
+          for (let count = 1; count <= input.length; count++) {
+            let actual = sut.hasAtLeast(count);
+            assert.isTrue(actual);
+          }
+        });
+
+        it('should return false if sequence has less items than expected', () => {
+          const input = array.oneToTen;
+          let sut = this.createSut(input);
+          let actual = sut.hasAtLeast(input.length + 1);
+          assert.isFalse(actual);
+
+          sut = this.createSut(generator.from(input));
+          actual = sut.hasAtLeast(input.length + 1);
+          assert.isFalse(actual);
+
+          sut = this.createSut();
+          actual = sut.hasAtLeast(input.length + 1);
+          assert.isFalse(actual);
+        });
+
+        it('should throw exception if count parameter is not positive', () => {
+          const input = array.oneToTen;
+          let sut = this.createSut(input);
+          assert.throws(() => sut.hasAtLeast(0));
+          assert.throws(() => sut.hasAtLeast(-1));
+        });
+
       });
     });
 
@@ -485,33 +558,33 @@ export abstract class SeqBase_Grouping_Tests {
 
       it('should group each outer item with sequence of matched inner items - simple values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = matchingTest.simpleInputsForTest();
-        const sut = asSeq(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
+        const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
 
         test(sut, expected);
       });
 
       it('should group each outer item with sequence of matched inner items - complex values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = matchingTest.complexInputForTest();
-        const sut = asSeq(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
+        const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
 
         test(sut, expected);
       });
 
       it('should return outer without matching inner using with empty sequence of matched inners - simple values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.simpleInputsForTest();
-        const sut = asSeq(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
+        const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
         test(sut, expected);
       });
 
       it('should return outer without matching inner using with empty sequence of matched inners - complex values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.complexInputForTest();
-        const sut = asSeq(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
+        const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
         test(sut, expected);
       });
 
       it('should return all outer with empty matching inners if inner sequence is empty', () => {
         const outer = array.oneToTen;
-        const sut = asSeq(outer).groupJoin([], _ => _, _ => _);
+        const sut = this.createSut(outer).groupJoin([], _ => _, _ => _);
         const expected = outer.map(v => [v, []]);
         test(sut, expected);
       });
@@ -519,33 +592,33 @@ export abstract class SeqBase_Grouping_Tests {
       describe('groupJoinRight()', () => {
         it('should group each outer item with sequence of matched inner items - simple values', () => {
           const {outer, inner, expected, outerKeySelector, innerKeySelector} = matchingTest.simpleInputsForTest();
-          const sut = asSeq(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
+          const sut = this.createSut(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
 
           test(sut, expected);
         });
 
         it('should group each outer item with sequence of matched inner items - complex values', () => {
           const {outer, inner, expected, outerKeySelector, innerKeySelector} = matchingTest.complexInputForTest();
-          const sut = asSeq(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
+          const sut = this.createSut(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
 
           test(sut, expected);
         });
 
         it('should return outer without matching inner using with empty sequence of matched inners - simple values', () => {
           const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.simpleInputsForTest();
-          const sut = asSeq(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
+          const sut = this.createSut(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
           test(sut, expected);
         });
 
         it('should return outer without matching inner using with empty sequence of matched inners - complex values', () => {
           const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.complexInputForTest();
-          const sut = asSeq(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
+          const sut = this.createSut(inner).groupJoinRight(outer, innerKeySelector, outerKeySelector);
           test(sut, expected);
         });
 
         it('should return all outer with empty matching inners if inner sequence is empty', () => {
           const outer = array.oneToTen;
-          const sut = asSeq([]).groupJoinRight(outer, _ => _, _ => _);
+          const sut = this.createSut([]).groupJoinRight(outer, _ => _, _ => _);
           const expected = outer.map(v => [v, []]);
           test(sut, expected);
         });
