@@ -106,6 +106,32 @@ export abstract class SeqBase_Grouping_Tests {
         assert.deepEqual(actual2, expected);
       });
 
+      it('should filter grouped sequences as expected', () => {
+        const input = array.samples;
+        const expectedMap = new Map<string, Sample[]>();
+        for(const s of input){
+          const items = expectedMap.get(s.type) ?? [];
+          items.push(s);
+          expectedMap.set(s.type, items);
+        }
+        const expectedSet = new Set<number>();
+        for(const samples of expectedMap.values()){
+          if(samples.length <= 5) continue;
+          samples.map(s => s.score).forEach(s => expectedSet.add(s));
+        }
+        const expected = [...expectedSet];
+
+        const sut = this.createSut(input)
+          .groupBy(s => s.type)
+          .filter(group => group.hasAtLeast(6))
+          .flat()
+          .map(s => s.score)
+          .distinct()
+
+        const actual = [...sut];
+
+        assert.deepEqual(actual, expected);
+      });
       describe('thenGroupBy()', () => {
         function expectedSamplesHierarchy() {
           const input = array.samples;

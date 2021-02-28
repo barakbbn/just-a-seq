@@ -1,9 +1,11 @@
 # just-a-seq
 
 This is just a **sequence** that wraps an array or other Iterable object, Generator function.  
-It provides query functionalities and helpers over the items.  
+It provides query functionalities and helpers over the items.
 ___
+
 ### Features
+
 * Typescript type definitions
 * Lazy/Deferred and immutable functionalities, similar to .NET LINQ
 * Fluent API - chain functions calls that only really work when iterating the items or performing a consuming action
@@ -12,18 +14,33 @@ ___
 * Additional useful functionalities that can make you more productive.
 
 #### Examples
+
 ```typescript
-interface ArrayMethod {name: string; mutable?: boolean; }
-const data = [
-  {x:0, y:0, color:'green', shape:'circle', selected: false },
-  {x:0, y:0, color:'green', shape:'circle', selected: false },
-  {x:0, y:0, color:'green', shape:'circle', selected: false },
+// Example 1
+const cells: {col: number; row: number; userValue?: number; }[] = [
+  {col: 0, row: 0, userValue: 0}, {col: 0, row: 1, userValue: 1},
+  {col: 1, row: 0, userValue: 10}, {col: 1, row: 1, userValue: 11},
 ];
-asSeq()
+const newPoints: { x: number;  y: number; }[] = [{x: 0, y: 0}, {x: 1, y: 1}, {x:11, y: 11}];
+// Sync cells with new points, by keeping existing cells (with user changes) and adding newer
+const changed = !asSeq(cells).includesAll(newPoints, cell.col + ',' + cell.row, p => p.x + ',' + p.y);
+if (changed) {
+  cells = asSeq(newPoints)
+    .groupJoin(cells, p => p.x + ',' + p.y, cell.col + ',' + cell.row)
+    .map(group => group.ifEmpty({col: group.key.x, row: group.key.y}))
+    .flat()
+    .toArray();
+  // Output: [
+  //   {col: 0, row: 0, userValue: 0}, {col: 0, row: 1, userValue: 1},
+  //   {col: 11, row: 11} 
+  // ]
+}
 ```
+
 ### Functionality summary
 
 ### `Seq` Interface
+
 | Method      | Description |
 | ----------- | ----------- |
 | all | *(same as **every**)* Checks whether all items match a condition |
@@ -127,6 +144,7 @@ asSeq()
 | zipWithIndex | Pair each item with its index [item, index] (opposite order of entries() method)
 
 ### Factories
+
 | Function      | Description |
 | ----------- | ----------- |
 | asSeq | Creates a sequence by wrapping an Iterable object (Array, Generator function) |

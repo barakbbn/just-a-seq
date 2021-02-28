@@ -54,11 +54,6 @@ export class GroupedSeqImpl_Tests {
         }
       });
     });
-    describe('tap()', () => {
-      it('should ', function () {
-
-      });
-    });
   });
 
   createSut<K, T>(key: K, input?: Iterable<T>): GroupedSeqImpl<K, T> {

@@ -57,15 +57,8 @@ export function isIterable<R>(item: any, ignoreIfString = false): item is Iterab
 }
 
 export function* entries<T>(items: Iterable<T>): Generator<{ value: T; index: number; }> {
-  const iterator = getIterator(items);
-  let next = iterator.next();
-  let value = next.value;
   let index = 0;
-  while (!next.done) {
-    yield {value, index: index++};
-    next = iterator.next();
-    value = next.value;
-  }
+  for (const value of items) yield {value, index: index++};
 }
 
 
@@ -86,8 +79,7 @@ export function groupItems<K, T, V = T>(items: Iterable<T>,
 }
 
 export function consume(iterable: Iterable<any>): void {
-  const iterator = getIterator(iterable);
-  while (!iterator.next().done) {
+  for (const _ of iterable) {
   }
 }
 
