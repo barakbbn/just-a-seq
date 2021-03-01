@@ -215,8 +215,11 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return realMap;
   }
 
-  [Symbol.iterator](): any {
-    return this.sessionIterator();
+  *[Symbol.iterator](): any {
+    const self=this;
+    yield *new Gen(this.source, function *(source, closeWhenDone){
+      yield *self.sessionIterator(closeWhenDone);
+    });
     // return this.lazyIterator();
   }
 
@@ -252,12 +255,12 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   //   }
   // }
 
-  private* sessionIterator() {
+  private* sessionIterator(closeWhenDone: <V>(iterator: Iterator<V>) => Iterator<V>) {
     if (this._cache) {
       yield* this._cache;
       return;
     }
-    const sessionIterator = this.coreIterator();
+    const sessionIterator = closeWhenDone(this.coreIterator());
 
     class GroupedSeqGenerator implements Iterable<any> {
       private readonly containerGenerator: ContainerGenerator;

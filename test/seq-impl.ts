@@ -9,6 +9,7 @@ import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
 import {array, generator} from "./test-data";
 import {assert} from "chai";
 import {SeqBase_Immutable_Tests} from "./seq-base/seq-base-immutable";
+import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 
 function createSut<T>(input: Iterable<T>): SeqImpl<T> {
   return new SeqImpl(input);
@@ -44,6 +45,10 @@ class SeqImpl_Immutable_Tests extends SeqBase_Immutable_Tests {
   protected createSut = createSut
 }
 
+class SeqImpl_Close_Iterator_Tests extends SeqBase_Close_Iterator_Tests {
+  protected createSut = createSut
+}
+
 export class SeqImpl_Tests {
   protected createSut = createSut;
 
@@ -55,6 +60,7 @@ export class SeqImpl_Tests {
     new SeqIImpl_CachedSeq_Tests().run();
     new SeqImpl_Grouping_Tests().run();
     new SeqImpl_Immutable_Tests().run();
+    new SeqImpl_Close_Iterator_Tests().run();
 
     describe('cache()', () => {
       it('should return same items on re-consume although source sequence changed', () => {

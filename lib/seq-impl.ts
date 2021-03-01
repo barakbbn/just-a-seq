@@ -129,7 +129,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
     return super.findLastByConditionInternal(tillIndex, condition, fallback);
   }
 
-  protected generate<U>(generator: (items: Iterable<T>) => Generator<U>): Seq<U> {
+  protected generate<U>(generator: (items: Iterable<T>, closeWhenDone: <V>(iterator: Iterator<V>) => Iterator<V>) => Generator<U>): Seq<U> {
     return factories.Seq<U>(new Gen(this.items, generator));
   }
 

@@ -1,12 +1,41 @@
 import {ComparableType, Selector, ToComparableKey} from "./seq";
 
 export class Gen<T, U = T> implements Iterable<U> {
-  constructor(private seq: Iterable<T>, private generator: (seq: Iterable<T>) => Generator<U>) {
+  constructor(private seq: Iterable<T>, private generator: (seq: Iterable<T>, closeWhenDone: <V>(iterator: Iterator<V>) => Iterator<V>) => Generator<U>) {
   }
 
   [Symbol.iterator](): Iterator<U> {
-    return this.generator(this.seq);
+    const self = this;
+
+    return new class CloseableIterator implements Iterator<U> {
+      iterator: Iterator<U>;
+      done = false;
+      iteratorsToClose: Iterator<any>[];
+      closeWhenDone<V>(iterator: Iterator<V>){
+        (this.iteratorsToClose??=[]).push(iterator);
+        return iterator
+      }
+
+      return(value?: any): IteratorResult<any> {
+        this.done = true;
+        const result = closeIterator(this.iterator, value) ?? {done: true, value};
+        this.iteratorsToClose?.splice(0).forEach(closeIterator);
+        return result;
+      }
+
+      next(): IteratorResult<U> {
+        if (this.done) return {done: true, value: undefined};
+        if (!this.iterator) this.iterator = self.generator(self.seq, this.closeWhenDone.bind(this));
+        const {value, done} = this.iterator.next();
+        return done ? this.return(value) : {value};
+      }
+    };
   }
+}
+
+export function closeIterator(iterator: Iterator<any>, value: any): IteratorResult<any> | undefined {
+  if (typeof iterator?.return === 'function') return iterator.return(value);
+  return undefined;
 }
 
 class IterableGenerator<T> implements Iterable<T> {
