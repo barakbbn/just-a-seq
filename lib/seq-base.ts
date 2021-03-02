@@ -19,7 +19,7 @@ import {
   getIterator,
   groupItems,
   IGNORED_ITEM,
-  isIterable,
+  isIterable, IterationContext,
   LEGACY_COMPARER,
   mapAsArray,
   sameValueZero,
@@ -90,7 +90,7 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1) return factories.Seq<Seq<T>>();
-    return this.generate(function* chunk(items, closeWhenDone) {
+    return this.generate(function* chunk(items, iterationContext) {
       if (Array.isArray(items)) {
         for (let skip = 0; skip < items.length; skip += size) {
           yield factories.Seq<T>(items.slice(skip, skip + size));
@@ -98,10 +98,11 @@ export abstract class SeqBase<T> implements Seq<T> {
 
       } else {
         let innerSeq: Seq<T> | undefined;
-        const iterator = closeWhenDone(getIterator(items));
+        iterationContext.onClose(()=>innerSeq?.consume())
+        const iterator = iterationContext.closeWhenDone(getIterator(items));
         let next = iterator.next();
         while (!next.done) {
-          if (innerSeq) innerSeq.consume();
+          innerSeq?.consume();
           if (next.done) break;
 
           innerSeq = factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
@@ -1192,9 +1193,9 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
-    return this.generate(function* zip(self, closeWhenDone) {
+    return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
-      const iterables = allIterables.map(iterator => closeWhenDone(getIterator(iterator)));
+      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
       let next = iterables.map(it => it.next());
       while (next.every(next => !next.done)) {
         yield next.map(next => next.value);
@@ -1204,7 +1205,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]> {
-    const res = this.generate(function* zipAll(self, closeWhenDone) {
+    const res = this.generate(function* zipAll(self, iterationContext) {
       function isOpts(opts?: any): opts is  { defaults?: [T?, T1?, ...Ts]; } {
         return Array.isArray(opts?.defaults);
       }
@@ -1217,7 +1218,7 @@ export abstract class SeqBase<T> implements Seq<T> {
         allIterables.pop();
       }
       const defaults = opts?.defaults ?? [];
-      const iterables = allIterables.map(iterator => closeWhenDone(getIterator(iterator)));
+      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
       let next = iterables.map(it => it.next());
       while (!next.every(next => next.done)) {
         yield next.map((next, i) => next.done ? defaults[i] : next.value);
@@ -1313,7 +1314,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     return start + [...this].join(separator) + end;
   }
 
-  protected generate<U>(generator: (items: Iterable<T>, closeWhenDone: <V>(iterator: Iterator<V>) => Iterator<V>) => Generator<U>): Seq<U> {
+  protected generate<U>(generator: (items: Iterable<T>, iterationContext: IterationContext) => Generator<U>): Seq<U> {
     return factories.Seq<U>(new Gen(this, generator));
   }
 

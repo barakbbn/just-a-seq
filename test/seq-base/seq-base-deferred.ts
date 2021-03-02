@@ -162,6 +162,14 @@ export abstract class SeqBase_Deferred_Tests {
         actualInner = [...actual[0]];
         assert.sameOrderedMembers(actualInner, input);
       });
+
+      this.it1('should be able to iterate child chunked-sequence after main sequence closed', array.oneToTen, (input) => {
+        const expected = [...input].splice(0,2)
+        const sut = this.createSut(input).chunk(2);
+        let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
+        const actual = [...firstChunk];
+        assert.deepEqual(actual, expected);
+      });
     });
 
     describe("concat()", () => {

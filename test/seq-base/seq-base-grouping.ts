@@ -132,6 +132,16 @@ export abstract class SeqBase_Grouping_Tests {
 
         assert.deepEqual(actual, expected);
       });
+
+      it('should be able to iterate child grouped-sequence after main sequence closed', () => {
+        const input = array.samples;
+        const expected = input.filter(s => s.type === input[0].type)
+        const sut = this.createSut(input).groupBy(s => s.type);
+        let [firstGroup] = sut; // will take first child grouped-sequence and close the iterator returned by sut
+        const actual = [...firstGroup];
+        assert.deepEqual(actual, expected);
+      });
+
       describe('thenGroupBy()', () => {
         function expectedSamplesHierarchy() {
           const input = array.samples;
