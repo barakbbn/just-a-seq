@@ -10,46 +10,46 @@ export abstract class SeqBase_Deferred_Tests {
     it(title + ' - sequence source', () => testFn(this.createSut(input)));
   }
 
-  its1<T>(title: string, input: T[][], testFn: (input: Iterable<Iterable<T>>) => void) {
-    let first = input[0];
-    let last = input.length > 1 ? input[input.length - 1] : undefined;
-    const entitle = (baseTitle: string, iterables: Iterable<Iterable<T>>) => {
-      let f = [...iterables][0];
-      let s = [...iterables].slice(-1)[0];
-      const firstType = Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence';
-      const secondType = s ? Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence' : undefined;
-      return `${baseTitle} - [${firstType}, ..., ${secondType}]`
-    }
-
-    if (!last) {
-      it(title + ' - array', () => testFn(input));
-      it(title + ' - generator source', () => testFn(generator.from(input)));
-      it(title + ' - sequence source', () => testFn(this.createSut(input)));
-
-    } else {
-      let iterables: Iterable<Iterable<T>>;
-      iterables = [first, ...input.slice(1, -1), last];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [first, ...input.slice(1, -1), generator.from(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [first, ...input.slice(1, -1), this.createSut(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-
-      iterables = [generator.from(first), ...input.slice(1, -1), last];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [generator.from(first), ...input.slice(1, -1), generator.from(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [generator.from(first), ...input.slice(1, -1), this.createSut(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-
-      iterables = [this.createSut(first), ...input.slice(1, -1), last];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [this.createSut(first), ...input.slice(1, -1), generator.from(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-      iterables = [this.createSut(first), ...input.slice(1, -1), this.createSut(last)];
-      it(entitle(title, iterables), () => testFn(iterables));
-    }
-  }
+  // its1<T>(title: string, input: T[][], testFn: (input: Iterable<Iterable<T>>) => void) {
+  //   let first = input[0];
+  //   let last = input.length > 1 ? input[input.length - 1] : undefined;
+  //   const entitle = (baseTitle: string, iterables: Iterable<Iterable<T>>) => {
+  //     let f = [...iterables][0];
+  //     let s = [...iterables].slice(-1)[0];
+  //     const firstType = Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence';
+  //     const secondType = s ? Array.isArray(f) ? 'array' : typeof f === 'function' ? 'generator' : 'sequence' : undefined;
+  //     return `${baseTitle} - [${firstType}, ..., ${secondType}]`
+  //   }
+  //
+  //   if (!last) {
+  //     it(title + ' - array', () => testFn(input));
+  //     it(title + ' - generator source', () => testFn(generator.from(input)));
+  //     it(title + ' - sequence source', () => testFn(this.createSut(input)));
+  //
+  //   } else {
+  //     let iterables: Iterable<Iterable<T>>;
+  //     iterables = [first, ...input.slice(1, -1), last];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [first, ...input.slice(1, -1), generator.from(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [first, ...input.slice(1, -1), this.createSut(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //
+  //     iterables = [generator.from(first), ...input.slice(1, -1), last];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [generator.from(first), ...input.slice(1, -1), generator.from(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [generator.from(first), ...input.slice(1, -1), this.createSut(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //
+  //     iterables = [this.createSut(first), ...input.slice(1, -1), last];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [this.createSut(first), ...input.slice(1, -1), generator.from(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //     iterables = [this.createSut(first), ...input.slice(1, -1), this.createSut(last)];
+  //     it(entitle(title, iterables), () => testFn(iterables));
+  //   }
+  // }
 
   it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
     it(title + ' - first array, second array', () => testFn(first, second));
@@ -161,6 +161,14 @@ export abstract class SeqBase_Deferred_Tests {
         assert.lengthOf(actual, 1);
         actualInner = [...actual[0]];
         assert.sameOrderedMembers(actualInner, input);
+      });
+
+      this.it1('should be able to iterate child chunked-sequence after main sequence closed', array.oneToTen, (input) => {
+        const expected = [...input].splice(0,2)
+        const sut = this.createSut(input).chunk(2);
+        let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
+        const actual = [...firstChunk];
+        assert.deepEqual(actual, expected);
       });
     });
 

@@ -1,12 +1,60 @@
 import {ComparableType, Selector, ToComparableKey} from "./seq";
 
+export interface IterationContext {
+  closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
+
+  onClose(action: () => void): void;
+}
+
 export class Gen<T, U = T> implements Iterable<U> {
-  constructor(private seq: Iterable<T>, private generator: (seq: Iterable<T>) => Generator<U>) {
+
+  constructor(private seq: Iterable<T>, private generator: (seq: Iterable<T>, iterationContext: IterationContext) => Generator<U>) {
   }
 
   [Symbol.iterator](): Iterator<U> {
-    return this.generator(this.seq);
+    class IterationContextImpl implements IterationContext {
+      private onCloseActions: (() => void)[];
+
+      closeWhenDone<V>(iterator: Iterator<V>) {
+        this.onClose(() => closeIterator(iterator));
+        return iterator;
+      }
+
+      onClose(action: () => void): void {
+        (this.onCloseActions ??= []).push(action);
+      }
+
+      __close(): void {
+        this.onCloseActions?.splice?.(0)?.forEach(action => action());
+      }
+    }
+    const self = this;
+
+    return new class CloseableIterator implements Iterator<U> {
+      private iterator: Iterator<U>;
+      private done = false;
+      private iterationContext = new IterationContextImpl();
+
+      return(value?: any): IteratorResult<any> {
+        this.done = true;
+        const result = closeIterator(this.iterator, value) ?? {done: true, value};
+        this.iterationContext.__close();
+        return result;
+      }
+
+      next(): IteratorResult<U> {
+        if (this.done) return {done: true, value: undefined};
+        if (!this.iterator) this.iterator = self.generator(self.seq, this.iterationContext);
+        const {value, done} = this.iterator.next();
+        return done ? this.return(value) : {value};
+      }
+    };
   }
+}
+
+export function closeIterator(iterator: Iterator<any>, value?: any): IteratorResult<any> | undefined {
+  if (typeof iterator?.return === 'function') return iterator.return(value);
+  return undefined;
 }
 
 class IterableGenerator<T> implements Iterable<T> {

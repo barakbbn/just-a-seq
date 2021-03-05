@@ -1,4 +1,4 @@
-import {EMPTY_ARRAY, Gen} from './common'
+import {EMPTY_ARRAY, Gen, IterationContext} from './common'
 
 import {CachedSeq, Condition, factories, Selector, Seq} from './seq'
 import {SeqBase} from "./seq-base";
@@ -129,7 +129,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
     return super.findLastByConditionInternal(tillIndex, condition, fallback);
   }
 
-  protected generate<U>(generator: (items: Iterable<T>) => Generator<U>): Seq<U> {
+  protected generate<U>(generator: (items: Iterable<T>, iterationContext: IterationContext) => Generator<U>): Seq<U> {
     return factories.Seq<U>(new Gen(this.items, generator));
   }
 

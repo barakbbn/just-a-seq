@@ -191,12 +191,6 @@ export const generator = new class {
     })
   };
 
-  counter(from: number) {
-    return new ReusableGenerator(function* counter() {
-      while (true) yield from++;
-    })
-  };
-
   from<T>(array: T[]): Iterable<T>
   from(string: string): Iterable<string>
   from<T>(arrayOrString: Iterable<T>): Iterable<T> {
@@ -226,26 +220,6 @@ export const generator = new class {
     });
   }
 };
-
-export class TestableArray<T> extends Array<T> {
-  lastIteratedIndex = -1;
-
-  constructor(items: Iterable<T>, private yieldCallback?: (item: T, index: number) => void) {
-    super(...items);
-  }
-
-  * [Symbol.iterator]() {
-    this.lastIteratedIndex = -1;
-    const iterator = super[Symbol.iterator]();
-    let next = iterator.next();
-    while (!next.done) {
-      this.lastIteratedIndex++;
-      this.yieldCallback?.(next.value, this.lastIteratedIndex);
-      yield next.value;
-      next = iterator.next();
-    }
-  }
-}
 
 type arraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
 export const iterables: arraysOnly = new Proxy(array, {

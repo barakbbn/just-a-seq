@@ -9,7 +9,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
-import {entries, Gen, IGNORED_ITEM} from "./common";
+import {consume, entries, Gen, IGNORED_ITEM, IterationContext} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
@@ -68,17 +68,6 @@ class GroupingSelector {
     return this.key?this.key(value, index) : value;
   }
 
-}
-
-class ContainerGenerator implements Iterable<any[] | Container> {
-  private lastLength = 0;
-
-  constructor(public readonly container: Container) {
-  }
-
-  * [Symbol.iterator](): Generator<any[] | Container> {
-    while (this.lastLength < this.container.array.length) yield this.container.array[this.lastLength++];
-  }
 }
 
 class Container {
@@ -215,8 +204,11 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return realMap;
   }
 
-  [Symbol.iterator](): any {
-    return this.sessionIterator();
+  * [Symbol.iterator](): any {
+    const self = this;
+    yield* new Gen(this.source, function* (source, iterationContext) {
+      yield* self.sessionIterator(iterationContext);
+    });
     // return this.lazyIterator();
   }
 
@@ -252,29 +244,52 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   //   }
   // }
 
-  private* sessionIterator() {
+  private* sessionIterator(iterationContext: IterationContext) {
     if (this._cache) {
       yield* this._cache;
       return;
     }
-    const sessionIterator = this.coreIterator();
+    let yielded = false;
+    let generated: Iterable<any>;
 
-    class GroupedSeqGenerator implements Iterable<any> {
-      private readonly containerGenerator: ContainerGenerator;
+    if (!this.cacheable) {
+      iterationContext.onClose(() => {
+        if (yielded) consume(generated)
+      });
+    }
+    let sessionIterator = iterationContext.closeWhenDone(this.coreIterator());
 
-      constructor(private readonly container: Container) {
-        this.containerGenerator = new ContainerGenerator(this.container);
+    class ContainerGenerator<T> implements Iterable<T | Container> {
+      private lastLength = 0;
+
+      constructor(public readonly container: Container) {
       }
 
-      * [Symbol.iterator](): any {
-        if (this.container.isLast) yield* this.containerGenerator;
+      get isLast(): boolean {
+        return this.container.isLast;
+      }
+
+      * [Symbol.iterator](): Generator<T | Container> {
+        while (this.lastLength < this.container.array.length) yield this.container.array[this.lastLength++];
+      }
+    }
+
+    class GroupedSeqGenerator implements Iterable<GroupedSeq<any, any> | TOut> {
+      private readonly containerGenerator: ContainerGenerator<TOut>;
+
+      constructor(container: Container) {
+        this.containerGenerator = new ContainerGenerator<TOut>(container);
+      }
+
+      * [Symbol.iterator](): Generator<GroupedSeq<any, any> | TOut> {
+        if (this.containerGenerator.isLast) yield* (this.containerGenerator as any);
         else for (const container of this.containerGenerator as Iterable<Container>) {
-          yield factories.GroupedSeq(container.key, new Generator(container))
+          yield factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container))
         }
       }
     }
 
-    class Generator implements Iterable<any> {
+    class SeqOfGroupsGenerator implements Iterable<any> {
       constructor(private readonly container: Container) {
       }
 
@@ -292,12 +307,13 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
     let next = sessionIterator.next();
     const rootContainer: Container = next.value.rootContainer;
-    const generator = new Generator(rootContainer);
+    const generator = new SeqOfGroupsGenerator(rootContainer);
 
-    let generated: Iterable<any> = generator;
+    generated = generator;
     if (this.cacheable) generated = this._cache = [...generator];
     for (const entry of entries(generated)) {
       this.tapCallbacks.forEach(callback => callback(entry.value, entry.index));
+      yielded = true;
       yield entry.value;
     }
   }

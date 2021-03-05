@@ -1,4 +1,4 @@
-import {asSeq, Seq} from "../../lib";
+import {Seq} from "../../lib";
 import {assert} from "chai";
 
 export abstract class SeqBase_Deferred_GetIterator_Tests {

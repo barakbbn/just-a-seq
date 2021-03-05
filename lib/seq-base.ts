@@ -19,7 +19,7 @@ import {
   getIterator,
   groupItems,
   IGNORED_ITEM,
-  isIterable,
+  isIterable, IterationContext,
   LEGACY_COMPARER,
   mapAsArray,
   sameValueZero,
@@ -90,7 +90,7 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1) return factories.Seq<Seq<T>>();
-    return this.generate(function* chunk(items) {
+    return this.generate(function* chunk(items, iterationContext) {
       if (Array.isArray(items)) {
         for (let skip = 0; skip < items.length; skip += size) {
           yield factories.Seq<T>(items.slice(skip, skip + size));
@@ -98,10 +98,11 @@ export abstract class SeqBase<T> implements Seq<T> {
 
       } else {
         let innerSeq: Seq<T> | undefined;
-        const iterator = getIterator(items);
+        iterationContext.onClose(()=>innerSeq?.consume())
+        const iterator = iterationContext.closeWhenDone(getIterator(items));
         let next = iterator.next();
         while (!next.done) {
-          if (innerSeq) innerSeq.consume();
+          innerSeq?.consume();
           if (next.done) break;
 
           innerSeq = factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
@@ -216,7 +217,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  endsWith<K = T>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean {
+  endsWith<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean {
     const first = mapAsArray<T, K>(this, keySelector);
     const second = mapAsArray<T, K>(items, keySelector);
 
@@ -275,8 +276,11 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   first(defaultIfEmpty?: T): T | undefined {
-    const next = this.getIterator().next();
-    return next.done ? defaultIfEmpty : next.value;
+    // noinspection LoopStatementThatDoesntLoopJS
+    for (const value of this) {
+      return value;
+    }
+    return defaultIfEmpty;
   }
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>] {
@@ -364,13 +368,12 @@ export abstract class SeqBase<T> implements Seq<T> {
     else valueProvider = (() => [value as T]);
 
     return this.generate(function* ifEmpty(items) {
-      const iterator = getIterator(items);
-      let next = iterator.next();
-      if (next.done) yield* valueProvider();
-      else while (!next.done) {
-        yield next.value;
-        next = iterator.next();
+      let empty = true;
+      for (const item of items) {
+        empty = false;
+        yield item;
       }
+      if (empty) yield* valueProvider();
     });
   }
 
@@ -517,18 +520,13 @@ export abstract class SeqBase<T> implements Seq<T> {
 
     return this.generate(function* insertBefore(self) {
       const toInsert = (items.length === 1 && isIterable(items[0], true)) ? items[0] as Iterable<T> : items as T[];
-      let index = 0;
-      const iterator = getIterator(self);
-      let next = iterator.next();
-      while (!next.done) {
-        if (condition(next.value, index++)) break;
-        yield next.value;
-        next = iterator.next();
-      }
-      if (!next.done) yield* toInsert;
-      while (!next.done) {
-        yield next.value;
-        next = iterator.next();
+      let keepChecking = true;
+      for (const {value, index} of entries(self)) {
+        if (keepChecking && condition(value, index)) {
+          keepChecking = false;
+          yield* toInsert;
+        }
+        yield value;
       }
     });
   }
@@ -542,22 +540,14 @@ export abstract class SeqBase<T> implements Seq<T> {
 
     return this.generate(function* insertAfter(self) {
       const toInsert = (items.length === 1 && isIterable(items[0], true)) ? items[0] as Iterable<T> : items as T[];
-      let index = 0;
-      const iterator = getIterator(self);
-      let next = iterator.next();
-      while (!next.done) {
-        const match = (condition(next.value, index++));
-        yield next.value;
-        if (match) break;
-        next = iterator.next();
-      }
-      if (!next.done) {
-        yield* toInsert;
-        next = iterator.next();
-      }
-      while (!next.done) {
-        yield next.value;
-        next = iterator.next();
+
+      let keepChecking = true;
+      for (const {value, index} of entries(self)) {
+        yield value;
+        if (keepChecking && condition(value, index)) {
+          keepChecking = false;
+          yield* toInsert;
+        }
       }
     });
   }
@@ -597,25 +587,30 @@ export abstract class SeqBase<T> implements Seq<T> {
         opts;
 
     return this.generate(function* intersperse(self) {
-      const iterator = getIterator(self);
-      let next = iterator.next();
+      let prefixed = prefix === undefined;
+      let suffixed = suffix === undefined;
+      let isFirst = true;
 
-      if (!next.done && prefix !== undefined) yield prefix;
-      const hasSuffix = !next.done && suffix !== undefined;
+      for (const item of self) {
+        if (!prefixed) {
+          prefixed = true;
+          yield prefix;
+        }
+        if (isFirst) isFirst = false;
+        else yield separator;
 
-      do {
-        yield next.value;
-        next = iterator.next();
-        if (!next.done) yield separator;
-      } while (!next.done);
+        yield item;
+      }
 
-      if (hasSuffix) yield suffix;
+      if (!isFirst && !suffixed) yield suffix;
 
     }) as unknown as Seq<TPrefix | U | TSuffix>;
   }
 
   isEmpty(): boolean {
-    return this.getIterator().next().done ?? false;
+    // noinspection LoopStatementThatDoesntLoopJS
+    for (const _ of this) return false;
+    return true;
   }
 
   join(separator?: string): string;
@@ -945,16 +940,13 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   skipWhile(condition: Condition<T>): Seq<T> {
     return this.generate(function* skipWhile(self: Iterable<T>) {
-      let index = 0;
-      const iterator = getIterator(self);
-      let next = iterator.next();
-      while (!next.done) {
-        if (!condition(next.value, index++)) break;
-        next = iterator.next();
-      }
-      while (!next.done) {
-        yield next.value;
-        next = iterator.next();
+      let keepSkipping = true;
+      for (const {value, index} of entries(self)) {
+        if (keepSkipping) {
+          if (condition(value, index)) continue;
+          else keepSkipping = false;
+        }
+        yield value;
       }
     });
   }
@@ -1130,13 +1122,9 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   takeWhile(condition: Condition<T>): Seq<T> {
     return this.generate(function* takeWhile(self: Iterable<T>) {
-      let index = 0;
-      const iterator = getIterator(self);
-      let next = iterator.next();
-      while (!next.done) {
-        if (!condition(next.value, index++)) break;
-        yield next.value;
-        next = iterator.next();
+      for (const {value, index} of entries(self)) {
+        if (!condition(value, index)) break;
+        yield value;
       }
     });
   }
@@ -1205,9 +1193,9 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
-    return this.generate(function* zip(self) {
+    return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
-      const iterables = allIterables.map(getIterator);
+      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
       let next = iterables.map(it => it.next());
       while (next.every(next => !next.done)) {
         yield next.map(next => next.value);
@@ -1217,7 +1205,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]> {
-    const res = this.generate(function* zipAll(self) {
+    const res = this.generate(function* zipAll(self, iterationContext) {
       function isOpts(opts?: any): opts is  { defaults?: [T?, T1?, ...Ts]; } {
         return Array.isArray(opts?.defaults);
       }
@@ -1230,7 +1218,7 @@ export abstract class SeqBase<T> implements Seq<T> {
         allIterables.pop();
       }
       const defaults = opts?.defaults ?? [];
-      const iterables = allIterables.map(getIterator);
+      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
       let next = iterables.map(it => it.next());
       while (!next.every(next => next.done)) {
         yield next.map((next, i) => next.done ? defaults[i] : next.value);
@@ -1326,7 +1314,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     return start + [...this].join(separator) + end;
   }
 
-  protected generate<U>(generator: (items: Iterable<T>) => Generator<U>): Seq<U> {
+  protected generate<U>(generator: (items: Iterable<T>, iterationContext: IterationContext) => Generator<U>): Seq<U> {
     return factories.Seq<U>(new Gen(this, generator));
   }
 
