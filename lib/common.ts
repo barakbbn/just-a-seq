@@ -117,8 +117,8 @@ export function groupItems<K, T, V = T>(items: Iterable<T>,
   const map = new Map<ComparableType, { key: K, items: V[] }>();
   let index = 0;
   for (const item of items) {
-    const key: K = keySelector?.(item, index++) ?? item as unknown as K;
-    const comparableKey = toComparableKey?.(key) ?? key as unknown as ComparableType;
+    const key: K = keySelector?keySelector(item, index++) : item as unknown as K;
+    const comparableKey = toComparableKey?toComparableKey(key) : key as unknown as ComparableType;
     let group = map.get(comparableKey) ?? {key, items: <V[]>[]};
     if (!group.items.length) map.set(comparableKey, group);
     group.items.push(valueSelector(item, index));

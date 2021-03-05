@@ -48,7 +48,7 @@ class GroupingSelector {
 
   selectKeyAndComparable(value: any, index: number): { key: any; comparable: any } {
     const key = this.selectKey(value, index);
-    const comparable = this.toComparable?.(key) ?? key;
+    const comparable = this.toComparable ? this.toComparable(key) : key;
     return {key, comparable};
   }
 
@@ -65,7 +65,7 @@ class GroupingSelector {
   }
 
   private selectKey(value: any, index: number): any {
-    return this.key?.(value, index) ?? value;
+    return this.key?this.key(value, index) : value;
   }
 
 }

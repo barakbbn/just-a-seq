@@ -39,7 +39,7 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   any(condition?: Condition<T>): boolean {
     let index = 0;
-    for (const item of this) if (condition?.(item, index++) ?? true) return true;
+    for (const item of this) if (condition ? condition(item, index++) : true) return true;
     return false;
   }
 
@@ -169,7 +169,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  diffDistinct<K = T>(items: Iterable<T>, keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
+  diffDistinct<K>(items: Iterable<T>, keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
     const self = this;
     return this.generate(function* diff() {
       const firstKeys = new Set<K>();
@@ -275,12 +275,12 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.findLastByCondition(tillIndex, condition)[0];
   }
 
-  first(fallback?: T): T | undefined {
+  first(defaultIfEmpty?: T): T | undefined {
     // noinspection LoopStatementThatDoesntLoopJS
     for (const value of this) {
       return value;
     }
-    return fallback;
+    return defaultIfEmpty;
   }
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>] {
@@ -308,10 +308,10 @@ export abstract class SeqBase<T> implements Seq<T> {
       for (const {value, index} of entries(items)) {
         const subItems = selector(value, index);
         if (!isIterable(subItems, true)) {
-          const finalValue = mapResult?.(subItems, value, index) ?? subItems as unknown as R;
+          const finalValue = mapResult ? mapResult(subItems, value, index) : subItems as unknown as R;
           yield finalValue;
         } else for (const {value: subValue, index: subIndex} of entries(subItems)) {
-          const finalValue = mapResult?.(subValue, value, subIndex) ?? subValue as unknown as R;
+          const finalValue = mapResult ? mapResult(subValue, value, subIndex) : subValue as unknown as R;
           yield finalValue;
         }
       }

@@ -1,6 +1,5 @@
 export type Class<T = any> = new (...args: any) => T;
-export type ValidBool = boolean | string | number | symbol | object | null | undefined;
-export type Condition<T> = (x: T, index: number) => ValidBool;
+export type Condition<T> = (x: T, index: number) => unknown;
 
 export type Selector<T, U> = (x: T, index: number) => U;
 
@@ -10,7 +9,7 @@ export type ToComparableKey<T> = (x: T) => ComparableType;
 export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
 export type Iterables<Ts extends any[]> = { [k in keyof Ts]: Iterable<Ts[k]> }
 
-// Based on Typescript FlatArray
+// Based on Typescript lib FlatArray
 export type FlatSeq<Arr, Depth extends number> = {
   "done": Arr,
   "recur": Arr extends Iterable<infer InnerArr>
@@ -22,16 +21,16 @@ export interface Seq<T> extends Iterable<T> {
   // same as every
   all(condition: Condition<T>): boolean; // C#
 
-  // same as some
+  // same as some()
   any(condition?: Condition<T>): boolean; // C#
+
+  append(...items: T[]): Seq<T>;
 
   as<U>(): Seq<U>; //Cast
 
   asSeq(): Seq<T>; // Wrap in basic Seq implementation
 
   at(index: number, fallback?: T): T | undefined; //item at index
-
-  append(...items: T[]): Seq<T>;
 
   average(): T extends number ? number : never; // Overload
 
@@ -47,7 +46,7 @@ export interface Seq<T> extends Iterable<T> {
 
   count(condition?: Condition<T>): number;
 
-  diff<K = T>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
+  diff<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
 
   diffDistinct<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
 
@@ -70,15 +69,15 @@ export interface Seq<T> extends Iterable<T> {
 
   findIndex(fromIndex: number, condition: Condition<T>): number;
 
-  findLastIndex(condition: Condition<T>): number;  // Overload
-
-  findLastIndex(tillIndex: number, condition: Condition<T>): number;
-
   findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
 
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
-  first(fallback?: T): T | undefined; // take(1) ?? fallback; use find() to get first by condition
+  findLastIndex(condition: Condition<T>): number;  // Overload
+
+  findLastIndex(tillIndex: number, condition: Condition<T>): number;
+
+  first(defaultIfEmpty?: T): T | undefined; // take(1) ?? fallback; use find() to get first by condition
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
 
@@ -86,7 +85,7 @@ export interface Seq<T> extends Iterable<T> {
 
   flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
-  forEach(callback: (x: T, index: number, breakLoop: object) => void, thisArg?: any): void;
+  forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void;
 
   groupBy<K>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
