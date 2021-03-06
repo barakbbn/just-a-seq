@@ -4,6 +4,20 @@ import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
 
 export abstract class SeqBase_Grouping_Tests {
+  it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
+    it(title + ' - first array, second array', () => testFn(first, second));
+    it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
+    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
+
+    it(title + ' - first generator, second array', () => testFn(generator.from(first), second));
+    it(title + ' - first generator, second generator', () => testFn(generator.from(first), generator.from(second)));
+    it(title + ' - first generator, second sequence', () => testFn(generator.from(first), this.createSut(second)));
+
+    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second));
+    it(title + ' - first sequence, second generator', () => testFn(this.createSut(first), generator.from(second)));
+    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
+  }
+
   readonly run = () => describe("SeqBase - Grouping", () => {
     describe('groupBy()', () => {
       it('should return sequence of groups by key-selector of primitive (comparable) key', () => {
@@ -603,13 +617,13 @@ export abstract class SeqBase_Grouping_Tests {
         test(sut, expected);
       });
 
-      it('should return outer without matching inner using with empty sequence of matched inners - simple values', () => {
+      it('should return outer without matching inner, paired with empty sequence of matched inners - simple values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.simpleInputsForTest();
         const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
         test(sut, expected);
       });
 
-      it('should return outer without matching inner using with empty sequence of matched inners - complex values', () => {
+      it('should return outer without matching inner, paired with empty sequence of matched inners - complex values', () => {
         const {outer, inner, expected, outerKeySelector, innerKeySelector} = unmatchedTest.complexInputForTest();
         const sut = this.createSut(outer).groupJoin(inner, outerKeySelector, innerKeySelector);
         test(sut, expected);
@@ -620,6 +634,13 @@ export abstract class SeqBase_Grouping_Tests {
         const sut = this.createSut(outer).groupJoin([], _ => _, _ => _);
         const expected = outer.map(v => [v, []]);
         test(sut, expected);
+      });
+
+      this.it2('should match all outer items when there are duplicates', array.samples.filter(s => s.score >= 50), array.samples.filter(s => s.score < 50), (outer, inner) => {
+        const expected: [Sample, Sample[]][] = [...outer].map(o => [o, [...inner].filter(s => s.score === o.score)]);
+        const sut = this.createSut(outer).groupJoin(inner, s => s.score, s => s.score);
+        const actual: [Sample, Sample[]][] = [...sut].map(group => [group.key, [...group]]);
+        assert.deepEqual(actual, expected);
       });
 
       describe('groupJoinRight()', () => {
@@ -654,6 +675,13 @@ export abstract class SeqBase_Grouping_Tests {
           const sut = this.createSut([]).groupJoinRight(outer, _ => _, _ => _);
           const expected = outer.map(v => [v, []]);
           test(sut, expected);
+        });
+
+        this.it2('should match all outer items when there are duplicates', array.samples.filter(s => s.score >= 50), array.samples.filter(s => s.score < 50), (outer, inner) => {
+          const expected: [Sample, Sample[]][] = [...inner].map(o => [o, [...outer].filter(s => s.score === o.score)]);
+          const sut = this.createSut(outer).groupJoinRight(inner, s => s.score, s => s.score);
+          const actual: [Sample, Sample[]][] = [...sut].map(group => [group.key, [...group]]);
+          assert.deepEqual(actual, expected);
         });
       });
     });

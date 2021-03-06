@@ -1,7 +1,7 @@
 import {describe, it} from "mocha";
 import {Condition, Seq} from "../../lib";
 import {assert} from "chai";
-import {array, Folder, generator} from "../test-data";
+import {array, Folder, generator, Sample} from "../test-data";
 
 export abstract class SeqBase_Deferred_Tests {
   it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
@@ -829,6 +829,17 @@ export abstract class SeqBase_Deferred_Tests {
           inner: i
         }))));
         const sut = this.createSut(outer).innerJoin(inner, s => s.key, s => s.type);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it2('should match all outer items when there are duplicates', array.samples.filter(s => s.score >= 50), array.samples.filter(s => s.score < 50), (outer, inner) => {
+        const expected: {outer: Sample, inner: Sample}[] = [];
+        for( const o of outer){
+          expected.push(...[...inner].filter(s => s.score === o.score).map(i => ({outer: o, inner: i})));
+        }
+
+        const sut = this.createSut(outer).innerJoin(inner, s => s.score, s => s.score);
         const actual = [...sut];
         assert.deepEqual(actual, expected);
       });

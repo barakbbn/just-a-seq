@@ -169,10 +169,10 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   toMap(): MapHierarchy<Ks, TOut>;
 
-  toMap<K, V>(keySelector: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toStringKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K, V>(keySelector: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
-  toMap<K, V>(keySelector?: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toStringKey?: ToComparableKey<K>): any {
-    if (keySelector) return super.toMap(keySelector, valueSelector, toStringKey);
+  toMap<K, V>(keySelector?: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toComparableKey?: ToComparableKey<K>): any {
+    if (keySelector) return super.toMap(keySelector, valueSelector, toComparableKey);
 
     const map = new Map<ComparableType, { key: any, items: any[] | Map<ComparableType, any>, realMap?: Map<any, any>; }>();
     const realMap = new Map<any, any[] | Map<ComparableType, any>>();

@@ -87,23 +87,23 @@ export interface Seq<T> extends Iterable<T> {
 
   forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void;
 
-  groupBy<K>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
+  groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
-  groupJoin<I>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>): SeqOfGroups<T, I>;
+  groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I>;
 
-  groupJoinRight<I>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>): SeqOfGroups<I, T>;
+  groupJoinRight<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<I, T>;
 
   hasAtLeast(count: number): boolean;
 
-  ifEmpty(value?: T): Seq<T>; // Overload
+  ifEmpty(value: T): Seq<T>; // Overload
   ifEmpty({useSequence}: { useSequence: Iterable<T>; }): Seq<T>; // Overload
   ifEmpty({useFactory}: { useFactory: () => T; }): Seq<T>;
 
-  includes(item: T, fromIndex?: number): boolean; // consider contains. //instead of equality func, call some
+  includes(itemToFind: T, fromIndex?: number): boolean; // consider contains. //instead of equality func, call some
 
-  includesAll<K = T>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
+  includesAll<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
   includesAll<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
 
   includesAny<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
@@ -117,7 +117,7 @@ export interface Seq<T> extends Iterable<T> {
   indexOfSubSequence<K>(subSequence: Iterable<T>, keySelector?: Selector<T, K>): number; // Overload
   indexOfSubSequence<K>(subSequence: Iterable<T>, fromIndex: number, keySelector?: Selector<T, K>): number;
 
-  innerJoin<I, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>, resultSelector?: (outer: T, inner: I) => R): Seq<R>;
+  innerJoin<I, K, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>, resultSelector?: (outer: T, inner: I) => R): Seq<R>;
 
   insert(atIndex: number, items: Iterable<T>): Seq<T>;  // Overload
   insert(atIndex: number, ...items: T[]): Seq<T>;
@@ -247,7 +247,7 @@ export interface Seq<T> extends Iterable<T> {
 
   toArray(): T[];
 
-  toMap<K, V>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toStringKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K, V>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
@@ -300,7 +300,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[K, K2], T>;
 
-  toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toStringKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   toMap(): MapHierarchy<[K], T>;
 
@@ -320,7 +320,7 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
 
   toMap(): MapHierarchy<Ks, T>;
 
-  toMap<K, V>(keySelector: Selector<MultiGroupedSeq<Ks, T>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, T>, V>, toStringKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K, V>(keySelector: Selector<MultiGroupedSeq<Ks, T>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   cache(): this & CachedSeq<MultiGroupedSeq<Ks, T>>
 }

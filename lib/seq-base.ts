@@ -1,6 +1,5 @@
 import {
   CachedSeq,
-  ComparableType,
   Comparer,
   Condition,
   factories,
@@ -17,7 +16,6 @@ import {
   entries,
   Gen,
   getIterator,
-  groupItems,
   IGNORED_ITEM,
   isIterable, IterationContext,
   LEGACY_COMPARER,
@@ -327,20 +325,20 @@ export abstract class SeqBase<T> implements Seq<T> {
     }
   }
 
-  groupBy<K>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
+  groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U>(keySelector: Selector<T, K>, toPrimitiveKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
     return factories.SeqOfGroups(this, keySelector, toComparableKey, valueSelector);
   }
 
-  groupJoin<I>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>): SeqOfGroups<T, I> {
+  groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I> {
     return this.groupJoinInternal(this, outerKeySelector, inner, innerKeySelector);
   }
 
-  groupJoinRight<I>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>): SeqOfGroups<I, T> {
-    return this.groupJoinInternal<I, T>(inner, innerKeySelector, this, outerKeySelector);
+  groupJoinRight<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<I, T> {
+    return this.groupJoinInternal(inner, innerKeySelector, this, outerKeySelector);
   }
 
   hasAtLeast(count: number): boolean {
@@ -352,13 +350,13 @@ export abstract class SeqBase<T> implements Seq<T> {
     return false;
   }
 
-  ifEmpty(value?: T): Seq<T>;
+  ifEmpty(value: T): Seq<T>;
 
   ifEmpty({useSequence}: { useSequence: Iterable<T> }): Seq<T>;
 
   ifEmpty({useFactory}: { useFactory: () => T }): Seq<T>;
 
-  ifEmpty(value?: T | { useSequence: Iterable<T> } | { useFactory: () => T }): Seq<T> {
+  ifEmpty(value: T | { useSequence: Iterable<T> } | { useFactory: () => T }): Seq<T> {
     const isSequence = (v: any): v is { useSequence: Iterable<T> } => v && isIterable(v.useSequence);
     const isFactory = (v: any): v is { useFactory: () => T } => v && typeof (v.useFactory) === 'function';
 
@@ -477,14 +475,22 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.findSubSequence(subSequence, fromIndex, keySelector)[0];
   }
 
-  innerJoin<I, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: ToComparableKey<T>, innerKeySelector: ToComparableKey<I>, resultSelector?: (outer: T, inner: I) => R): Seq<R> {
+  innerJoin<I, K, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>, resultSelector?: (outer: T, inner: I) => R): Seq<R> {
     return this.generate(function* innerJoin(self) {
-      const innerGrouped = groupItems<ComparableType, I>(inner, innerKeySelector);
-      for (const outer of self) {
-        const outerKey = outerKeySelector(outer);
-        if (!innerGrouped.has(outerKey)) continue;
-        const innerGroup = innerGrouped.get(outerKey)!;
-        for (const inner of innerGroup.items) {
+
+      const innerMap = new Map<K, I[]>();
+      for( const {value: ivalue, index: iindex} of entries(inner)){
+        const key = innerKeySelector(ivalue, iindex);
+        const valuesForKey: I[] = innerMap.get(key) ?? [];
+        if (!valuesForKey.length) innerMap.set(key, valuesForKey);
+        valuesForKey.push(ivalue);
+      }
+
+      for (const {value: outer, index: outerIndex} of entries(self)) {
+        const outerKey = outerKeySelector(outer, outerIndex);
+        const innerValues = innerMap.get(outerKey)!;
+        if(!innerValues) continue;
+        for (const inner of innerValues) {
           yield resultSelector ? resultSelector(outer, inner) : {outer, inner} as unknown as R;
         }
       }
@@ -1137,8 +1143,8 @@ export abstract class SeqBase<T> implements Seq<T> {
     return [...this];
   }
 
-  toMap<K, V>(keySelector: Selector<T, K>, valueSelector: Selector<T, V> = t => t as unknown as V, toStringKey?: ToComparableKey<K>): Map<K, V> {
-    if (!toStringKey) {
+  toMap<K, V>(keySelector: Selector<T, K>, valueSelector: Selector<T, V> = t => t as unknown as V, toComparableKey?: ToComparableKey<K>): Map<K, V> {
+    if (!toComparableKey) {
       return new Map<K, V>(this.map((item, index) => [keySelector(item, index), valueSelector(item, index)]));
     }
 
@@ -1147,7 +1153,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     let index = 0;
     for (const item of this) {
       const key = keySelector(item, index);
-      const stringKey = toStringKey(key);
+      const stringKey = toComparableKey(key);
       if (!keys.has(stringKey)) {
         keys.add(stringKey);
         const value = valueSelector(item, index);
@@ -1349,13 +1355,20 @@ export abstract class SeqBase<T> implements Seq<T> {
     return found;
   }
 
-  private groupJoinInternal<TOut, TIn>(outers: Iterable<TOut>, outerKeySelector: ToComparableKey<TOut>, inners: Iterable<TIn>, innerKeySelector: ToComparableKey<TIn>): SeqOfGroups<TOut, TIn> {
-    // TODO: Think if can optimise or make more lazy
+  private groupJoinInternal<TOut, TIn, K>(outers: Iterable<TOut>, outerKeySelector: Selector<TOut, K>, inners: Iterable<TIn>, innerKeySelector: Selector<TIn, K>): SeqOfGroups<TOut, TIn> {
+    // TODO: Think if can optimize or make more lazy
     function* leftOuterJoin(self: Iterable<TOut>) {
-      const groups = groupItems<ComparableType, TIn, TIn>(inners, innerKeySelector);
-      for (const outer of self) {
-        const outerKey = outerKeySelector(outer);
-        const inners = groups.has(outerKey) ? groups.get(outerKey)!.items : [IGNORED_ITEM];
+      const innersMap = new Map<K,TIn[]>();
+      for( const {value: inner, index: index} of entries(inners)){
+        const key = innerKeySelector(inner, index);
+        const valuesForKey: TIn[] = innersMap.get(key) ?? [];
+        if (!valuesForKey.length) innersMap.set(key, valuesForKey);
+        valuesForKey.push(inner);
+      }
+
+      for (const {value: outer, index} of entries(self)) {
+        const outerKey = outerKeySelector(outer, index);
+        const inners = innersMap.get(outerKey) ?? [IGNORED_ITEM];
         for (const inner of inners) yield {outer, inner};
       }
     }
