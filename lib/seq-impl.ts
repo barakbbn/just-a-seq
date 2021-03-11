@@ -69,9 +69,9 @@ export class SeqImpl<T = any> extends SeqBase<T> {
     return super.lastIndexOf(itemToFind, fromIndex);
   }
 
-  sameItems<K>(second: Iterable<T>, keySelector?: Selector<T, K>): boolean {
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): boolean {
     if (Array.isArray(this.items) && Array.isArray(second) && this.items.length !== second.length) return false;
-    return super.sameItems(second, keySelector);
+    return super.sameItems(second, firstKeySelector, secondKeySelector);
   }
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals: (first: T, second: U, index: number) => boolean): boolean {
@@ -91,7 +91,7 @@ export class SeqImpl<T = any> extends SeqBase<T> {
     return super.slice(start, end);
   }
 
-  startsWith<K>(items: Iterable<T>, keySelector: Selector<T, K> = t => t as unknown as K): boolean {
+  startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
     if (Array.isArray(this.items) && Array.isArray(items)) {
       if (items.length === 0) return true;
       if (this.items.length < items.length) return false;

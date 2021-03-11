@@ -164,10 +164,60 @@ export abstract class SeqBase_Deferred_Tests {
       });
 
       this.it1('should be able to iterate child chunked-sequence after main sequence closed', array.oneToTen, (input) => {
-        const expected = [...input].splice(0,2)
+        const expected = [...input].splice(0, 2)
         const sut = this.createSut(input).chunk(2);
         let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
         const actual = [...firstChunk];
+        assert.deepEqual(actual, expected);
+      });
+    });
+
+    describe("concat$()", () => {
+      it('should append one or more sequences at the end of the target sequence', () => {
+        let sut = this.createSut([1, 2]);
+        const expected = array.oneToTen;
+        let actual = [...sut.concat$([3, 4], [5, 6], [7, 8, 9, 10])];
+        assert.sameOrderedMembers(actual, expected);
+
+        sut = this.createSut(generator.from([1, 2]));
+        actual = [...sut.concat$(generator.from([3, 4]), generator.from([5, 6]), generator.from([7, 8, 9, 10]))];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      it('should concat sequence to itself', () => {
+        let sut = this.createSut([1, 2]);
+        const expected = [1, 2].concat([1, 2]);
+
+        let actual = [...sut.concat$(sut)];
+        assert.sameOrderedMembers(actual, expected);
+
+        sut = this.createSut(generator.from([1, 2]));
+        actual = [...sut.concat$(sut)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      it('should have no effect when concatenating empty sequences', () => {
+        let sut = this.createSut([1, 2]);
+        const expected = [1, 2];
+        let actual = [...sut.concat$([], [], [])];
+        assert.sameOrderedMembers(actual, expected);
+
+        sut = this.createSut(generator.from([1, 2]));
+        actual = [...sut.concat$(this.createSut(), this.createSut(), this.createSut())];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1('should concat non iterables items as is', array.oneToTen, (input) => {
+        const sut = this.createSut(input);
+        const expected = [...input].concat(...input);
+        const actual = [...sut.concat$(...input)];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should concat non iterables items together with iterables items', array.oneToTen, (input) => {
+        const sut = this.createSut(input);
+        const expected = [...input].concat(0, 0, 0, ...input, 0, 0, 0);
+        const actual = [...sut.concat$(0, 0, 0, ...input, 0, 0, 0)];
         assert.deepEqual(actual, expected);
       });
     });
@@ -176,11 +226,11 @@ export abstract class SeqBase_Deferred_Tests {
       it('should append one or more sequences at the end of the target sequence', () => {
         let sut = this.createSut([1, 2]);
         const expected = array.oneToTen;
-        let actual = [...sut.concat([3, 4], [5, 6], [7, 8, 9, 10])];
+        let actual = [...sut.concat$([3, 4], [5, 6], [7, 8, 9, 10])];
         assert.sameOrderedMembers(actual, expected);
 
         sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat(generator.from([3, 4]), generator.from([5, 6]), generator.from([7, 8, 9, 10]))];
+        actual = [...sut.concat$(generator.from([3, 4]), generator.from([5, 6]), generator.from([7, 8, 9, 10]))];
         assert.sameOrderedMembers(actual, expected);
       });
 
@@ -188,22 +238,22 @@ export abstract class SeqBase_Deferred_Tests {
         let sut = this.createSut([1, 2]);
         const expected = [1, 2].concat([1, 2]);
 
-        let actual = [...sut.concat(sut)];
+        let actual = [...sut.concat$(sut)];
         assert.sameOrderedMembers(actual, expected);
 
         sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat(sut)];
+        actual = [...sut.concat$(sut)];
         assert.sameOrderedMembers(actual, expected);
       });
 
       it('should have no effect when concatenating empty sequences', () => {
         let sut = this.createSut([1, 2]);
         const expected = [1, 2];
-        let actual = [...sut.concat([], [], [])];
+        let actual = [...sut.concat$([], [], [])];
         assert.sameOrderedMembers(actual, expected);
 
         sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat(this.createSut(), this.createSut(), this.createSut())];
+        actual = [...sut.concat$(this.createSut(), this.createSut(), this.createSut())];
         assert.sameOrderedMembers(actual, expected);
       });
     });
@@ -834,8 +884,8 @@ export abstract class SeqBase_Deferred_Tests {
       });
 
       this.it2('should match all outer items when there are duplicates', array.samples.filter(s => s.score >= 50), array.samples.filter(s => s.score < 50), (outer, inner) => {
-        const expected: {outer: Sample, inner: Sample}[] = [];
-        for( const o of outer){
+        const expected: { outer: Sample, inner: Sample }[] = [];
+        for (const o of outer) {
           expected.push(...[...inner].filter(s => s.score === o.score).map(i => ({outer: o, inner: i})));
         }
 
@@ -863,82 +913,138 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('insert()', () => {
-      it('should insert new items in source sequence at specified index', () => {
-        const inputs = [
-          {first: array.abc, seconds: [undefined, 'second', ['1', '2'], '', []]},
-          {first: array.oneToTen, seconds: [undefined, 0, [-1, -2], []]},
-          {
-            first: array.gradesFiftyAndBelow,
-            seconds: [undefined, {name: 'new', grade: 110}, array.gradesFiftyAndAbove, []]
-          },
-          {first: [], seconds: [undefined, 'abc', array.abc, []]},
-        ];
-        for (const input of inputs) {
-          const sutArray = this.createSut<any>(input.first);
-          const sutGenerator = this.createSut(generator.from<any>(input.first));
-          for (let index = -1; index <= input.first.length + 1; index++) {
-            for (const second of input.seconds) {
-              const secondArray: any[] = Array.isArray(second) ? second : [second];
-              let expected: any[] = input.first.slice();
-              expected.splice(index < 0 ? 0 : index, 0, ...secondArray);
-              let actual = [...sutArray.insert(index, second)];
-              const secondForLog = (() => {
-                const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-                return Array.isArray(second) ? (`[${quoted}]`) : [quoted[0]];
-              })();
-              let failedMessage = `expected [${actual}] to deeply equal [${expected}] when doing [${input.first}].insert(${index}, ${secondForLog})`;
-              assert.deepEqual(actual, expected, failedMessage);
-              actual = [...sutGenerator.insert(index, second)];
-              failedMessage = `expected [${actual}] to deeply equal [${expected}] when doing [${input.first}].insert(${index}, ${secondForLog})`;
-              assert.deepEqual(actual, expected, failedMessage);
+      this.it2('should insert items at specified index - numbers', array.oneToTen, array.tenZeros, (first, second) => {
+        for (let i = 0; i < [...first].length; i++) {
+          let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
+          let sut = this.createSut(first).insert(i, second);
+          let actual = [...sut];
+          let msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second]}])`
+          assert.deepEqual(actual, expected, msg);
 
-              if (Array.isArray(second)) {
-                actual = [...sutArray.insert(index, ...second)];
-                assert.deepEqual(actual, expected, failedMessage);
-                actual = [...sutArray.insert(index, generator.from<any>(second))];
-                assert.deepEqual(actual, expected, failedMessage);
-
-                actual = [...sutGenerator.insert(index, ...second)];
-                assert.deepEqual(actual, expected, failedMessage);
-                actual = [...sutGenerator.insert(index, generator.from<any>(second))];
-                assert.deepEqual(actual, expected, failedMessage);
-              }
-            }
-          }
+          expected = [...first].slice(0, i).concat([...second, ...first]).concat([...first].slice(i));
+          sut = this.createSut(first).insert(i, second, first);
+          actual = [...sut];
+          msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second, ...first]}])`
+          assert.deepEqual(actual, expected, msg);
         }
+      });
+
+      this.it2('should insert items at specified index - strings', array.abc, array.strings, (first, second) => {
+        for (let i = 0; i < [...first].length; i++) {
+          let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
+          let sut = this.createSut(first).insert(i, second);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          expected = [...first].slice(0, i).concat([...second, ...first]).concat([...first].slice(i));
+          sut = this.createSut(first).insert(i, second, first);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it2('should insert items at specified index - falsy', array.falsyValues, array.falsyValues.reverse(), (first, second) => {
+        for (let i = 0; i < [...first].length; i++) {
+          let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
+          let sut = this.createSut(first).insert(i, second);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          expected = [...first].slice(0, i).concat([...second, ...first]).concat([...first].slice(i));
+          sut = this.createSut(first).insert(i, second, first);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it2('should insert items at specified index - objects', array.grades, array.gradesFiftyAndAbove, (first, second) => {
+        for (let i = 0; i < [...first].length; i++) {
+          let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
+          let sut = this.createSut(first).insert(i, second);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          expected = [...first].slice(0, i).concat([...second, ...first]).concat([...first].slice(i));
+          sut = this.createSut(first).insert(i, second, first);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it2('should not insert items if sequences to insert is are empty', array.oneToTen, [], (first, empty) => {
+        for (let i = 0; i < [...first].length; i++) {
+          const expected = [...first];
+          let sut = this.createSut(first).insert(i, empty);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          sut = this.createSut(first).insert(i, empty, [...empty]);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it1('should not insert items if items parameter not specified', array.oneToTen, (input) => {
+        for (let i = 0; i < [...input].length; i++) {
+          const expected = [...input];
+          const sut = this.createSut(input).insert(i);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it2('should insert items at any index if source sequence is empty', [], array.oneToTen, (empty: Iterable<number>, second) => {
+        for (let i = 0; i < 5; i++) {
+          let expected = [...second];
+          let sut = this.createSut(empty).insert(i, second);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          expected = [...second, ...second];
+          sut = this.createSut(empty).insert(i, second, [...second]);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      this.it2('should insert items at the beginning if index is negative', array.oneToTen, array.tenZeros, (first, second) => {
+        const expected = [...second, ...first];
+        const sut = this.createSut(first).insert(-2, second);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it2('should insert items at the end if index is greater or equal to the length of the source sequence', array.oneToTen, array.tenZeros, (first, second) => {
+        const expected = [...first, ...second];
+        let sut = this.createSut(first).insert([...first].length, second);
+        let actual = [...sut];
+        assert.deepEqual(actual, expected);
+        sut = this.createSut(first).insert([...first].length + 1, second);
+        actual = [...sut];
+        assert.deepEqual(actual, expected);
       });
     });
 
     describe('insertBefore()', () => {
-      this.it1('should insert new items in source sequence immediately before the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], (input) => {
-        const seconds = [undefined, 0, [-1, -2], []];
-        const source = [...input];
-        const sut = this.createSut<any>(input);
+      this.it2('should insert new items in source sequence immediately before the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut(first);
 
         for (let i = 0; i <= source.length; i++) {
           const condition: Condition<number> = (x: number, index: number) => index === i;
-          for (const second of seconds) {
-            const secondArray: any[] = Array.isArray(second) ? second : [second];
-            let atIndex = source.findIndex(condition);
-            let expected = [...input];
-            if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
+          const secondArray= [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
-            const secondForLog = (() => {
-              const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-              return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
-            })();
-            const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${input}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
-            let actual = [...sut.insertBefore(condition, second)];
-            assert.deepEqual(actual, expected, failedMessage(actual));
-
-            if (Array.isArray(second)) {
-              actual = [...sut.insertBefore(condition, ...second)];
-              assert.deepEqual(actual, expected, failedMessage(actual));
-              actual = [...sut.insertBefore(condition, generator.from<any>(second))];
-              assert.deepEqual(actual, expected, failedMessage(actual));
-            }
-          }
+          let actual = [...sut.insertBefore(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
         }
       });
 
@@ -968,36 +1074,25 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('insertAfter()', () => {
-      this.it1('should insert new items in source sequence immediately after the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], (input) => {
-        const source = [...input];
-        const seconds = [undefined, 0, [-1, -2], []];
-
-        const sut = this.createSut<any>(input);
+      this.it2('should insert new items in source sequence immediately after the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut<any>(first);
 
         for (let i = 0; i <= source.length; i++) {
           const condition: Condition<number> = (x: number, index: number) => index === i;
-          for (const second of seconds) {
-            const secondArray: any[] = Array.isArray(second) ? second : [second];
-            let atIndex = source.findIndex(condition);
-            let expected = [...input];
-            if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+          const secondArray = [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
-            const secondForLog = (() => {
-              const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-              return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
-            })();
-            const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${input}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
-            let actual = [...sut.insertAfter(condition, second)];
-            assert.deepEqual(actual, expected, failedMessage(actual));
-
-            if (Array.isArray(second)) {
-              actual = [...sut.insertAfter(condition, ...second)];
-              assert.deepEqual(actual, expected, failedMessage(actual));
-              actual = [...sut.insertAfter(condition, generator.from<any>(second))];
-              assert.deepEqual(actual, expected, failedMessage(actual));
-            }
-          }
+          let actual = [...sut.insertAfter(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
         }
       });
 
@@ -1233,21 +1328,10 @@ export abstract class SeqBase_Deferred_Tests {
       });
 
       this.it2('should return new sequence with new items added at the start - objects', array.gradesFiftyAndAbove, array.gradesFiftyAndBelow, (first, second) => {
-        const expected = [...second].concat([...first]);
+        const expected = [...second, ...first];
         let sut = this.createSut(first);
-        let actual = [...sut.prepend(...second)];
-        assert.sameDeepOrderedMembers(actual, expected);
-
-
-        const input3: string[] = [];
-        const newItems3 = 'abc';
-        const expected3 = [newItems3];
-        let sut3 = this.createSut(input3);
-        let actual3 = [...sut3.prepend(newItems3)];
-        assert.deepEqual(actual3, expected3);
-        sut3 = this.createSut(generator.from(input3));
-        actual3 = [...sut3.prepend(newItems3)];
-        assert.deepEqual(actual3, expected3);
+        let actual = [...sut.prepend(second)];
+        assert.deepEqual(actual, expected);
       });
 
       this.it1('should return new sequence with new items added to an empty iterable', [], (input: Iterable<string>) => {
@@ -1811,7 +1895,7 @@ export abstract class SeqBase_Deferred_Tests {
 
     describe('transform', () => {
       this.it1('should replace sequence with concatenated filters of it', array.oneToTen, (input) => {
-        const transformer = (seq: Seq<number>) => seq.filter(x => x % 2 === 0).concat(
+        const transformer = (seq: Seq<number>) => seq.filter(x => x % 2 === 0).concat$(
           seq.filter(x => x % 2),
           seq.filter(x => x >= 5)
         );

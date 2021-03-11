@@ -55,10 +55,10 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
       items.lastIndexOf(itemToFind, fromIndex);
   }
 
-  sameItems<K>(second: Iterable<T>, keySelector?: Selector<T, K>): boolean {
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): boolean {
     const items = this.array;
     if (Array.isArray(second) && items.length !== second.length) return false;
-    return super.sameItems(second, keySelector);
+    return super.sameItems(second, firstKeySelector, secondKeySelector);
   }
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals: (first: T, second: U, index: number) => boolean): boolean {
@@ -67,7 +67,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return super.sameOrderedItems(second, equals);
   }
 
-  startsWith<K>(items: Iterable<T>, keySelector: Selector<T, K> = t => t as unknown as K): boolean {
+  startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
     const array = this.array;
     if (Array.isArray(items)) {
       if (items.length === 0) return true;

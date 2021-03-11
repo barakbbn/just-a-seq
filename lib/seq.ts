@@ -42,17 +42,20 @@ export interface Seq<T> extends Iterable<T> {
 
   concat(...items: Iterable<T>[]): Seq<T>;
 
+  // Behaves same as Array.concat including the quirks
+  concat$(...items: (T | Iterable<T>)[]): Seq<T>;
+
   consume(): void;
 
   count(condition?: Condition<T>): number;
 
-  diff<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
+  diff<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
 
-  diffDistinct<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
+  diffDistinct<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
 
   distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
 
-  endsWith<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean;
+  endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
   // Array.entries()
   entries(): Seq<[number, T]>;
@@ -109,26 +112,23 @@ export interface Seq<T> extends Iterable<T> {
   includesAny<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
   includesAny<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
 
-  includesSubSequence<K>(subSequence: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
-  includesSubSequence<K>(subSequence: Iterable<T>, fromIndex: number, keySelector?: Selector<T, K>): boolean;
+  includesSubSequence<K>(subSequence: Iterable<T>, keySelector?: (item: T) => K): boolean; // Overload
+  includesSubSequence<K>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T) => K): boolean;
 
   indexOf(item: T, fromIndex?: number): number;
 
-  indexOfSubSequence<K>(subSequence: Iterable<T>, keySelector?: Selector<T, K>): number; // Overload
-  indexOfSubSequence<K>(subSequence: Iterable<T>, fromIndex: number, keySelector?: Selector<T, K>): number;
+  indexOfSubSequence<K>(subSequence: Iterable<T>, keySelector?: (item: T) => K): number; // Overload
+  indexOfSubSequence<K>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T) => K): number;
 
   innerJoin<I, K, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>, resultSelector?: (outer: T, inner: I) => R): Seq<R>;
 
-  insert(atIndex: number, items: Iterable<T>): Seq<T>;  // Overload
-  insert(atIndex: number, ...items: T[]): Seq<T>;
+  insert(atIndex: number, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
-  insertAfter(condition: Condition<T>, items: Iterable<T>): Seq<T>;  // Overload
-  insertAfter(condition: Condition<T>, ...items: T[]): Seq<T>;
+  insertAfter(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
-  insertBefore(condition: Condition<T>, items: Iterable<T>): Seq<T>;  // Overload
-  insertBefore(condition: Condition<T>, ...items: T[]): Seq<T>;
+  insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
-  intersect<K>(items: Iterable<T>, keySelector?: Selector<T, K>): Seq<T>;
+  intersect<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
 
   // Intersperses a value (separator) between the items in the source sequence
   // Like join(), but return a sequence instead of string
@@ -136,7 +136,7 @@ export interface Seq<T> extends Iterable<T> {
 
   intersperse<U>(separator: U, insideOut?: boolean): Seq<T | U>;
 
-  intersperse<U = T, TPrefix = T, TSuffix = T>(separator: U, opts?: { prefix?: TPrefix; suffix?: TSuffix }): Seq<TPrefix | U | TSuffix>;
+  intersperse<U = T, TPrefix = T, TSuffix = T>(separator: U, opts?: { prefix?: TPrefix; suffix?: TSuffix }): Seq<TPrefix | T | U | TSuffix>;
 
   isEmpty(): boolean;
 
@@ -152,32 +152,30 @@ export interface Seq<T> extends Iterable<T> {
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
-  max(): T extends number ? number : void; // Overload
+  max(): T extends number ? number : never; // Overload
   max(selector: Selector<T, number>): number;
 
-  min(): T extends number ? number : void; // Overload
+  min(): T extends number ? number : never; // Overload
   min(selector: Selector<T, number>): number;
 
   ofType(type: 'number'): Seq<number>; // Overload
   ofType(type: 'string'): Seq<string>; // Overload
   ofType(type: 'boolean'): Seq<boolean>; // Overload
   ofType(type: 'function'): Seq<Function>; // Overload
-  ofType(type: 'symbol'): Seq<Symbol>; // Overload
+  ofType(type: 'symbol'): Seq<symbol>; // Overload
   ofType(type: 'object'): Seq<object>; // Overload
   ofType(type: typeof Number): Seq<number>; // Overload
   ofType(type: typeof String): Seq<string>; // Overload
   ofType(type: typeof Boolean): Seq<boolean>; // Overload
+  ofType(type: typeof Symbol): Seq<symbol>; // Overload
   ofType(type: typeof Object): Seq<object>; // Overload
-  ofType(type: typeof Symbol): Seq<Symbol>; // Overload
   ofType<V extends Class>(type: V): Seq<InstanceType<V>>;
 
-  orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
+  // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
-  orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
+  // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
-  prepend(...items: T[]): Seq<T>;
-
-  prepend(items: Iterable<T>): Seq<T>;
+  prepend(...items: Iterable<T>[]): Seq<T>;
 
   push(...items: T[]): Seq<T>;
 
@@ -201,7 +199,7 @@ export interface Seq<T> extends Iterable<T> {
 
   reverse(): Seq<T>;
 
-  sameItems<K>(second: Iterable<T>, keySelector?: Selector<T, K>): boolean;
+  sameItems<K>(second: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
   sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
 
@@ -215,7 +213,7 @@ export interface Seq<T> extends Iterable<T> {
 
   skipWhile(condition: Condition<T>): Seq<T>;
 
-  slice(start: number, endNotIncluding: number): Seq<T>;
+  slice(start: number, end: number): Seq<T>;
 
   some(condition?: Condition<T>): boolean;
 
@@ -223,25 +221,27 @@ export interface Seq<T> extends Iterable<T> {
   // So try to avoid it. prefer using sorted() or orderBy()
   sort(comparer?: Comparer<T>): OrderedSeq<T>;
 
-  sorted(reverse?: boolean): OrderedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): OrderedSeq<T>;
+
+  sorted(reverse?: boolean): Seq<T>;
 
   split(atIndex: number): [Seq<T>, Seq<T>]; // Overload
   split(condition: Condition<T>): [Seq<T>, Seq<T>];
 
-  startsWith<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean;
+  startsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
-  sum(): T extends number ? number : void; // Overload
+  sum(): T extends number ? number : never; // Overload
   sum(selector: Selector<T, number>): number;
 
   take(count: number): Seq<T>; // negative count is like takeLast
 
   takeLast(count: number): Seq<T>
 
-  takeWhile(condition: Condition<T>): Seq<T>;
-
-  takeOnly<K = T>(items: Iterable<T>, keySelector: Selector<T, K>): Seq<T>;
+  takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
+
+  takeWhile(condition: Condition<T>): Seq<T>;
 
   tap(callback: Selector<T, void>, thisArg?: any): Seq<T>;
 
@@ -258,8 +258,7 @@ export interface Seq<T> extends Iterable<T> {
 
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T>;
 
-  unshift(...items: T[]): Seq<T>; // Same as prepend()
-  unshift(items: Iterable<T>): Seq<T>;
+  unshift(...items: T[]): Seq<T>;
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]>;
 
@@ -269,11 +268,13 @@ export interface Seq<T> extends Iterable<T> {
 }
 
 export interface OrderedSeq<T> extends Seq<T> {
-  thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
-  thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
   tap(callback: Selector<T, void>, thisArg?: any): OrderedSeq<T>;
+
+  // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
+
+  // thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
+
+  thenSortBy<U>(valueSelector: (item: T) => U, reverse?: boolean): OrderedSeq<T>;
 }
 
 export interface CachedSeq<T> extends Seq<T> {

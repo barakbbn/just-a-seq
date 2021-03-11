@@ -42,7 +42,7 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
     describe('concat()', () => {
       it('should not get iterator', function () {
-        testGetIterator(sut => sut.concat([2]));
+        testGetIterator(sut => sut.concat$([2]));
       });
     });
 
@@ -154,21 +154,21 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
       });
     });
 
-    describe('orderBy()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.orderBy(x => x));
-      });
-    });
+    // describe('orderBy()', () => {
+    //   it('should not get iterator', function () {
+    //     testGetIterator(sut => sut.orderBy(x => x));
+    //   });
+    // });
 
-    describe('orderByDescending()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.orderByDescending(x => x));
-      });
-    });
+    // describe('orderByDescending()', () => {
+    //   it('should not get iterator', function () {
+    //     testGetIterator(sut => sut.orderByDescending(x => x));
+    //   });
+    // });
 
     describe('prepend()', () => {
       it('should not get iterator', function () {
-        testGetIterator(sut => sut.prepend(1));
+        testGetIterator(sut => sut.prepend([1]));
       });
     });
 
@@ -247,6 +247,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
     describe('sort()', () => {
       it('should not get iterator', function () {
         testGetIterator(sut => sut.sort());
+      });
+    });
+
+    describe('sortBy()', () => {
+      it('should not get iterator', function () {
+        testGetIterator(sut => sut.sortBy(x => x));
       });
     });
 

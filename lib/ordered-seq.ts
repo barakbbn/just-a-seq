@@ -1,4 +1,4 @@
-import {Comparer, OrderedSeq, Selector} from "./seq";
+import {Comparer, factories, OrderedSeq, Selector, Seq} from "./seq";
 import {DONT_COMPARE, EMPTY_ARRAY, LEGACY_COMPARER, sameValueZero} from "./common";
 import {SeqBase} from "./seq-base";
 
@@ -59,6 +59,10 @@ export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T
     return this.thenByInternal(keySelector, comparer, false);
   }
 
+  thenSortBy<U>(valueSelector: (item: T) => U, reverse = false): OrderedSeq<T> {
+    return this.thenByInternal(valueSelector, undefined, reverse);
+  }
+
   thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
     return this.thenByInternal(keySelector, comparer, true);
   }
@@ -75,6 +79,14 @@ export class OrderedSeqImpl<T, K = T> extends SeqBase<T> implements OrderedSeq<T
     const array = [...this.items];
     const sorted = array.sort(this.comparer as Comparer<T>);
     yield* sorted;
+  }
+
+  sortBy<U = T>(valueSelector: (item: T) => U, reverse: boolean = false): OrderedSeq<T> {
+    return factories.OrderedSeq(this.items, valueSelector, undefined, reverse);
+  }
+
+  sorted(reverse = false): Seq<T> {
+    return factories.OrderedSeq(this.items, undefined, undefined, reverse);
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer?: Comparer<K>, descending: boolean = false): OrderedSeq<T> {

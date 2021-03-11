@@ -24,6 +24,7 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('append()', array.oneToTen, seq => seq.append(-1));
     testImmutable('chunk()', array.oneToTen, seq => seq.chunk(5));
     testImmutable('concat()', array.oneToTen, seq => seq.concat(array.tenZeros));
+    testImmutable('concat$()', array.oneToTen, seq => seq.concat$(array.tenZeros));
     testImmutable('consume()', array.oneToTen, seq => seq.consume());
     testImmutable('count()', array.oneToTen, seq => seq.count(() => true));
     testImmutable('diffDistinct()', array.zeroToNine, seq => seq.diffDistinct(array.oneToTen));
@@ -65,9 +66,9 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('map()', array.oneToTen, seq => seq.map(n=>n-n));
     testImmutable('max()', array.oneToTen, seq => seq.max());
     testImmutable('min()', array.oneToTen, seq => seq.min());
-    testImmutable('orderBy()', array.oneToTen, seq => seq.orderBy(n=>n, (a,b)=>b-a));
-    testImmutable('orderByDescending()', array.oneToTen, seq => seq.orderByDescending(n=>n, (a,b)=>b-a));
-    testImmutable('prepend()', array.oneToTen, seq => seq.prepend(0,-1,-2));
+    // testImmutable('orderBy()', array.oneToTen, seq => seq.orderBy(n=>n, (a,b)=>b-a));
+    // testImmutable('orderByDescending()', array.oneToTen, seq => seq.orderByDescending(n=>n, (a,b)=>b-a));
+    testImmutable('prepend()', array.oneToTen, seq => seq.prepend([0,-1,-2]));
     testImmutable('reduce()', array.oneToTen, seq => seq.reduce((prev, curr)=>prev+curr));
     testImmutable('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr)=>prev+curr));
     testImmutable('remove()', array.oneToTen, seq => seq.remove([0]));
@@ -84,6 +85,7 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('skipWhile()', array.zeroToTen, seq => seq.skipWhile(() => true));
     testImmutable('slice()', array.zeroToTen, seq => seq.slice(0, 5));
     testImmutable('sort()', array.zeroToTen, seq => seq.sort());
+    testImmutable('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     testImmutable('sorted()', array.zeroToTen, seq => seq.sorted());
     testImmutable('split()', array.zeroToTen, seq => seq.split(4).reduce((a,b)=>[...a, ...b], [1]));
     testImmutable('startsWith()', array.zeroToTen, seq => seq.startsWith(array.zeroToTen));

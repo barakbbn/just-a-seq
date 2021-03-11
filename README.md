@@ -58,8 +58,8 @@ console.log(asSeq(layers)
   .filter(l => l.type !== 'hidden') // None hidden layers
   .flatMap(l => l.points) // Flat all layers' points into a sequence
   .distinct(p => p => p.x + ',' + p.y) // Remove duplicate points
-  .orderBy(p => p.x) // Sort by x then by y
-  .thenBy(p => p.y)
+  .sortBy(p => p.x) // Sort by x then by y
+  .thenSortBy(p => p.y)
   .prepend({x: -1, y: -1}) // Add special point at the beginning
   .map(p => `{${p, x},${p.y}}`) // Map each point to string representation 
   .toString({start: '[', end: ']'}) // Convert the sequence into string wrapped in brackets
@@ -143,10 +143,10 @@ console.log(asSeq(layers)
 
 <!-- average() -->
 <details>
-  <summary><samp><b>average()</b></samp> - <small><i>(same as <b>push</b>)</i></small> Return the average value from a sequence of numbers</summary>
+  <summary><samp><b>average()</b></samp> - Return the average value from a sequence of numbers</summary>
   <h3><code>average(): T extends number ? number : never</code></h3>
 
-<h3><code>average(selector: Selector&lt;T, number&gt;): number</code></h3>
+  <h3><code>average(selector: Selector&lt;T, number&gt;): number</code></h3>
   <dl>
     <dt>- selector</dt>
     <dd>
@@ -180,8 +180,8 @@ Will return a new sequence instance, unless done on already cached sequence
 ```typescript
 const cached = asSeq(allStudentsGrades)
   .filter(x => x.grade > 50)
-  .orderBy(x => x.class)
-  .thenByDescending(x => x.grade)
+  .sortBy(x => x.class)
+  .thensortBy(x => x.grade, true)
   .map(x => ({name: x.firstName + ' ' + x.lastName, class: x.class, grade: x.grade}))
   .cache();
 
@@ -189,7 +189,7 @@ console.log('Top 5 Students', cached
   .filter(x => x.grade > 95)
   .groupBy(x => x.name)
   .map(group => ({name: group.key, grade: group.average(x => x.grade)}))
-  .orderByDescending(x => x.grade)
+  .sortBy(x => x.grade, true)
   .take(5)
   .map(x => x.name + ': ' + x.grade)
   .toString()
@@ -198,7 +198,7 @@ console.log('Top 5 Students', cached
 console.log('Top 3 Classes', cached
   .groupBy(x => x.class)
   .map(group => ({class: group.key, grade: group.average(x => x.grade)}))
-  .orderByDescending(x => x.grade)
+  .sortBy(x => x.grade, true)
   .take(3)
   .map(x => x.class + ': ' + x.grade)
   .toString()
@@ -234,12 +234,19 @@ const chunkOfFilesToUpoad = asSeq(loadFilenamesRecursively())
 
 <!-- concat() -->
 <details>
-  <summary><samp><b>concat()</b></samp> - <small><i>(Like Array.concat)</i></small> Combine two or more Iterables</summary>
+  <summary><samp><b>concat()</b></samp> - <small><i>(Like Array.concat)</i></small> Combine two or more sequences</summary>
   <h3><code>concat(...items: Iterable&lt;T&gt;[]): Seq&lt;T&gt;</code></h3>
   <dl>
     <dt>- items</dt>
-    <dd>Additional Iterables to concatenate to the end of the sequence</dd>
-  </dl><hr>  
+    <dd>Additional sequences to concatenate to the end of the sequence</dd>
+  </dl>
+  <h3><code>concat$(...items: (T | Iterable&lt;T&gt;)[]): Seq&lt;T&gt;</code></h3>
+  Behaves like Array.concat
+  <dl>
+    <dt>- items</dt>
+    <dd>Additional discrete items or sequences to concatenate to the end of the sequence</dd>
+  </dl>
+  <hr>
 </details>
 
 <!-- consume() -->
@@ -267,7 +274,7 @@ const chunkOfFilesToUpoad = asSeq(loadFilenamesRecursively())
 
 Returns items that only exists in one of the sequences, but not on both
 
-<h3><code>diff&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: Selector&lt;T, K&gt;): Seq&lt;T&gt;</code></h3>
+  <h3><code>diff&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): Seq&lt;T&gt;</code></h3>
   <dl>
     <dt>- items</dt>
     <dd>Items to perform a diff with</dd>
@@ -284,7 +291,7 @@ Returns items that only exists in one of the sequences, but not on both
 
 Like diff() but also perform distinct() to remove duplicated items
 
-<h3><code>diffDistinct&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: Selector&lt;T, K&gt;): Seq&lt;T&gt;</code></h3>
+  <h3><code>diffDistinct&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): Seq&lt;T&gt;</code></h3>
   <dl>
     <dt>- items</dt>
     <dd>Items to perform a diff with</dd>
@@ -337,9 +344,11 @@ Like diff() but also perform distinct() to remove duplicated items
 <details>
   <summary><samp><b>every()</b></samp> - <small><i>(Like Array.every)</i></small> Checks whether all items match a condition</summary>
 
+> Alias to `all()`
+
 > Always returns true if sequence is empty
 
-<h3><code>every(condition: Condition&lt;T&gt;): boolean</code></h3>
+  <h3><code>every(condition: Condition&lt;T&gt;): boolean</code></h3>
   <dl>
     <dt>- condition</dt>
     <dd>Function to test each item and returns a truthy or falsy value</dd>
@@ -428,7 +437,7 @@ Returns <b>-1</b> if not found
     <dd>Function to test each item if it's the one to find</dd>
   </dl>
 
-<h3><code>findLastIndex(fromIndex: number, condition: Condition&lt;T&gt;): number</code></h3>
+  <h3><code>findLastIndex(fromIndex: number, condition: Condition&lt;T&gt;): number</code></h3>
   <dl>
     <dt>- tillIndex</dt>
     <dd>Last index to search till (including)</dd>  </dl>
@@ -464,7 +473,7 @@ Returns <b>-1</b> if not found
 
 <!-- flat() -->
 <details>
-  <summary><samp><b>flat()</b></samp> - <small><i>(Like Array.flat)</i></small> Flatten iterables of iterables by specified depth</summary>
+  <summary><samp><b>flat()</b></samp> - <small><i>(Like Array.flat)</i></small> Flatten sequences of sequences by specified depth</summary>
 
 <h3><code>flat&lt;D extends number&gt;(depth?: D): Seq&lt;FlatSeq&lt;T, D&gt;&gt;</code></h3>
   <dl>
@@ -480,8 +489,7 @@ Returns <b>-1</b> if not found
 
 > flatMap() is a shorthand for <code>const flatSeq = seq.map(x => x.items).flat();</code>
 
-<h3><code>flatMap&lt;U, R&gt;(selector: Selector&lt;T, Iterable&lt;U&gt;&gt;, mapResult?: (subItem: U, parent: T, index:
-number) => R): Seq&lt;R&gt;</code></h3>
+  <h3><code>flatMap&lt;U, R&gt;(selector: Selector&lt;T, Iterable&lt;U&gt;&gt;, mapResult?: (subItem: U, parent: T, index:number) => R): Seq&lt;R&gt;</code></h3>
   <dl>
     <dt>- selector?</dt>
     <dd>Function that returns an iterable from each item, to flat it.</dd>
@@ -803,7 +811,7 @@ const itemsSeq3 = asSeq(allItems).ifDefault({useFactory: () => loadHistoryItems(
 
 > It differs from includesAll() by checking items also in same order
 
-  <h3><code>includesSubSequence&lt;K&gt;(subSequence: Iterable&lt;T&gt;, keySelector?: Selector&lt;T, K&gt;): boolean</code></h3>
+  <h3><code>includesSubSequence&lt;K&gt;(subSequence: Iterable&lt;T&gt;, keySelector?: (item: T) => K): boolean</code></h3>
   <dl>
     <dt>- subSequence</dt>
     <dd>Items to check all of them exists in the sequence in same order</dd>
@@ -876,69 +884,920 @@ const itemsSeq3 = asSeq(allItems).ifDefault({useFactory: () => loadHistoryItems(
   <hr>
 </details>
 
+<!-- insert() -->
+<details>
+  <summary><samp><b>insert()</b></samp> - Insert one or more sequences at specified index</summary>
+
+  <h3><code>insert(atIndex: number, ...items: Iterable&lt;T&gt;[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- atIndex</dt>
+    <dd>Index in sequence to insert the other sequences at</dd>
+    <dt>- items</dt>
+    <dd>One or more sequences to insert at the specified index</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- insertAfter() -->
+<details>
+  <summary><samp><b>insertAfter()</b></samp> - Search first item that matches a condition and insert new items immediately after it</summary>
+
+  <h3><code>insertAfter(condition: Condition&lt;T&gt;, ...items: Iterable&lt;T&gt;[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function to test each item if it's the one to find</dd>
+    <dt>- items</dt>
+    <dd>One or more sequences to insert</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- insertBefore() -->
+<details>
+  <summary><samp><b>insertBefore()</b></samp> - Search first item that matches a condition and insert new items just before it</summary>
+
+  <h3><code>insertBefore(condition: Condition&lt;T&gt;, ...items: Iterable&lt;T&gt;[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function to test each item if it's the one to find</dd>
+    <dt>- items</dt>
+    <dd>One or more sequences to insert</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- intersect() -->
+<details>
+  <summary><samp><b>intersect()</b></samp> - Return distinct items that only exists in both sequences</summary>
+
+  <h3><code>intersect&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- inner</dt>
+    <dd>The other items to join with</dd>
+    <dt>- outerKeySelector</dt>
+    <dd>Returns a value that can be compared for equality from the <b>outer</b> item</dd>
+    <dt>- innerKeySelector</dt>
+    <dd>Returns a value that can be compared for equality from the <b>inner</b> item</dd>
+    <dt>- resultSelector?</dt>
+    <dd>
+    Function that map the pair of items from outer and inner sequences into a different value.<br>
+    By default the resulting values is <code>{ outer: T; inner: I }</code>
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- intersperse(*) -->
+<details>
+  <summary><samp><b>intersperse()</b></samp> - Insert a value between every item</summary>
+
+  <h3><code>intersperse(separator: T, insideOut?: boolean): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- separator</dt>
+    <dd>A value to insert after each item</dd>
+    <dt>- insideOut? [default false]</dt>
+    <dd>If true, separator value will be inserted as the first and last item<b>outer</b> item</dd>
+  </dl>
+  <h3><code>intersperse&lt;U = T, TPrefix = T, TSuffix = T&gt(separator: U, opts?: { prefix?: TPrefix; suffix?: TSuffix }): Seq&lt;TPrefix | T | U | TSuffix&gt</code></h3>
+  Optionally add a prefix and/or suffix to the sequence 
+  <dl>
+    <dt>- opts?</dt>
+    <dd>
+    Options to affect how to intersperse the sequence<br>
+    - prefix?<br>
+      Prefix value to insert as the first item in the sequence<br>
+    - suffix?<br>
+      Prefix value to insert as the last item in the sequence
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- isEmpty() -->
+<details>
+  <summary><samp><b>isEmpty()</b></samp> - Checks whether the sequence is empty</summary>
+
+  <h3><code>isEmpty(): boolean</code></h3>
+  <hr>
+</details>
+
+<!-- join() -->
+<details>
+  <summary><samp><b>join()</b></samp> - <small><i>(Like Array.join)</i></small> Joins the items into a string using a separator (plus some more abilities)</summary>
+
+> Same as toString()
+
+  <h3><code>join(separator?: string): string</code></h3>
+  <dl>
+    <dt>- separator? [default: ',' ]</dt>
+    <dd>String value to insert between each item when converting to a string</dd>
+  </dl>
+  <h3><code>join(opts: { start?: string; separator?: string, end?: string; }): string</code></h3>
+  <dl>
+    <dt>- opts</dt>
+    <dd>
+    - start?<br>
+    Optional string to put as the start of the resulting string.<br>
+    - end?<br>
+    Optional string to put as the end of the resulting string.<br>
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- last() -->
+<details>
+  <summary><samp><b>last()</b></samp> - Returns the last item in the sequence</summary>
+  
+  <h3><code>last(): T | undefined</code></h3>
+  If sequence is empty, returns undefined
+  <h3><code>last(fallback: T): T</code></h3>
+  If sequence is empty, returns a fallback value
+  <hr>
+</details>
+
+<!-- lastIndexOf() -->
+<details>
+  <summary><samp><b>lastIndexOf()</b></samp> - <small><i>(Like Array.lastIndexOf)</i></small> Returns the index of an item being searched from the end of the sequence</summary>
+
+> Returns <b>-1</b> if not found
+
+  <h3><code>lastIndexOf(item: T, fromIndex?: number): number</code></h3>
+  <dl>
+    <dt>- item</dt>
+    <dd>Item to search for</dd>
+    <dt>- fromIndex?</dt>
+    <dd>An index to start searching from</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- length() -->
+<details>
+  <summary><samp><b>length()</b></samp> - Returns number of items in the sequence</summary>
+
+  <h3><code>length(): number</code></h3>
+  <hr>
+</details>
+
+<!-- map() -->
+<details>
+  <summary><samp><b>map()</b></samp> - <small><i>(Like Array.map)</i></small> Maps each item in the sequence into a different form</summary>
+
+  <h3><code>map&lt;U = T&gt;(mapFn: Selector&lt;T, U&gt;): Seq&lt;U&gt;</code></h3>
+  <dl>
+    <dt>- mapFn</dt>
+    <dd>Mapping function called on each item and returns another desired value</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- max() -->
+<details>
+  <summary><samp><b>max()</b></samp> - Return the maximum value from a sequence of numbers</summary>
+  <h3><code>max(): T extends number ? number : never</code></h3>
+
+  <h3><code>max(selector: Selector&lt;T, number&gt;): number</code></h3>
+  <dl>
+    <dt>- selector</dt>
+    <dd>
+    Function that return numeric value from each item in the sequence<br>
+    Commonly used to select by which property to match the items 
+    </dd>
+  </dl><hr>  
+</details>
+
+<!-- min() -->
+<details>
+  <summary><samp><b>min()</b></samp> - Return the minimum value from a sequence of numbers</summary>
+  <h3><code>min(): T extends number ? number : never</code></h3>
+
+  <h3><code>min(selector: Selector&lt;T, number&gt;): number</code></h3>
+  <dl>
+    <dt>- selector</dt>
+    <dd>
+    Function that return numeric value from each item in the sequence<br>
+    Commonly used to select by which property to match the items 
+    </dd>
+  </dl><hr>  
+</details>
+
+<!-- ofType() -->
+<details>
+  <summary><samp><b>ofType()</b></samp> - Keeps only items of specified type</summary>
+  <h3><code>ofType(type: 'number'): Seq&lt;number&gt;</code></h3>
+  <h3><code>ofType(type: typeof Number): Seq&lt;number&gt;</code></h3>
+  Keeps only numeric values
+  <h3><code>ofType(type: 'string'): Seq&lt;string&gt;</code></h3>
+  <h3><code>ofType(type: typeof String): Seq&lt;string&gt;</code></h3>
+  Keeps only string values
+  <h3><code>ofType(type: 'boolean'): Seq&lt;boolean&gt;</code></h3>
+  <h3><code>ofType(type: typeof Boolean): Seq&lt;boolean&gt;</code></h3>
+  Keeps only boolean values
+  <h3><code>ofType(type: 'function'): Seq&lt;Function&gt;</code></h3>
+  Keeps only values which are functions values
+  <h3><code>ofType(type: 'symbol'): Seq&lt;symbol&gt;</code></h3>
+  <h3><code>ofType(type: typeof Symbol): Seq&lt;symbol&gt;</code></h3>
+  Keeps only values which are symbols
+  <h3><code>ofType(type: 'object'): Seq&lt;object&gt;</code></h3>
+  <h3><code>ofType(type: typeof Object): Seq&lt;object&gt;</code></h3>
+  Keeps only values which are objects
+  <h3><code>ofType&lt;V extends Class&gt;(type: V): Seq&lt;InstanceType&lt;V&gt;&gt;</code></h3>
+  Keeps only objects of specified class
+  <hr>  
+</details>
+
+<!-- orderBy() -->
+<!-- 
+<details>
+  <summary><samp><b>orderBy()</b></samp> - Sort items by value produced from each item in the sequence</summary>
+  <h3><code>orderBy&lt;K = T&gt;(keySelector: (x: T) => K, comparer?: Comparer&lt;K&gt;): OrderedSeq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- selector</dt>
+    <dd>
+    Function that returns a comparable value from each item, to sort by it<br>
+    Commonly used to select by which property to sort the items 
+    </dd>
+    <dt>- comparer?</dt>
+    <dd>
+    Function that receives two values produced by the <code>selector</code> and compares them.<br>
+    It's usually used when the selector produced and object (non comparable) that need custom compare logic 
+    </dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+const orderedBySalary = employees.orderBy(e => e.salary);
+```    
+  </details>
+  <details>
+    <summary>Example 2 - with comparer</summary>
+
+```typescript
+const orderedByPosition = results.orderBy(
+    res => res.position,
+    (pos1, pos2) => (pos1.x - pos2.x) || (pos1.y - pos2.y)
+  );
+```    
+  </details>
+<hr>  
+</details>
+ -->
+<!-- orderByDescending() -->
+<!-- 
+<details>
+  <summary><samp><b>orderByDescending()</b></samp> - Sort items in reverse, by value produced from each item in the sequence</summary>
+  <h3><code>orderByDescending&lt;K = T&gt;(keySelector: (x: T) => K, comparer?: Comparer&lt;K&gt;): OrderedSeq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- selector</dt>
+    <dd>
+    Function that returns a comparable value from each item, to sort by it<br>
+    Commonly used to select by which property to sort the items 
+    </dd>
+    <dt>- comparer?</dt>
+    <dd>
+    Function that receives two values produced by the <code>selector</code> and compares them.<br>
+    It's usually used when the selector produced and object (non comparable) that need custom compare logic 
+    </dd>
+  </dl>
+  <hr>  
+</details>
+ -->
+<!-- prepend() -->
+<details>
+  <summary><samp><b>prepend()</b></samp> - Insert one or more sequences at beginning</summary>
+
+  <h3><code>prepend(...items: Iterable&lt;T&gt;[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>One or more sequences to insert at the beginning</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- push() -->
+<details>
+  <summary><samp><b>push()</b></samp> - <small><i>(Like Array.push)</i></small> Appends one or more items at the end of the sequence</summary>
+  
+> Same as append()
+
+  <h3><code>push(...items: T[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>Zero or more items to append</dd>
+  </dl><hr>  
+</details>
+
+<!-- reduce() -->
+<details>
+  <summary><samp><b>reduce()</b></samp> - <small><i>(Like Array.reduce)</i></small> Reduces the items in the sequence into a single value</summary>
+
+  <h3><code>reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T</code></h3>
+  <dl>
+    <dt>- reducer</dt>
+    <dd>Function that takes an accumulated value and the next value in the sequence and return a reduced/accumulated value</dd>
+  </dl>
+
+  <h3><code>reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T</code></h3>
+  <h3><code>reduce&lt;U&gt;>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U</code></h3>
+  <dl>
+    <dt>- initialValue</dt>
+    <dd>Initial value start reducing with</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- reduceRight() -->
+<details>
+  <summary><samp><b>reduceRight()</b></samp> - <small><i>(Like Array.reduce)</i></small> Reduces the items in the sequence in reverse order, into a single value</summary>
+
+  <h3><code>reduceRight(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T</code></h3>
+  <dl>
+    <dt>- reducer</dt>
+    <dd>Function that takes an accumulated value and the next value in the sequence and return a reduced/accumulated value</dd>
+  </dl>
+
+  <h3><code>reduceRight(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T</code></h3>
+  <h3><code>reduceRight&lt;U&gt;>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U</code></h3>
+  <dl>
+    <dt>- initialValue</dt>
+    <dd>Initial value start reducing with</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- remove() -->
+<details>
+  <summary><samp><b>remove()</b></samp> - Remove items that exist in another sequence</summary>
+
+  <h3><code>remove&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>Other items to remove from source sequence</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- removeAll() -->
+<details>
+  <summary><samp><b>removeAll()</b></samp> - Remove <b>all</b> occurrences of items that exist in another sequence</summary>
+
+  <h3><code>removeAll&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>Other items to remove from source sequence</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- removeFalsy() -->
+<details>
+  <summary><samp><b>removeFalsy()</b></samp> - Remove all falsy item</summary>
+
+  <h3><code>removeFalsy(): Seq&lt;T&gt;</code></h3>
+  <hr>
+</details>
+
+<!-- removeNulls() -->
+<details>
+  <summary><samp><b>removeFalsy()</b></samp> - Remove null and undefined values</summary>
+
+<h3><code>removeNulls(): Seq&lt;T&gt;</code></h3>
+  <hr>
+</details>
+
+<!-- repeat() -->
+<details>
+  <summary><samp><b>repeat()</b></samp> - Mupliple the sequence</summary>
+
+  <h3><code>repeat(count: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- count</dt>
+    <dd>
+    Value to multiple the sequence (sequence * count).<br>
+    <i>value of <b>1</b> return the same sequence (return sequence * 1)</i>
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- reverse() -->
+<details>
+  <summary><samp><b>reverse()</b></samp> - <small><i>(Like Array.reverse)</i></small> Reverse the order of the sequnce</summary>
+
+  <h3><code>reverse(): Seq&lt;T&gt;</code></h3>
+  <hr>
+</details>
+
+<!-- sameItems() -->
+<details>
+  <summary><samp><b>sameItems()</b></samp> - Checks that the two sequences have the same items in any order</summary>
+
+  <h3><code>sameItems&lt;K&gt;(second: Iterable&lt;T&gt;, keySelector?: (item: T) => K): boolean</code></h3>
+  <dl>
+    <dt>- second</dt>
+    <dd>The second sequence to check if has the same items</dd>
+    <dt>- keySelector?</dt>
+    <dd>
+    Function that returns a comparable value from each item, to match by it.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+  </dl>
+
+  <h3><code>sameItems&lt;U, K&gt;(second: Iterable&lt;U&gt;, firstKeySelector: Selector&lt;T, K&gt;, secondKeySelector: Selector&lt;U, K&gt;): boolean</code></h3>
+  <dl>
+    <dt>- firstKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the source sequence, to match by it.</dd>
+    <dt>- secondKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the second sequence, to match by it.</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- sameOrderedItems() -->
+<details>
+  <summary><samp><b>sameOrderedItems()</b></samp> - Checks that the two sequences have the same items in the same order</summary>
+
+  <h3><code>sameOrderedItems&lt;K&gt;(second: Iterable&lt;T&gt;, keySelector?: (item: T) => K): boolean</code></h3>
+  <dl>
+    <dt>- second</dt>
+    <dd>The second sequence to check if has the same items</dd>
+    <dt>- keySelector?</dt>
+    <dd>
+    Function that returns a comparable value from each item, to match by it.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+  </dl>
+
+  <h3><code>sameOrderedItems&lt;U, K&gt;(second: Iterable&lt;U&gt;, firstKeySelector: Selector&lt;T, K&gt;, secondKeySelector: Selector&lt;U, K&gt;): boolean</code></h3>
+  <dl>
+    <dt>- firstKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the source sequence, to match by it.</dd>
+    <dt>- secondKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the second sequence, to match by it.</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- skip() -->
+<details>
+  <summary><samp><b>skip()</b></samp> - Remove one or more items from beginning of the sequence</summary>
+
+  <h3><code>skip(count: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- count</dt>
+    <dd>Number of items to skip</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- skipFirst() -->
+<details>
+  <summary><samp><b>skipFirst()</b></samp> - Remove the first item</summary>
+
+  <h3><code>skipFirst(): Seq&lt;T&gt;</code></h3>
+  <hr>
+</details>
+
+<!-- skipLast() -->
+<details>
+  <summary><samp><b>skipLast()</b></samp> - Remove one or more items from the end of the sequence</summary>
+
+  <h3><code>skipLast(count: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- count?</dt>
+    <dd>Number of items to skip <i>[default 1]</i></dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- skipWhile() -->
+<details>
+  <summary><samp><b>skipWhile()</b></samp> - Remove items from beginning of sequence while they match a condition</summary>
+
+  <h3><code>skipWhile(condition: Condition&lt;T&gt;): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function that checks the condition on each item</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- slice() -->
+<details>
+  <summary><samp><b>slice()</b></samp> - <small><i>(Like Array.slice)</i></small> Returns a section from the sequence</summary>
+
+  <h3><code>slice(start: number, end: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- start</dt>
+    <dd>Index to start taking items from</dd>
+    <dt>- end</dt>
+    <dd>Upto which index <b>Not Including</b> to take items till. (Can be considered as count)</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- some() -->
+<details>
+  <summary><samp><b>some()</b></samp> - <small><i>(Like Array.some)</i></small> Checks if any item matches a condition</summary>
+
+> Alias to `any()`
+
+  <h3><code>some(condition: Condition&lt;T&gt;): boolean</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function to test each item and returns a truthy or falsy value</dd>
+  </dl><hr>
+</details>
+
+<!-- sort() -->
+<details>
+  <summary><samp><b>sort()</b></samp> - <small><i>(Like Array.sort)</i></small> Sort items by a comparer</summary>
+
+  <h3><code>sort(comparer?: Comparer&lt;T&gt;): OrderedSeq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- comparer</dt>
+    <dd>
+    Function that receives two items from the sequence and compares them.<br>
+    <small><i>
+    If not provided, sequence is sorted by comparing each item.toString()<br>
+    If that is not the desired behavior, consider calling sorted() or sortBy()
+    </i></small>
+    </dd>
+  </dl><hr>
+</details>
+
+<!-- sortBy() -->
+<details>
+  <summary><samp><b>sortBy()</b></samp> - Sort items by value produced from each item in the sequence</summary>
+  <h3><code>sortBy&lt;K = T&gt;(valueSelector: (x: T) => K): OrderedSeq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- valueSelector</dt>
+    <dd>
+    Function that returns a comparable value from each item, to sort by it<br>
+    Commonly used to select by which property to sort the items 
+    </dd>
+    <dt>- reverse? <i>[Default: false]</i></dt>
+    <dd>If <b>true</b>, sort in reverse order</dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+const topFiveSalaries = employees.sortBy(e => e.salary, true).distinct().take(5);
+```    
+  </details>
+<hr>  
+</details>
+
+<!-- sorted() -->
+<details>
+  <summary><samp><b>sorted()</b></samp> - Returns a sorted sequence according to plain comparison</summary>
+  <h3><code>sorted(reverse?: boolean): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- reverse? <i>[Default: false]</i></dt>
+    <dd>If <b>true</b>, sort in reverse order</dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+years.sorted(true);
+```    
+  </details>
+<hr>  
+</details>
+
+<!-- split() -->
+<details>
+  <summary><samp><b>split()</b></samp> - Split into two sequences at index or by condition</summary>
+
+  <h3><code>split(atIndex: number): [Seq&lt;T&gt;, Seq&lt;T&gt;]</code></h3>
+  <dl>
+    <dt>- atIndex</dt>
+    <dd>Index to split the sequence at</dd>
+  </dl>
+
+  <h3><code>split(condition: Condition&lt;T&gt;): [Seq&lt;T&gt;, Seq&lt;T&gt;]</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function to test each item to determine if to split at that position in the sequence</dd>
+  </dl>
+<hr>
+</details>
+
+<!-- startsWith() -->
+<details>
+  <summary><samp><b>startsWith()</b></samp> - Determines if the sequence include another sequence at the beginning</summary>
+
+  <h3><code>startsWith&lt;K&gt;(items: Iterable&lt;T&gt;, keySelector?: (item: T) => K): boolean</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>The other sequence to check if exists at the start of the sequence</dd>
+    <dt>- keySelector</dt>
+    <dd>
+    Function that returns a comparable value from each item, to match by it.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- sum() -->
+<details>
+  <summary><samp><b>sum()</b></samp> - Returns the sum of values for sequence of numbers</summary>
+  <h3><code>sum(): T extends number ? number : never</code></h3>
+
+  <h3><code>sum(selector: Selector&lt;T, number&gt;): number</code></h3>
+  <dl>
+    <dt>- selector</dt>
+    <dd>
+    Function that return numeric value from each item in the sequence<br>
+    Commonly used to select by which property to match the items 
+    </dd>
+  </dl><hr>  
+</details>
+
+<!-- take() -->
+<details>
+  <summary><samp><b>take()</b></samp> - Keeps/Take only first one or more items from the sequence</summary>
+
+  <h3><code>take(count: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- count</dt>
+    <dd>Number of items to take from the start of the sequence</dd>
+  </dl><hr>  
+</details>
+
+<!-- takeLast() -->
+<details>
+  <summary><samp><b>takeLast()</b></samp> - Keeps/Take only last one or more items from the end</summary>
+
+  <h3><code>takeLast(count: number): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- count</dt>
+    <dd>Number of items to take from the end of the sequence</dd>
+  </dl><hr>  
+</details>
+
+<!-- takeOnly() -->
+<details>
+  <summary><samp><b>takeOnly()</b></samp> - Takes/Keep only items that existing in another sequence</summary>
+
+  <h3><code>takeOnly&lt;K = T&gt;(items: Iterable&lt;T&gt;, keySelector: (item: T) => K): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>The second sequence to check if has the same items</dd>
+    <dt>- keySelector?</dt>
+    <dd>
+    Function that returns a comparable value from each item, to match by it.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+  </dl>
+
+  <h3><code>takeOnly&lt;U, K = T&gt;(items: Iterable&lt;U&gt;, firstKeySelector: Selector&lt;T, K&gt;, secondKeySelector?: Selector&lt;U, K&gt;): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- firstKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the source sequence, to match by it.</dd>
+    <dt>- secondKeySelector?</dt>
+    <dd>Function that returns a comparable value from each item from the second sequence, to match by it.</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- takeWhile() -->
+<details>
+  <summary><samp><b>takeWhile()</b></samp> - Take items from beginning of sequence while they match a condition</summary>
+
+  <h3><code>takeWhile(condition: Condition&lt;T&gt;): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- condition</dt>
+    <dd>Function that checks the condition on each item</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- tap() -->
+<details>
+  <summary><samp><b>tap()</b></samp> - Perform a side effect action on each item when the sequence is iterated</summary>
+
+  <h3><code>tap(callback: Selector&lt;T, void&gt;, thisArg?: any): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- callback</dt>
+    <dd>Function to call for each item in the sequence</dd>
+    <dt>- thisArg</dt>
+    <dd><code>this</code> object to bind to the callback</dd>
+  </dl><hr>  
+</details>
+
+<!-- toArray() -->
+<details>
+  <summary><samp><b>toArray()</b></samp> - Returns a new array with the items</summary>
+
+  <h3><code>toArray(): T[]</code></h3>
+  <hr>  
+</details>
+
+<!-- toMap() -->
+<details>
+  <summary><samp><b>toMap()</b></samp> - Return a new Map with the items under a key by a key-selector</summary>
+
+  <h3><code>toMap&lt;K, V&gt;(keySelector: Selector&lt;T, K&gt;, valueSelector?: Selector&lt;T, V&gt;, toComparableKey?: ToComparableKey&lt;K&gt;): Map&lt;K, V&gt;</code></h3>
+  <dl>
+    <dt>- keySelector</dt>
+    <dd>
+    Function that returns a value from each item, to serve as the key in the Map.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+    <dt>- valueSelector?</dt>
+    <dd>Function to map each item to another form</dd>
+    <dt>- toComparableKey?</dt>
+    <dd>
+    Returns a primitive value that can be compared for equality, for the key that produced by the <b>keySelector</b>.<br>
+    <small>(In case the key is not a comparable value (i.e. an object or array)</small>
+    </dd>
+  </dl>
+  <hr>  
+</details>
+
+<!-- toSet() -->
+<details>
+  <summary><samp><b>toSet()</b></samp> - Return a new Set with distinct items</summary>
+
+  <h3><code>toSet&lt;K, V&gt;(keySelector: Selector&lt;T, K&gt;): Map&lt;K, V&gt;</code></h3>
+  <dl>
+    <dt>- keySelector?</dt>
+    <dd>
+    Function that returns a comparable value from each item, to match by it.<br>
+    Commonly used to select by which property to match the items
+    </dd>
+  </dl>
+  <hr>  
+</details>
+
+<!-- toString() -->
+<details>
+  <summary><samp><b>toString()</b></samp> - <small><i>(same as <b>join</b>)</i></small> Converts the sequence into a string</summary>
+
+  <h3><code>toString(separator?: string): string</code></h3>
+  <dl>
+    <dt>- separator? [default: ',' ]</dt>
+    <dd>String value to insert between each item when converting to a string</dd>
+  </dl>
+  <h3><code>toString(opts: { start?: string; separator?: string, end?: string; }): string</code></h3>
+  <dl>
+    <dt>- opts</dt>
+    <dd>
+    - start?<br>
+    Optional string to put as the start of the resulting string.<br>
+    - end?<br>
+    Optional string to put as the end of the resulting string.<br>
+    </dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- transform() -->
+<details>
+  <summary><samp><b>transform()</b></samp> - Manipulate the sequence using a custom action</summary>
+
+> Convenient if need to keep fluent methods calls
+
+  <h3><code>transform&lt;U = T&gt;(transformer: (seq: Seq&lt;T&gt;) => Seq&lt;U&gt;): Seq&lt;U&gt;</code></h3>
+  <dl>
+    <dt>- transformer</dt>
+    <dd>Function that accept the current sequence and return a sequence after custom manipulations</dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+  // Concat some items from the start of the sequence to its end 
+  seq.transform(seq => seq.concat(seq.take(10)))
+```
+  </details>
+
+  <hr>
+</details>
+
+<!-- union() -->
+<details>
+  <summary><samp><b>union()</b></samp> - Returns distinct items from both sequences</summary>
+
+  <h3><code>union&lt;K&gt;(second: Iterable&lt;T&gt;, keySelector?: (value: T) => K): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- second</dt>
+    <dd>The other items to add</dd>
+    <dt>- keySelector</dt>
+    <dd>Returns a value that can be compared for equality from each item in both sequences</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- unshift() -->
+<details>
+  <summary><samp><b>unshift()</b></samp> - <small><i>(Like Array.unshift)</i></small> Add one or more items at the beginning of the sequence</summary>
+
+  <h3><code>unshift(...items: T[]): Seq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- items</dt>
+    <dd>One or more items to prepend</dd>
+  </dl>
+  <hr>
+</details>
+
+<!-- zip() -->
+<details>
+  <summary><samp><b>zip()</b></samp> - Returns a sequence that each item is a Tuple with items from each sequence at the same index</summary>
+
+  <h3><code>zip&lt;T1, Ts extends any[]&gt;(items: Iterable&lt;T1&gt;, ...moreItems: Iterables&lt;Ts&gt;): Seq&lt;[T, T1, ...Ts]&gt;</code></h3>
+  
+  <dl>
+    <dt>- items</dt>
+    <dd>Other sequence to combine items from</dd>
+    <dt>- moreItems</dt>
+    <dd>Other sequences to combine items from</dd>
+    <dt>RETURNS</dt>
+    <dd>
+    Sequence of tuples, where each tuple correspond to specific item's index from the source sequence and contains other items from from same index in the other sequences<br>
+    <small><i>The produces sequence is as short as the shortest sequence</i></small>
+    </dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+const results1 = [{x:0, y:0}, {x: 0, y: 1}, {x: 0, y: 2}, {x: 0, y: 3}, {x: 0, y: 4}];
+const results2 = [{x:1, y:0}, {x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}];
+const results3 = [{x:2, y:0}, {x: 2, y: 1}, {x: 2, y: 2}];
+console.log(results1.zip(results2, results3).toArray());
+// Output:
+// [
+//   [{x:0, y:0}, {x:1, y:0}, {x:2, y:0}],
+//   [{x:0, y:1}, {x:1, y:1}, {x:2, y:1}],
+//   [{x:0, y:2}, {x:1, y:2}, {x:2, y:2}]
+// ]
+```
+  </details>
+  <hr>
+</details>
+
+<!-- zipAll() -->
+<details>
+  <summary><samp><b>zipAll()</b></samp> - Like zip() but takes the longest sequence instead of shortest one</summary>
+
+  <h3><code>zipAll&lt;T1, Ts extends any[]&gt;(items: Iterable&lt;T1&gt;, ...moreItems: Iterables&lt;Ts&gt; | [...Iterables&lt;Ts&gt;, { defaults?: [T?, T1?, ...Ts] }]): Seq&lt;[T, T1, ...Ts]&gt;</code></h3>
+
+  <dl>
+    <dt>- items</dt>
+    <dd>Other sequence to combine items from</dd>
+    <dt>- moreItems</dt>
+    <dd>Other sequences to combine items from</dd>
+    <dt>- { defaults? }</dt>
+    <dd>Default to use for shorter sequences</dd>
+    <dt>RETURNS</dt>
+    <dd>
+    Sequence of tuples, where each tuple correspond to specific item's index from the source sequence and contains other items from from same index in the other sequences<br>
+    <small><i>The produces sequence is as long as the longest sequence</i></small>
+    </dd>
+  </dl>
+  <details>
+    <summary>Example</summary>
+
+```typescript
+const results1 = [{x:0, y:0}, {x: 0, y: 1}, {x: 0, y: 2}, {x: 0, y: 3}, {x: 0, y: 4}];
+const results2 = [{x:1, y:0}, {x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}];
+const results3 = [{x:2, y:0}, {x: 2, y: 1}, {x: 2, y: 2}];
+console.log(results1.zipAll(results2, results3, {defaults: [undefined, {x:-1, y: -1}]}).toArray());
+// Output:
+// [
+//   [{x:0, y:0}, {x:1, y:0}, {x:2, y:0}, {x: 0, y: 3}, {x: 0, y: 4}],
+//   [{x:0, y:1}, {x:1, y:1}, {x:2, y:1}, {x: 1, y: 3}, {x:-1, y: -1}],
+//   [{x:0, y:2}, {x:1, y:2}, {x:2, y:2},  undefeind,  undefeind]
+// ]
+```
+  </details>
+  <hr>
+</details>
+
+<!-- zipWithIndex() -->
+<details>
+  <summary><samp><b>zipWithIndex()</b></samp> - Pairs each item with its index [item, index] (opposite order of entries())</summary>
+
+  <h3><code>zipWithIndex&lt;U = T&gt;(): Seq&lt;[T, number]&gt;</code></h3>
+  <hr>
+</details>
+
 | Method      | Description |
 | ----------- | ----------- |
 | -- | `SeqOfGroups , SeqOfMultiGroups Interfaces` |
 | -- thenGroupBy | Further group already grouped sequence in to sub groups |
 | -- mapInGroup | Map each leaf item in groups hierarchy sequence |
 | -- toMap | Return new Map of groups hierarchy with sub Maps for sub groups and arrays of leaf items |
-| insert | Insert items to the sequence at specified index |
-| insertAfter | Search first item that matches a condition and insert new items immediately after it |
-| insertBefore | Search first item that matches a condition and insert new items just before it |
-| intersect | Return only items that exists in another sequence |
-| intersperse | Insert after each item a specified value |
-| isEmpty | Checks whether the sequence is empty |
-| join | *(same as **toString**)* Join the items into a string (with some more abilities than Array.join) |
-| last | Return last item in the sequence |
-| lastIndexOf | return the index of item being searched from the end of the sequence |
-| length | return number of items in the sequence |
-| map | Like Array.map |
-| max | Return maximum value of sequence of numbers |
-| min | Return minimum value of sequence of numbers |
-| ofType | Keeps only items of specified type |
-| orderBy | Sort items by comparer |
-| orderByDescending | Sort items by comparer in reverse order |
 | -- | `OrderedSeq Interface` |
 | -- thenBy | Perform sub sorting |
 | -- thenByDescending | Perform sub sorting in reverse |
-| prepend | Add items at start of the sequence |
-| push | Like Array.push |
-| reduce | Like Array.reduce |
-| reduceRight | Like Array.reduceRight |
-| remove | Remove items that exist in another sequence |
-| removeAll | Remove all occurrences of items that exist in another sequence |
-| removeFalsy | Remove all falsy item |
-| removeNulls | Remove null and undefined values |
-| repeat | Concat the sequence with itself |
-| reverse | Like Array.reverse |
-| sameItems | Checks that two sequences have the same items | 
-| sameOrderedItems | Checks that two sequences have the same items in the same order |
-| skip | Remove number of items from beginning of the sequence |
-| skipFirst | Remove the first item |
-| skipLast | Remove one or more items from the end of the sequence |
-| skipWhile | Remove items from beginning of sequence while they match a condition |
-| slice | Like Array.slice |
-| some | Like Array.some |
-| sort | Like Array.sort |
-| sorted | Return sorted sequence according to plain comparison either ascending or in reverse |
-| split | Split into two sequences at index |
-| startsWith | Determines if the sequence include another sequence at its beginning |
-| sum | Return sum of values for sequence of numbers |
-| take | Keep only first number of items | 
-| takeLast | Keep only first number of items from the end |
-| takeWhile | Keep items from beginning of sequence while they match a condition |
-| takeOnly | Keep only items that existing in another sequence |
-| tap | Perform a side effect action on each item when it will be later iterated |
-| toArray | return a new array with the items |
-| toMap | Return a new Map with the items  under a key by a key-selector |
-| toSet | Return a new Set with distinct the items |
-| toString | *(same as **join**)*
-| transform | Manipulate the sequence using a custom action (Convenient if want to keep fluent methods calls) |
-| union | Return distinct items from both sequences |
-| unshift | Like Array.unshift |
-| zip | Return a sequence that each item is a Tuple with items from each sequence at the same index |
-| zipAll | Like Zip but take the longest sequence instead of shortest one |
-| zipWithIndex | Pair each item with its index [item, index] (opposite order of entries() method)
 
 ### Factories
 
@@ -950,3 +1809,16 @@ const itemsSeq3 = asSeq(allItems).ifDefault({useFactory: () => loadHistoryItems(
 | indexes | Creates a sequence for range of numbers starting from zero |
 | repeat | Creates a sequence filled with repeated value |
 | random | Creates infinite sequence of random numbers |
+
+### Difference among actions that involve two sequences
+|**Left**|**0**|**0**|**1**|**1**|**2**|**3**| |**4**|**4**| | | |
+|---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|**Right**|**0**|**0**| | | |**3**|**3**|**4**| |**5**|**5**|**6**|
+|diff| | |`1`|`1`|`2`| | | | |`5`|`5`|`6`|
+|diffDistinct| | |`1`| |`2`| | | | |`5`| |`6`|
+|innerJoin|`0.0`|`0.0`|`0.0`|`0.0`| |`3.3`|`3.3`|`4.4`|`4.4`| | | | |
+|intersect|`0`| | | | |`3`| |`4`|
+|remove| | |`1`|`1`|`2`| | | |`4`|
+|removeAll| | |`1`|`1`|`2`|
+|takeOnly|`0`|`0`| | | |`3`| |`4`|
+|union|0| |`1`| |`2`|`3`| |`4`| |`5`| |`6`|
