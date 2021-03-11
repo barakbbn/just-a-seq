@@ -3762,11 +3762,11 @@ export abstract class SeqBase_Immediate_Tests {
         const expected = input.reduce((sum, x) => sum + x.grade, 0);
 
         let sut = this.createSut(input);
-        let actual = sut.sum();
+        let actual = sut.sum(g => g.grade);
         assert.equal(actual, expected);
 
         sut = this.createSut(generator.from(input));
-        actual = sut.sum();
+        actual = sut.sum(g => g.grade);
         assert.equal(actual, expected);
         assert.sameDeepOrderedMembers(input, array.grades);
       });
