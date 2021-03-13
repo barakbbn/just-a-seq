@@ -4,7 +4,7 @@
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npm run _deleteDist && tsc",
+    "build": "tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
     "pack": "pushd dist && npm pack || popd",
     "deploy": "npm install && npm run build && npm test && npm run pack",
