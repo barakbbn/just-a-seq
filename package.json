@@ -2,6 +2,7 @@
   "name": "@barakbbn/just-a-seq",
   "version": "0.1.0",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
+  "main": "dist/index.js',
   "scripts": {
     "build": "npm run _deleteDist && tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
@@ -28,6 +29,6 @@
     "ts-node": "9.1.1"
   },
   "files": [
-    "dist"
+    "dist/*"
   ]
 }
