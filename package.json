@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
@@ -15,9 +16,6 @@
   "keywords": [],
   "author": "barakbbn",
   "license": "ISC",
-  "dependencies": {
-    "typescript": "4.1.5"
-  },
   "devDependencies": {
     "@types/chai": "4.2.15",
     "@types/mocha": "8.2.0",
@@ -26,7 +24,8 @@
     "mocha": "8.3.0",
     "nyc": "15.1.0",
     "ts-mocha": "8.0.0",
-    "ts-node": "9.1.1"
+    "ts-node": "9.1.1",
+    "typescript": "4.1.5"
   },
   "files": [
     "dist/*"
