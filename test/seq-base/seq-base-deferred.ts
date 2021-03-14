@@ -1026,13 +1026,13 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('insertBefore()', () => {
-      this.it2('should insert new items in source sequence immediately before the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
+      this.it2('should insert new items in source sequence immediately before the first item that meets the condition - numbers', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
         const source = [...first];
         const sut = this.createSut(first);
 
         for (let i = 0; i <= source.length; i++) {
           const condition: Condition<number> = (x: number, index: number) => index === i;
-          const secondArray= [...second];
+          const secondArray = [...second];
           let atIndex = source.findIndex(condition);
           let expected = [...first];
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
@@ -1046,6 +1046,38 @@ export abstract class SeqBase_Deferred_Tests {
           let actual = [...sut.insertBefore(condition, second)];
           assert.deepEqual(actual, expected, failedMessage(actual));
         }
+      });
+
+      this.it2('should insert new items in source sequence immediately before the first item that meets the condition - strings', array.abc, array.strings, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut(first);
+
+        for (let i = 0; i <= source.length; i++) {
+          const condition: Condition<string> = (x: string, index: number) => index === i;
+          const secondArray = [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
+
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
+
+          let actual = [...sut.insertBefore(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
+        }
+      });
+
+      it('should insert new items in source sequence immediately before the first item that meets the condition - chars', () => {
+        const input = array.abc;
+        const toInsert = "123";
+        const expected = input.slice(0, 1).concat(toInsert).concat(input.slice(1));
+        const sut = this.createSut(input).insertBefore(s => s === 'b', toInsert);
+        const actual = [...sut];
+
+        assert.deepEqual(actual, expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - numbers', array.zeroToNine, [-1, -2, -3], (first, second) => {
@@ -1074,7 +1106,7 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('insertAfter()', () => {
-      this.it2('should insert new items in source sequence immediately after the first item that meets the condition', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
+      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - numbers', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
         const source = [...first];
         const sut = this.createSut<any>(first);
 
@@ -1094,6 +1126,38 @@ export abstract class SeqBase_Deferred_Tests {
           let actual = [...sut.insertAfter(condition, second)];
           assert.deepEqual(actual, expected, failedMessage(actual));
         }
+      });
+
+      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - strings', array.abc, array.strings, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut<any>(first);
+
+        for (let i = 0; i <= source.length; i++) {
+          const condition: Condition<string> = (x: string, index: number) => index === i;
+          const secondArray = [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+
+          let actual = [...sut.insertAfter(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
+        }
+      });
+
+      it('should insert new items in source sequence immediately before the first item that meets the condition - chars', () => {
+        const input = array.abc;
+        const toInsert = "123";
+        const expected = input.slice(0, 2).concat(toInsert).concat(input.slice(2));
+        const sut = this.createSut(input).insertAfter(s => s === 'b', toInsert);
+        const actual = [...sut];
+
+        assert.deepEqual(actual, expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - numbers', array.zeroToNine, [-1, -2, -3], (first, second) => {

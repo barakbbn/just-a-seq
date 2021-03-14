@@ -55,17 +55,17 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return super.hasAtLeast(count);
   }
 
-  thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): SortedSeq<T> {
-    return this.thenByInternal(keySelector, comparer, false);
-  }
+  // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): SortedSeq<T> {
+  //   return this.thenByInternal(keySelector, comparer, false);
+  // }
 
   thenSortBy<U>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
     return this.thenByInternal(valueSelector, undefined, reverse);
   }
 
-  thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): SortedSeq<T> {
-    return this.thenByInternal(keySelector, comparer, true);
-  }
+  // thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): SortedSeq<T> {
+  //   return this.thenByInternal(keySelector, comparer, true);
+  // }
 
   tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T> {
     return new SortedSeqImpl<T, K>(this.tapGenerator(callback, thisArg), this.comparer);

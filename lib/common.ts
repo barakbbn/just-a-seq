@@ -1,5 +1,3 @@
-import {ComparableType, Selector, ToComparableKey} from "./seq";
-
 export interface IterationContext {
   closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
 
@@ -75,11 +73,6 @@ export function getIterator<T>(iterable: Iterable<T>): Iterator<T> {
   return iterable[Symbol.iterator]();
 }
 
-export function mapAsArray<T, K = T>(items: Iterable<T>, mapFn?: Selector<T, K>): K[] {
-  if (!mapFn && Array.isArray(items)) return items;
-  return Array.from(items, mapFn as Selector<T, K>);
-}
-
 export function sameValueZero(a: any, b: any): boolean {
   return Number.isNaN(a) && Number.isNaN(b) || a === b;
 }
@@ -107,23 +100,6 @@ export function isIterable<R>(item: any, ignoreIfString = false): item is Iterab
 export function* entries<T>(items: Iterable<T>): Generator<{ value: T; index: number; }> {
   let index = 0;
   for (const value of items) yield {value, index: index++};
-}
-
-
-export function groupItems<K, T, V = T>(items: Iterable<T>,
-                                        keySelector?: Selector<T, K>,
-                                        toComparableKey?: ToComparableKey<K>,
-                                        valueSelector: Selector<T, V> = x => x as unknown as V): Map<ComparableType, { key: K, items: V[] }> {
-  const map = new Map<ComparableType, { key: K, items: V[] }>();
-  let index = 0;
-  for (const item of items) {
-    const key: K = keySelector?keySelector(item, index++) : item as unknown as K;
-    const comparableKey = toComparableKey?toComparableKey(key) : key as unknown as ComparableType;
-    let group = map.get(comparableKey) ?? {key, items: <V[]>[]};
-    if (!group.items.length) map.set(comparableKey, group);
-    group.items.push(valueSelector(item, index));
-  }
-  return map;
 }
 
 export function consume(iterable: Iterable<any>): void {
