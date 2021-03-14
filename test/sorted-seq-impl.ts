@@ -1,52 +1,52 @@
 import {describe, it} from "mocha";
-import {OrderedSeqImpl} from "../lib/ordered-seq";
+import {SortedSeqImpl} from "../lib/sorted-seq";
 import {SeqBase_Deferred_GetIterator_Tests} from "./seq-base/deferred-get-iterator";
 import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
 import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
-import {SeqBase_Ordering_Tests} from "./seq-base/seq-base-ordering";
+import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
 import {DONT_COMPARE} from "../lib/common";
 import {array, generator, iterables, Sample} from "./test-data";
 import {assert} from "chai";
 
-function createSut<T>(input: Iterable<T>): OrderedSeqImpl<T> {
-  return OrderedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
+function createSut<T>(input: Iterable<T>): SortedSeqImpl<T> {
+  return SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
 }
 
-class OrderedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
+class SortedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
   protected createSut = createSut
 }
 
-class OrderedSeqImpl_Deferred_Tests extends SeqBase_Deferred_Tests {
+class SortedSeqImpl_Deferred_Tests extends SeqBase_Deferred_Tests {
   protected createSut = createSut
 }
 
-class OrderedSeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
+class SortedSeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
   protected createSut = createSut
 }
 
-class OrderedSeqImpl_OrderedSeq_Tests extends SeqBase_Ordering_Tests {
+class SortedSeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
   protected createSut = createSut
 }
 
-class OrderedSeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
+class SortedSeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
   protected createSut = createSut
 }
 
-class OrderedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
+class SortedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
   protected createSut = createSut
 
 }
 
-export class OrderedSeqImpl_Tests {
-  readonly run = () => describe('OrderedSeqImpl', () => {
-    new OrderedSeqImpl_Deferred_GetIterator_Tests().run();
-    new OrderedSeqImpl_Deferred_Tests().run();
-    new OrderedSeqImpl_Immediate_Tests().run();
-    new OrderedSeqImpl_OrderedSeq_Tests().run();
-    new OrderedSeqImpl_CachedSeq_Tests().run();
-    new OrderedSeqImpl_Grouping_Tests().run();
+export class SortedSeqImpl_Tests {
+  readonly run = () => describe('SortedSeqImpl', () => {
+    new SortedSeqImpl_Deferred_GetIterator_Tests().run();
+    new SortedSeqImpl_Deferred_Tests().run();
+    new SortedSeqImpl_Immediate_Tests().run();
+    new SortedSeqImpl_SortedSeq_Tests().run();
+    new SortedSeqImpl_CachedSeq_Tests().run();
+    new SortedSeqImpl_Grouping_Tests().run();
 
     describe("at()", () => {
       it("Return an item at expected index", () => {
@@ -273,7 +273,7 @@ export class OrderedSeqImpl_Tests {
     });
 
     describe('takeLast()', () => {
-      describe('should return last item after ordering', () => testDualInput(array.oneToTen, (input: Iterable<number>) => {
+      describe('should return last item after sorting', () => testDualInput(array.oneToTen, (input: Iterable<number>) => {
         const expected = [...input].slice(0, 1);
         const sut = this.createSut(input, (a, b) => b - a);
         const last = sut.takeLast(1);
@@ -284,11 +284,11 @@ export class OrderedSeqImpl_Tests {
   });
 
   protected createSut<T>(items: Iterable<T> = [], comparer?: (a: T, b: T) => number) {
-    return new OrderedSeqImpl(items, comparer)
+    return new SortedSeqImpl(items, comparer)
   }
 
   protected createReverseSut<T>(input: Iterable<T> = [], comparer?: (a: T, b: T) => number) {
-    return OrderedSeqImpl.create(input, undefined, comparer, true);
+    return SortedSeqImpl.create(input, undefined, comparer, true);
   }
 }
 

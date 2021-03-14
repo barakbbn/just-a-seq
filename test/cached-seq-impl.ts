@@ -4,7 +4,7 @@ import {CachedSeqImpl} from "../lib/cached-seq";
 import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
 import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
-import {SeqBase_Ordering_Tests} from "./seq-base/seq-base-ordering";
+import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {array} from "./test-data";
 import {assert} from "chai";
 
@@ -24,7 +24,7 @@ class CachedSeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
   protected readonly createSut = createSut
 }
 
-class CachedSeqImpl_OrderedSeq_Tests extends SeqBase_Ordering_Tests {
+class CachedSeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
   protected readonly createSut = createSut
 }
 
@@ -40,7 +40,7 @@ export class CachedSeqImpl_Tests {
     new CachedSeqImpl_Deferred_GetIterator_Tests().run();
     new CachedSeqImpl_Deferred_Tests().run();
     new CachedSeqImpl_Immediate_Tests().run();
-    new CachedSeqImpl_OrderedSeq_Tests().run();
+    new CachedSeqImpl_SortedSeq_Tests().run();
     new CachedSeqImpl_CachedSeq_Tests().run();
 
     describe('array property', () => {

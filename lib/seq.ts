@@ -219,9 +219,9 @@ export interface Seq<T> extends Iterable<T> {
 
   // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
   // So try to avoid it. prefer using sorted() or orderBy()
-  sort(comparer?: Comparer<T>): OrderedSeq<T>;
+  sort(comparer?: Comparer<T>): SortedSeq<T>;
 
-  sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): OrderedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
 
   sorted(reverse?: boolean): Seq<T>;
 
@@ -267,14 +267,14 @@ export interface Seq<T> extends Iterable<T> {
   zipWithIndex<U = T>(): Seq<[T, number]>;
 }
 
-export interface OrderedSeq<T> extends Seq<T> {
-  tap(callback: Selector<T, void>, thisArg?: any): OrderedSeq<T>;
+export interface SortedSeq<T> extends Seq<T> {
+  tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T>;
 
   // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
   // thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
-  thenSortBy<U>(valueSelector: (item: T) => U, reverse?: boolean): OrderedSeq<T>;
+  thenSortBy<U>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
 }
 
 export interface CachedSeq<T> extends Seq<T> {
@@ -338,11 +338,11 @@ export interface CachedSeqFactory {
   <T>(source: Iterable<T>, now?: boolean): CachedSeq<T>;
 }
 
-export interface OrderedSeqFactory {
+export interface SortedSeqFactory {
   <T, K = T>(items: Iterable<T>,
              keySelector?: (x: T) => K,
              comparer?: Comparer<K>,
-             descending?: boolean): OrderedSeq<T>;
+             descending?: boolean): SortedSeq<T>;
 }
 
 export interface GroupedSeqFactory {
@@ -359,7 +359,7 @@ export interface SeqOfGroupsFactory {
 export const factories: {
   Seq: SeqFactory;
   CachedSeq: CachedSeqFactory;
-  OrderedSeq: OrderedSeqFactory;
+  SortedSeq: SortedSeqFactory;
   GroupedSeq: GroupedSeqFactory;
   SeqOfGroups: SeqOfGroupsFactory;
 } = <any>{};

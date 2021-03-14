@@ -3,7 +3,7 @@ import {SeqBase_Deferred_GetIterator_Tests} from "./seq-base/deferred-get-iterat
 import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
 import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {describe, it} from "mocha";
-import {SeqBase_Ordering_Tests} from "./seq-base/seq-base-ordering";
+import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
 import {array, generator} from "./test-data";
@@ -29,7 +29,7 @@ class SeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
   protected createSut = createSut
 }
 
-class SeqImpl_OrderedSeq_Tests extends SeqBase_Ordering_Tests {
+class SeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
   protected createSut = createSut
 }
 
@@ -56,7 +56,7 @@ export class SeqImpl_Tests {
     new SeqImpl_Deferred_GetIterator_Tests().run();
     new SeqImpl_Deferred_Tests().run();
     new SeqImpl_Immediate_Tests().run();
-    new SeqImpl_OrderedSeq_Tests().run();
+    new SeqImpl_SortedSeq_Tests().run();
     new SeqIImpl_CachedSeq_Tests().run();
     new SeqImpl_Grouping_Tests().run();
     new SeqImpl_Immutable_Tests().run();

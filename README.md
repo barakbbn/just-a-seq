@@ -21,7 +21,7 @@ ___
 ```typescript
 import {asSeq} from 'just-a-seq';
 
-const cells: { col: number; row: number; userValue?: number; }[] = [
+let cells: { col: number; row: number; userValue?: number; }[] = [
   {col: 0, row: 0, userValue: 0}, {col: 0, row: 1, userValue: 1},
   {col: 1, row: 0, userValue: 10}, {col: 1, row: 1, userValue: 11},
 ];
@@ -34,11 +34,13 @@ if (changed) {
     .map(group => group.ifEmpty({col: group.key.x, row: group.key.y}))
     .flat()
     .toArray();
-  // Output: [
-  //   {col: 0, row: 0, userValue: 0}, {col: 1, row: 1, userValue: 11},
-  //   {col: 11, row: 11} 
-  // ]
 }
+console.log(cells);
+// Output: [
+//   {col: 0, row: 0, userValue: 0}, 
+//   {col: 1, row: 1, userValue: 11},
+//   {col: 11, row: 11}
+// ]
 ```
 
 <!-- Example 2 -->
@@ -113,7 +115,7 @@ console.log(asSeq(layers)
 <details>
   <summary><samp><b>asSeq()</b></samp> - Wraps the sequence with new basic Seq implementation</summary>
 
-> Used in cases need to avoid passing inherited Seq implementation (i.e. OrderedSeq, GroupedSeq, etc...)
+> Used in cases need to avoid passing inherited Seq implementation (i.e. SortedSeq, GroupedSeq, etc...)
 
 <h3><code>asSeq(): Seq&lt;T&gt;</code></h3>
   <hr>  
@@ -1791,12 +1793,246 @@ console.log(results1.zipAll(results2, results3, {defaults: [undefined, {x:-1, y:
   <hr>
 </details>
 
+### Grouping functionality
+groupBy() operation returns a sequence of groups which provides additional functionalities over `seq` interface.
+
+### `GroupedSeq` Interface
+Represents and item in a sequence returned by groupBy().<br/>
+i.e. `Seq<GroupedSeq<K, T>>`
+```typescript
+interface GroupedSeq<K, T> extends Seq<T> {
+  readonly key: K;
+}
+```
+
+<!-- key -->
+<details>
+  <summary><samp><b>key</b></samp> - A value that serves as the group's key</summary>
+
+  <h3><code>readonly key: K</code></h3>
+  <hr>
+</details>
+
+
+### `SeqOfGroups` Interface
+Returned by groupBy() on regular sequence.   
+It's `Seq<GroupedSeq>` with the following functionalities
+
+<!-- mapInGroup() -->
+<details>
+  <summary><samp><b>mapInGroup()</b></samp> - Maps each leaf item in already groups sequence</summary>
+
+  <h3><code>mapInGroup&lt;U&gt;(mapFn: Selector&lt;T, U&gt;): SeqOfGroups&lt;K, U&gt;</code></h3>
+  <dl>
+    <dt>- mapFn</dt>
+    <dd>Mapping function called on each leaf item and returns another desired value</dd>
+  </dl>
+
+  <details>
+    <summary><small>Example</small></summary>
+
+```typescript
+const xyz = asSeq([
+  {x: 0, y: 0, z: 0},
+  {x: 0, y: 0, z: 1},
+  {x: 1, y: 1, z: 0},
+  {x: 1, y: 1, z: 1},
+  {x: 2, y: 2, z: 0},
+  {x: 2, y: 2, z: 1}
+]);
+const grouped = xyz.groupBy(
+  xyz => ({x: xyz.x, y: xyz.y}), // key: {x, y}
+  ({x, y}) => x + ',' + y // comparable: "x,y"
+);
+
+const formatted = grouped.mapInGroup(({x, y, z}) => `[${x}, ${y}, ${z}]`);
+console.log('XYZ Stringify:', formatted.toMap());
+// OUTPUT:
+// XYZ Stringify: Map(3) {
+//   { x: 0, y: 0 } => [ '[0, 0, 0]', '[0, 0, 1]' ],
+//   { x: 1, y: 1 } => [ '[1, 1, 0]', '[1, 1, 1]' ],
+//   { x: 2, y: 2 } => [ '[2, 2, 0]', '[2, 2, 1]' ]
+// }
+
+const distances = grouped.mapInGroup(xyz => (xyz.x ** 2 + xyz.y ** 2 + xyz.z ** 2) ** 0.5);
+console.log('XYZ Distances:',distances.toMap());
+// OUTPUT:
+// XYZ Distances: Map(3) {
+//   { x: 0, y: 0 } => [ 0, 1 ],
+//   { x: 1, y: 1 } => [ 1.4142135623730951, 1.7320508075688772 ],
+//   { x: 2, y: 2 } => [ 2.8284271247461903, 3 ]
+// }
+```
+  </details>
+  <hr>
+</details>
+
+<!-- thenGroupBy() -->
+<details>
+  <summary><samp><b>thenGroupBy()</b></samp> - Performs additional sub grouping of the items</summary>
+
+<h3><code>thenGroupBy&lt;K2&gt;(keySelector?: Selector&lt;T, K2&gt;, toComparableKey?: ToComparableKey&lt;K2&gt;): SeqOfMultiGroups&lt;[K, K2], T&gt;</code></h3>
+  <dl>
+    <dt>- keySelector</dt>
+    <dd>
+    Function that returns a value served as the group's key.<br>
+    Commonly used to select by which property to match the items 
+    </dd>
+    <dt>- toComparableKey?</dt>
+    <dd>
+    Returns a primitive value that can be compared for equality for the group's key (string, number, boolean, undefined, null)<br>
+    In case the group's key is not a comparable value (i.e. an object or array)
+    </dd>
+    <dt>RETURNS</dt>
+    <dd><code>SeqOfMultiGroups</code>interface which is <code>Seq&lt;MultiGroupedSeq&lt;Key, TValue&gt;&gt;</code>with additional functionalities</dd>
+  </dl>
+
+  <details>
+    <summary><small>Example</small></summary>
+
+```typescript
+const data = asSeq([
+  {id: 1, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 2, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 3, x: 1, y: 1, series: 'hits', radius: 10},
+  {id: 4, x: 2, y: 2, series: 'hits', radius: 10},
+  {id: 5, x: 0, y: 0, series: 'misses', radius: 1},
+  {id: 6, x: 1, y: 1, series: 'misses', radius: 5},
+  {id: 7, x: 2, y: 2, series: 'misses', radius: 5},
+  {id: 8, x: 2, y: 2, series: 'misses', radius: 1}
+]);
+const groupHierarchy = data
+  .groupBy(p => p.series)
+  .thenGroupBy(
+    p => ({x: p.x, y: p.y}), // key: {x, y}
+    ({x, y}) => x + ',' + y) // comparable: "x,y"
+  .thenGroupBy(p => p.radius)
+  .mapInGroup(p => p.id)
+  .toMap();
+
+groupHierarchy.forEach((value, key) => console.log(`"${key}" => `, value));
+// OUTPUT:
+// "hits" =>  Map(3) {
+//     { x: 0, y: 0 } => Map(1) { 1 => [ 1, 2 ] },
+//     { x: 1, y: 1 } => Map(1) { 10 => [ 3 ] },
+//     { x: 2, y: 2 } => Map(1) { 10 => [ 4 ] }
+// }
+// "misses" =>  Map(3) {
+//     { x: 0, y: 0 } => Map(1) { 1 => [ 5 ] },
+//     { x: 1, y: 1 } => Map(1) { 5 => [ 6 ] },
+//     { x: 2, y: 2 } => Map(2) { 5 => [ 7 ], 1 => [ 8 ] }
+// }
+```
+  </details>
+  <hr>
+</details>
+
+<!-- toMap() -->
+<details>
+  <summary><samp><b>toMap()</b></samp> - Return new Map object with groups hierarchy with sub Maps for sub groups and arrays of leaf items)</summary>
+
+  <h3><code>toMap(): MapHierarchy&lt;[K], T&gt;</code></h3>
+  <dl>
+    <dt>RETURNS</dt>
+    <dd>
+    <code>MapHierarchy</code> type alias for the Map within Map within ... upto Array hierarchy<br>
+    i.e. Map&lt;K1, Map&lt;K2, Map&lt;K3, T[]&gt;&gt;&gt;
+    </dd>
+  </dl>
+
+  <details>
+    <summary><small>Example</small></summary>
+
+```typescript
+const data = asSeq([
+  {id: 1, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 2, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 3, x: 1, y: 1, series: 'hits', radius: 10},
+  {id: 4, x: 2, y: 2, series: 'hits', radius: 10},
+  {id: 5, x: 0, y: 0, series: 'misses', radius: 1},
+  {id: 6, x: 1, y: 1, series: 'misses', radius: 5},
+  {id: 7, x: 2, y: 2, series: 'misses', radius: 5},
+  {id: 8, x: 2, y: 2, series: 'misses', radius: 1}
+]);
+
+const group1: Map<string, Map<{x: number, y: number}, number[]>> = data
+  .groupBy(p => p.series)
+  .thenGroupBy(p => ({x: p.x, y: p.y }))
+  .mapInGroup(p => p.id)
+  .toMap();
+
+const group2: Map<string, Map<number, Map<number, Map<number, { id: number; }[]>>>> = data
+  .groupBy(p => p.series)
+  .thenGroupBy(p => p.x)
+  .thenGroupBy(p => p.y)
+  .thenGroupBy(p => p.radius)
+  .mapInGroup(p => ({id: p.id}))
+  .toMap();
+```
+  </details>
+  <hr>
+</details>
+
+
+### `MultiGroupedSeq` Interface
+
+Represents and item in a sequence of multiple groups' hierarchy, returned by thenGroupBy().
+
+```typescript
+interface MultiGroupedSeq<Ks extends any[], T> extends Seq<MultiGroupedSeq | GroupedSeq> {
+  readonly key: Ks[0];
+}
+```
+
+<!-- key -->
+<details>
+  <summary><samp><b>key</b></samp> - A value that serves as the group's key</summary>
+
+  <h3><code>readonly key: Ks[0]</code></h3>
+  The type of the key is the top type in a tuple of key-types, which represents all the key's in the groups' hierarchy.
+  <hr>
+</details>
+
+### `SeqOfMultiGroups` Interface
+Same functionalities as `SeqOfGroups` but represent a hierarchy of groups.
+
+The Keys types of the entire hierarchy of groups is visible thru a tuple of all the keys types, and having he top key-type in the tuple represent the top group
+
+<details>
+  <summary>Example</summary>
+
+```typescript
+const data = asSeq([
+  {id: 1, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 2, x: 0, y: 0, series: 'hits', radius: 1},
+  {id: 3, x: 1, y: 1, series: 'hits', radius: 10},
+  {id: 4, x: 2, y: 2, series: 'hits', radius: 10},
+  {id: 5, x: 0, y: 0, series: 'misses', radius: 1},
+  {id: 6, x: 1, y: 1, series: 'misses', radius: 5},
+  {id: 7, x: 2, y: 2, series: 'misses', radius: 5},
+  {id: 8, x: 2, y: 2, series: 'misses', radius: 1}
+]);
+const group: SeqOfMultiGroups<[string, number, number, number, { id: number; }], number> = data
+  .groupBy(p => p.series)
+  .thenGroupBy(p => p.x)
+  .thenGroupBy(p => p.y)
+  .thenGroupBy(p => p.radius)
+  .thenGroupBy(p => ({id: p.id }))
+  .mapInGroup(p => p.radius);
+;
+```
+</details>
+
+The Tuple of Keys-types is an alternative to representing the type as hierarchy of GroupedSeq one inside another<br>
+Meaning, this:<br>
+`SeqOfMultiGroups<[string, number, number, number, { id: number; }], number>`<br>
+is preferred over this:<br>
+`Seq<GroupedSeq<string, GroupedSeq<number, GroupedSeq<number, GroupedSeq<number, GroupedSeq<{id: number;}, number>>>>>>`
+
+
+
 | Method      | Description |
 | ----------- | ----------- |
-| -- | `SeqOfGroups , SeqOfMultiGroups Interfaces` |
-| -- thenGroupBy | Further group already grouped sequence in to sub groups |
-| -- mapInGroup | Map each leaf item in groups hierarchy sequence |
-| -- toMap | Return new Map of groups hierarchy with sub Maps for sub groups and arrays of leaf items |
 | -- | `OrderedSeq Interface` |
 | -- thenBy | Perform sub sorting |
 | -- thenByDescending | Perform sub sorting in reverse |

@@ -3,8 +3,8 @@ import {array, generator} from "../test-data";
 import {assert} from "chai";
 import {Comparer, Seq} from "../../lib";
 
-export abstract class SeqBase_Ordering_Tests {
-  readonly run = () => describe('SeqBase - Ordering functionality', () => {
+export abstract class SeqBase_Sorting_Tests {
+  readonly run = () => describe('SeqBase - Sorting functionality', () => {
     // describe('orderBy', () => {
     //   it('should sort sequence of objects by one of the properties', () => {
     //     const unsorted = array.gradesFiftyAndAbove.concat(array.gradesFiftyAndBelow);
@@ -199,7 +199,7 @@ export abstract class SeqBase_Ordering_Tests {
     });
 
     describe('Chaining', () => {
-      describe('Ordering chain', () => {
+      describe('Sorting chain', () => {
         // it('orderBy().thenBy...', () => {
         //   const unordered = array.samples;
         //

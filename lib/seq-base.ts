@@ -5,7 +5,7 @@ import {
   factories,
   FlatSeq,
   Iterables,
-  OrderedSeq,
+  SortedSeq,
   Selector,
   Seq,
   SeqOfGroups,
@@ -1012,16 +1012,16 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.any(condition);
   }
 
-  sort(comparer?: Comparer<T>): OrderedSeq<T> {
-    return factories.OrderedSeq(this, undefined, comparer || LEGACY_COMPARER);
+  sort(comparer?: Comparer<T>): SortedSeq<T> {
+    return factories.SortedSeq(this, undefined, comparer || LEGACY_COMPARER);
   }
 
-  sortBy<U = T>(valueSelector: (item: T) => U, reverse = false): OrderedSeq<T> {
-    return factories.OrderedSeq(this, valueSelector, undefined, reverse);
+  sortBy<U = T>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
+    return factories.SortedSeq(this, valueSelector, undefined, reverse);
   }
 
   sorted(reverse = false): Seq<T> {
-    return factories.OrderedSeq(this, undefined, undefined, reverse);
+    return factories.SortedSeq(this, undefined, undefined, reverse);
   }
 
   split(atIndex: number): [Seq<T>, Seq<T>];
