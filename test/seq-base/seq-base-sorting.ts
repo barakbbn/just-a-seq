@@ -1,7 +1,7 @@
 import {describe, it} from "mocha";
 import {array, generator} from "../test-data";
 import {assert} from "chai";
-import {Comparer, Seq} from "../../lib";
+import {Seq} from "../../lib";
 
 export abstract class SeqBase_Sorting_Tests {
   readonly run = () => describe('SeqBase - Sorting functionality', () => {
@@ -272,16 +272,6 @@ export abstract class SeqBase_Sorting_Tests {
             .thenSortBy(x => x.period, true)
             .thenSortBy(x => x.score)
             .thenSortBy(x => x.ok);
-          const actualByDescDescAscAsc = [...sut];
-          assert.sameDeepOrderedMembers(actualByDescDescAscAsc, expectedByDescDescAscAsc);
-        });
-
-        it('sort(/* no comparer*/).thenBy...', () => {
-          const unordered = array.flatFolders;
-          const expectedByDescDescAscAsc = unordered.slice().sort().sort((f1, f2) => f1.depth - f2.depth);
-          const sut = this.createSut(unordered)
-            .sort()
-            .thenSortBy(x => x.depth);
           const actualByDescDescAscAsc = [...sut];
           assert.sameDeepOrderedMembers(actualByDescDescAscAsc, expectedByDescDescAscAsc);
         });

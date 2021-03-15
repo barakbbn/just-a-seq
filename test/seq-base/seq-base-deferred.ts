@@ -798,7 +798,7 @@ export abstract class SeqBase_Deferred_Tests {
         });
 
         this.it1('should return empty sequence if all items have empty children sequence', [new Folder("1"), new Folder('2'), new Folder('2')], (input) => {
-          const expected: string[] = [];
+          const expected: Folder[] = [];
           let sut = this.createSut(input);
           let actual = [...sut.flatMap(f => f.subFolders)];
           assert.sameDeepOrderedMembers(actual, expected);

@@ -31,7 +31,7 @@
   "author": "barakbbn",
   "license": "ISC",
   "repository": "https://github.com/barakbbn/just-a-seq",
-  "homepage": "https://github.com/barakbbn/just-a-seq",
+  "homepage": "https://github.com/barakbbn/just-a-seq/wiki/docs",
   "devDependencies": {
     "@types/chai": "4.2.15",
     "@types/mocha": "8.2.0",

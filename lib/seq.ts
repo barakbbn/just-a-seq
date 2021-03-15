@@ -86,13 +86,13 @@ export interface Seq<T> extends Iterable<T> {
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
-  flatMap<U, R>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
+  flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
   forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void;
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I>;
 
@@ -247,7 +247,7 @@ export interface Seq<T> extends Iterable<T> {
 
   toArray(): T[];
 
-  toMap<K, V>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K, V = T>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
