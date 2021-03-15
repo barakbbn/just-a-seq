@@ -2034,12 +2034,21 @@ const group: SeqOfMultiGroups<[string, number, number, number, { id: number; }],
 
 <hr>
 
+### Sorting functionality
+sortBy() operation returns a sorted sequence that provides additional functionalities over `seq` interface.
 
-| Method      | Description |
-| ----------- | ----------- |
-| -- | `OrderedSeq Interface` |
-| -- thenBy | Perform sub sorting |
-| -- thenByDescending | Perform sub sorting in reverse |
+### `SortedSeq` Interface
+Represents a sorted sequence
+
+<!-- thenSortBy -->
+<details>
+  <summary><samp><b>thenSortBy</b></samp> - Perform sub sorting on items that considered equals by the current sorting</summary>
+
+  <h3><code>thenSortBy&lt;U&gt;(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq&lt;T&gt;</code></h3>
+  <hr>
+</details>
+<hr>
+
 
 ### Factories
 

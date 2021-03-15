@@ -219,7 +219,7 @@ export interface Seq<T> extends Iterable<T> {
 
   // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
   // So try to avoid it. prefer using sorted() or orderBy()
-  sort(comparer?: Comparer<T>): SortedSeq<T>;
+  sort(comparer?: Comparer<T>): Seq<T>;
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
 
