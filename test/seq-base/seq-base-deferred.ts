@@ -943,6 +943,22 @@ export abstract class SeqBase_Deferred_Tests {
         }
       });
 
+      it('should insert new items at specified index - chars', () => {
+        const input = array.abc;
+        const toInsert = "123";
+        for (let i = 0; i < input.length; i++) {
+          let expected = input.slice(0, i).concat(toInsert).concat(input.slice(i));
+          let sut = this.createSut(input).insert(i, toInsert);
+          let actual = [...sut];
+          assert.deepEqual(actual, expected);
+
+          expected = input.slice(0, i).concat(toInsert, input).concat(input.slice(i));
+          sut = this.createSut(input).insert(i, toInsert, input);
+          actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
       this.it2('should insert items at specified index - falsy', array.falsyValues, array.falsyValues.reverse(), (first, second) => {
         for (let i = 0; i < [...first].length; i++) {
           let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
@@ -1021,6 +1037,14 @@ export abstract class SeqBase_Deferred_Tests {
         assert.deepEqual(actual, expected);
         sut = this.createSut(first).insert([...first].length + 1, second);
         actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should insert items at the end if index is greater or equal to the length of the source sequence', [], (input: Iterable<string>) => {
+        const toInsert = "123";
+        const expected = [toInsert];
+        let sut = this.createSut(input).insert(1, toInsert);
+        let actual = [...sut];
         assert.deepEqual(actual, expected);
       });
     });
@@ -1387,7 +1411,7 @@ export abstract class SeqBase_Deferred_Tests {
         const newItem2 = '0';
         const expected = [newItem1, newItem2].concat([...input]);
         let sut = this.createSut(input);
-        let actual = [...sut.prepend(newItem1, newItem2)];
+        let actual = [...sut.prepend([newItem1, newItem2])];
         assert.sameOrderedMembers(actual, expected);
       });
 
@@ -1402,7 +1426,7 @@ export abstract class SeqBase_Deferred_Tests {
         const newItems = 'abc';
         const expected = [newItems];
         let sut = this.createSut(input);
-        let actual = [...sut.prepend(newItems)];
+        let actual = [...sut.prepend([newItems])];
         assert.deepEqual(actual, expected);
       });
     });
@@ -2012,6 +2036,32 @@ export abstract class SeqBase_Deferred_Tests {
         const expected2 = [...new Set(first)];
         actual = [...sut.union(sut, keySelector)];
         assert.deepEqual(actual, expected2);
+      });
+    });
+
+    describe('unshift()', () => {
+      this.it1('should return new sequence with new items added at the start - strings', array.abc, (input) => {
+        const newItem1 = '-';
+        const newItem2 = '0';
+        const expected = [newItem1, newItem2].concat([...input]);
+        let sut = this.createSut(input);
+        let actual = [...sut.unshift(newItem1, newItem2)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it2('should return new sequence with new items added at the start - objects', array.gradesFiftyAndAbove, array.gradesFiftyAndBelow, (first, second) => {
+        const expected = [...second, ...first];
+        let sut = this.createSut(first);
+        let actual = [...sut.unshift(...second)];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should return new sequence with new items added to an empty iterable', [], (input: Iterable<string>) => {
+        const newItems = 'abc';
+        const expected = [newItems];
+        let sut = this.createSut(input);
+        let actual = [...sut.unshift(newItems)];
+        assert.deepEqual(actual, expected);
       });
     });
 

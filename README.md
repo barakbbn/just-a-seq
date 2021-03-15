@@ -1812,6 +1812,7 @@ interface GroupedSeq<K, T> extends Seq<T> {
   <h3><code>readonly key: K</code></h3>
   <hr>
 </details>
+<hr>
 
 
 ### `SeqOfGroups` Interface
@@ -1973,6 +1974,7 @@ const group2: Map<string, Map<number, Map<number, Map<number, { id: number; }[]>
   <hr>
 </details>
 
+<hr>
 
 ### `MultiGroupedSeq` Interface
 
@@ -1992,6 +1994,7 @@ interface MultiGroupedSeq<Ks extends any[], T> extends Seq<MultiGroupedSeq | Gro
   The type of the key is the top type in a tuple of key-types, which represents all the key's in the groups' hierarchy.
   <hr>
 </details>
+<hr>
 
 ### `SeqOfMultiGroups` Interface
 Same functionalities as `SeqOfGroups` but represent a hierarchy of groups.
@@ -2023,12 +2026,13 @@ const group: SeqOfMultiGroups<[string, number, number, number, { id: number; }],
 ```
 </details>
 
-The Tuple of Keys-types is an alternative to representing the type as hierarchy of GroupedSeq one inside another<br>
-Meaning, this:<br>
-`SeqOfMultiGroups<[string, number, number, number, { id: number; }], number>`<br>
-is preferred over this:<br>
-`Seq<GroupedSeq<string, GroupedSeq<number, GroupedSeq<number, GroupedSeq<number, GroupedSeq<{id: number;}, number>>>>>>`
+>  The Tuple of [...Keys Types] is an alternative to representing the type as hierarchy of GroupedSeq one inside another<br>
+>  Meaning, this:<br>
+>  `SeqOfMultiGroups<[string, number, number, number, { id: number; }], number>`<br>
+>  is preferred over this:<br>
+>  `Seq<GroupedSeq<string, GroupedSeq<number, GroupedSeq<number, GroupedSeq<number, GroupedSeq<{id: number;}, number>>>>>>`
 
+<hr>
 
 
 | Method      | Description |

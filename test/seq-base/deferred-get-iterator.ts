@@ -42,6 +42,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
     describe('concat()', () => {
       it('should not get iterator', function () {
+        testGetIterator(sut => sut.concat([2]));
+      });
+    });
+
+    describe('concat$()', () => {
+      it('should not get iterator', function () {
         testGetIterator(sut => sut.concat$([2]));
       });
     });
@@ -301,6 +307,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
     describe('union()', () => {
       it('should not get iterator', function () {
         testGetIterator(sut => sut.union([1]));
+      });
+    });
+
+    describe('unshift()', () => {
+      it('should not get iterator', function () {
+        testGetIterator(sut => sut.unshift(1));
       });
     });
 

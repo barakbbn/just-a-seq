@@ -152,6 +152,7 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     test('toSet()', array.zeroToTen, seq => seq.toSet());
     test2('union()', array.oneToTen, array.zeroToNine, (seq, other) => seq.union(other));
+    test2('unshift()', array.oneToTen, [0, -1, -2], (seq, other) => seq.unshift(...other));
     test2('zip()', array.oneToTen, array.zeroToNine, (seq, other) => seq.zip(other));
     test2('zipAll()', array.oneToTen, array.zeroToTen, (seq, other) => seq.zipAll(other));
     test('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());

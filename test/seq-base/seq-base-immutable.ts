@@ -99,6 +99,7 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('toMap()', array.zeroToTen, seq => seq.toMap(n=>n%3));
     testImmutable('toSet()', array.zeroToTen, seq => seq.toSet());
     testImmutable('union()', array.oneToTen, seq => seq.union(array.zeroToNine));
+    testImmutable('unshift()', array.oneToTen, seq => seq.unshift(0,-1,-2));
     testImmutable('zip()', array.oneToTen, seq => seq.zip(array.zeroToNine));
     testImmutable('zipAll()', array.oneToTen, seq => seq.zipAll(array.zeroToTen));
     testImmutable('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
