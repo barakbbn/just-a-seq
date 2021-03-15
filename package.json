@@ -13,9 +13,25 @@
     "_test_old": "mocha -r ts-node/register test/**/*.ts",
     "_deleteDist": "rm -rf ./dist 2> .err || rd /S /Q dist 2> .err"
   },
-  "keywords": [],
+  "keywords": [
+    "LINQ",
+    "iterable",
+    "iterator",
+    "generator",
+    "enumerable",
+    "IEnumerable",
+    "lazy",
+    "deferred",
+    "sequence",
+    "collection",
+    "Typescript",
+    "Javascript",
+    "ES2018"
+  ],
   "author": "barakbbn",
   "license": "ISC",
+  "repository": "https://github.com/barakbbn/just-a-seq",
+  "homepage": "https://github.com/barakbbn/just-a-seq",
   "devDependencies": {
     "@types/chai": "4.2.15",
     "@types/mocha": "8.2.0",

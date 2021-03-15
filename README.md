@@ -2045,6 +2045,15 @@ Represents a sorted sequence
   <summary><samp><b>thenSortBy</b></samp> - Perform sub sorting on items that considered equals by the current sorting</summary>
 
   <h3><code>thenSortBy&lt;U&gt;(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq&lt;T&gt;</code></h3>
+  <dl>
+    <dt>- valueSelector</dt>
+    <dd>
+    Function that returns a comparable value from each item, to sort by it<br>
+    Commonly used to select by which property to sort the items 
+    </dd>
+    <dt>- reverse? <i>[Default: false]</i></dt>
+    <dd>If <b>true</b>, sort in reverse order</dd>
+  </dl>
   <hr>
 </details>
 <hr>
