@@ -242,7 +242,9 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.map((item, index) => [index, item]);
   }
 
-  filter(condition: Condition<T>): Seq<T> {
+  filter(condition: Condition<T>): Seq<T>;
+
+  filter<S extends T>(condition: (item: T, index: number) => item is S, thisArg?: any): Seq<S>{
     return this.generate(function* filter(self) {
       for (const {value, index} of entries(self)) if (condition(value, index)) yield value;
     });
@@ -486,11 +488,11 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.generate(function* innerJoin(self) {
 
       const innerMap = new Map<K, I[]>();
-      for (const {value: ivalue, index: iindex} of entries(inner)) {
-        const key = innerKeySelector(ivalue, iindex);
+      for (const {value: innerValue, index: innerIndex} of entries(inner)) {
+        const key = innerKeySelector(innerValue, innerIndex);
         const valuesForKey: I[] = innerMap.get(key) ?? [];
         if (!valuesForKey.length) innerMap.set(key, valuesForKey);
-        valuesForKey.push(ivalue);
+        valuesForKey.push(innerValue);
       }
 
       for (const {value: outer, index: outerIndex} of entries(self)) {

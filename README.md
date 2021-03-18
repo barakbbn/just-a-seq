@@ -82,8 +82,8 @@ console.log(asSeq(layers)
 ### Functionality summary
 
 #### Immediate actions
-|   |   |   |   |
-|---|---|---|---|
+|   |   |   |   |   |
+|---|---|---|---|---|
 |all|any|average|
 |consume|count|
 |endsWith|every|
@@ -95,8 +95,7 @@ console.log(asSeq(layers)
 |last|lastIndexOf|length|
 |max|min|
 |reduce|reduceRight|
-|sameItems|sameOrderedItems||some|
-|startsWith|sum|
+|sameItems|sameOrderedItems|some|startsWith|sum|
 |toArray|toMap|toSet|toString|
 
 #### Deferred actions
@@ -120,7 +119,7 @@ console.log(asSeq(layers)
 |skip|skipFirst|skipLast|
 |skipWhile|slice|sort|sortBy|**thenSortBy**|
 |sorted|split|
-|take|takeLast|takeOnly|takeWhile|tap|
+|take|takeLast|takeOnly|takeWhile|**tap**|
 |transform|
 |union|unshift|
 |zip|zipAll|zipWithIndex|

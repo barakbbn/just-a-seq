@@ -57,12 +57,14 @@ export interface Seq<T> extends Iterable<T> {
 
   endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
-  // Array.entries()
   entries(): Seq<[number, T]>;
 
-  every(condition: Condition<T>): boolean; // JS
+  every(condition: Condition<T>): boolean;
 
-  filter(condition: Condition<T>): Seq<T>; // JS, Scala
+  // It seems the order of the overloads affects Typescript recognizing the right signature
+  filter<S extends T>(typeGuard: (item: T, index: number) => item is S, thisArg?: any): Seq<S>;
+
+  filter(condition: Condition<T>): Seq<T>;
 
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined; // Overload
 
@@ -80,7 +82,7 @@ export interface Seq<T> extends Iterable<T> {
 
   findLastIndex(tillIndex: number, condition: Condition<T>): number;
 
-  first(defaultIfEmpty?: T): T | undefined; // take(1) ?? fallback; use find() to get first by condition
+  first(defaultIfEmpty?: T): T | undefined;
 
   firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
 
@@ -104,7 +106,7 @@ export interface Seq<T> extends Iterable<T> {
   ifEmpty({useSequence}: { useSequence: Iterable<T>; }): Seq<T>; // Overload
   ifEmpty({useFactory}: { useFactory: () => T; }): Seq<T>;
 
-  includes(itemToFind: T, fromIndex?: number): boolean; // consider contains. //instead of equality func, call some
+  includes(itemToFind: T, fromIndex?: number): boolean;
 
   includesAll<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
   includesAll<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
