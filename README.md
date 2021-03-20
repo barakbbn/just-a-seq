@@ -17,8 +17,7 @@ ___
 * Additional useful functionalities that can make you more productive.
 
 
-See: <i> [Full API documentation](https://github.com/barakbbn/just-a-seq/wiki/docs) 
-</i>
+#### See: *[Full API documentation](https://github.com/barakbbn/just-a-seq/wiki/docs)* 
 
 #### Examples
 
