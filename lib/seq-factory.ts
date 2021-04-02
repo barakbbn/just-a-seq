@@ -1,11 +1,11 @@
-import {generate} from "./common";
+import {generate, SeqTags} from "./common";
 import {factories, Seq} from "./seq";
 
-const _empty = factories.Seq();
+const _empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]]);
 
-const _random = factories.Seq(generate(function* randomize() {
+const _random = factories.Seq(undefined, function* randomize() {
   while (true) yield Math.random();
-}));
+}, [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]]);
 
 export function empty<T = any>(_ofType?: T): Seq<T> {
   return _empty as unknown as Seq<T>;
@@ -18,6 +18,8 @@ export function range(start: number, end?: number, step: number = 1): Seq<number
   if (Number.isNaN(step)) throw new Error('step parameter cannot be NaN');
   if (!Number.isFinite(step)) throw new Error(`step parameter cannot be Infinite`);
 
+  const tags: [symbol, any][] | undefined = end === undefined ? [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]] : undefined;
+
   return factories.Seq(generate(function* range() {
     if (end !== undefined && start > end && step > 0) step *= -1;
     let index = 0;
@@ -28,7 +30,7 @@ export function range(start: number, end?: number, step: number = 1): Seq<number
       if (end !== undefined && (step < 0 && value < end || step > 0 && value > end)) break;
       yield value;
     }
-  }));
+  }), undefined, tags);
 }
 
 export function indexes(count: number): Seq<number> {
@@ -47,7 +49,7 @@ export function random(): Seq<number> {
 }
 
 export function asSeq<T>(items: Iterable<T>): Seq<T>;
-export function asSeq<T>(generator: () => Generator<T>, thisArg?: any): Seq<T>;
+export function asSeq<T>(generator: () => Iterator<T>, thisArg?: any): Seq<T>;
 export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>), thisArg?: any): Seq<T> {
   if (typeof itemsProvider !== "function") return factories.Seq(itemsProvider);
   if (thisArg) itemsProvider = itemsProvider.bind(thisArg);

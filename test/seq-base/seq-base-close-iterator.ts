@@ -34,15 +34,19 @@ export abstract class SeqBase_Close_Iterator_Tests {
         };
       }
     }
+
     const test = <T>(title: string, source: T[], onSeq: (seq: Seq<T>) => any) => {
       it(`${title} should close source iterator`, () => {
         const closeable = new ClosableIterable(source)
         const seq = this.createSut(closeable);
         const maybeIterable = onSeq(seq);
-        if (maybeIterable && typeof maybeIterable[Symbol.iterator] === 'function') {
-          // noinspection LoopStatementThatDoesntLoopJS
-          for (const _ of maybeIterable) {
-            break;
+        if (maybeIterable) {
+          const iterator = maybeIterable[Symbol.iterator];
+          if (typeof iterator === 'function') {
+            // noinspection LoopStatementThatDoesntLoopJS
+            for (const _ of maybeIterable) {
+              break;
+            }
           }
         }
         assert.isTrue(!closeable.iterated || closeable.closed > 0, `expected '${closeable.iterated}' closeable.iterated to be 'false' or '${closeable.closed}' closeable.closed to be greater than zero`);
@@ -124,8 +128,8 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test2('prepend()', array.oneToTen, [0, -1, -2], (seq, other) => seq.prepend(other));
     test('reduce()', array.oneToTen, seq => seq.reduce((prev, curr) => prev + curr));
     test('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr) => prev + curr));
-    test2('remove()', array.oneToTen, [1,2], (seq, other) => seq.remove(other));
-    test2('removeAll()', array.oneToTen, [1,2], (seq, other) => seq.removeAll(other));
+    test2('remove()', array.oneToTen, [1, 2], (seq, other) => seq.remove(other));
+    test2('removeAll()', array.oneToTen, [1, 2], (seq, other) => seq.removeAll(other));
     test('removeFalsy()', array.zeroToTen, seq => seq.removeFalsy());
     test('removeNulls()', array.zeroToTen, seq => seq.removeNulls());
     test('repeat()', array.zeroToTen, seq => seq.repeat(1));

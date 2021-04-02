@@ -43,7 +43,7 @@ export class CachedSeqImpl_Tests {
     new CachedSeqImpl_SortedSeq_Tests().run();
     new CachedSeqImpl_CachedSeq_Tests().run();
 
-    describe('array property', () => {
+    describe('source is array', () => {
       it('should contain exactly same items as if sequence iterated', () => {
         const source = array.oneToTen;
         let sut = this.createSut(source);

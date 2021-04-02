@@ -83,10 +83,10 @@ console.log(asSeq(layers)
 #### Immediate actions
 |   |   |   |   |   |
 |---|---|---|---|---|
-|all|any|average|
+|all|any|at|average|
 |consume|count|
 |endsWith|every|
-|find|findIndex|findLastIndex|first|
+|find|findIndex|findLast|findLastIndex|first|
 |forEach|
 |hasAtLeast|
 |includes|includesAll|includesAny|includesSubSequence|

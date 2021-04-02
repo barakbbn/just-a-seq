@@ -9,7 +9,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
-import {consume, entries, Gen, IGNORED_ITEM, IterationContext} from "./common";
+import {consume, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
@@ -65,7 +65,7 @@ class GroupingSelector {
   }
 
   private selectKey(value: any, index: number): any {
-    return this.key?this.key(value, index) : value;
+    return this.key ? this.key(value, index) : value;
   }
 
 }
@@ -92,16 +92,29 @@ class Container {
 
 export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   extends SeqBase<MultiGroupedSeq<Ks, TOut>>
-  implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>> {
+  implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>>, TaggedSeq {
 
+  readonly [SeqTags.$seq] = true;
   key: any;
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
-  private cacheable: boolean = false;
 
   constructor(protected source: Iterable<TIn>,
-              protected selectors: GroupingSelector[] = []) {
+              protected selectors: GroupingSelector[] = [],
+              private cacheable = false) {
     super();
+
+    const tagged = this as TaggedSeq;
+    if (cacheable) tagged[SeqTags.$cacheable] = true;
+  }
+
+  // TaggedSeq
+  get [SeqTags.$sourceIsArray](): boolean {
+    return Array.isArray(this.source);
+  }
+
+  get [SeqTags.$cached](): boolean {
+    return this._cache !== undefined;
   }
 
   get array(): ReadonlyArray<MultiGroupedSeq<Ks, TOut>> {
@@ -120,16 +133,17 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   cache(now?: boolean): any {
     if (this.cacheable) {
-      if (now && !this._cache) this.consume();
+      if (now && !this._cache) this.cacheNow();
       return this;
     }
 
     const instance = new SeqOfMultiGroupsImpl(
       this.source,
-      this.selectors
+      this.selectors,
+      true
     );
-    instance.cacheable = true;
-    instance.tapCallbacks = this.tapCallbacks;
+
+    instance.tapCallbacks.push(...this.tapCallbacks);
     instance.key = this.key;
 
     return instance;
@@ -161,6 +175,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   }
 
   tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>, thisArg?: any): any {
+    if (thisArg) callback = callback.bind(thisArg);
     const tappable = new SeqOfMultiGroupsImpl(this.source, this.selectors);
     tappable.tapCallbacks.push(callback);
     tappable.key = this.key;
@@ -340,6 +355,11 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
       yield {rootContainer, containers, entry: {value: item, index: entry.index}};
     }
+  }
+
+  private cacheNow() {
+    // noinspection LoopStatementThatDoesntLoopJS
+    for (const _ of this) break;
   }
 }
 

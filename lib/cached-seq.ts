@@ -1,13 +1,31 @@
 import {CachedSeq, Condition, Selector} from "./seq";
-import {tapGenerator} from "./common";
+import {SeqTags, TaggedSeq, tapGenerator} from "./common";
 import {SeqBase} from "./seq-base";
 
-export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
-  private _cache?: T[];
-  private tapCallback: Selector<T, void>;
+export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, TaggedSeq {
+  // We don't tag the sequence with every reasonable tag (i.e. $sourceIsArray, $notAffectingNumberOfItems, $notMapItems)
+  // In order to avoid optimizations that might override this cacheable sequence from being cached when operated upon
+  // i.e. if source is another sequence, then any() will optimize by calling the source sequence.any()
+  readonly [SeqTags.$seq] = true;
+  readonly [SeqTags.$cacheable] = true;
+
+  private _cache?: readonly T[];
+  private tapCallbacks: Selector<any, void>[] = [];
 
   constructor(private source: Iterable<T>) {
     super();
+
+    if (SeqTags.infinite(source)) throw new RangeError('Cannot cache infinite sequence');
+
+  }
+
+  // TaggedSeq
+  get [SeqTags.$sourceIsArray](): boolean {
+    return Array.isArray(this.source);
+  }
+
+  get [SeqTags.$cached](): boolean {
+    return this._cache !== undefined;
   }
 
   get array(): ReadonlyArray<T> {
@@ -16,6 +34,10 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   static create<T>(source: Iterable<T>): CachedSeqImpl<T> {
     return new CachedSeqImpl<T>(source);
+  }
+
+  any(condition?: Condition<T>): boolean {
+    return super.anyOptimized(this.source, condition);
   }
 
   cache(now?: boolean): CachedSeq<T> {
@@ -77,34 +99,26 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   }
 
   tap(callback: Selector<T, void>, thisArg?: any): CachedSeq<T> {
-    const tappable = this.createTappableSeq();
-    tappable.tapCallback = thisArg ? callback.bind(thisArg) : callback;
+    const tappable = new CachedSeqImpl<T>(this);
+    const callbacks = [...this.tapCallbacks];
+    callbacks.push(thisArg ? callback.bind(thisArg) : callback);
+    tappable.tapCallbacks = callbacks;
     return tappable;
   }
 
   * [Symbol.iterator](): Iterator<T> {
-    const array = this.getCached();
-    const iterable = this.tapCallback ? tapGenerator(array, this.tapCallback) : array;
+    let iterable: Iterable<T> = this.getCached();
+    if (this.tapCallbacks?.length) iterable = tapGenerator(iterable, this.tapCallbacks)
     yield* iterable;
-  }
-
-  protected createTappableSeq(): CachedSeqImpl<T> {
-    return new CachedSeqImpl<T>(this);
   }
 
   protected joinInternal(start: string, separator: string, end: string): string {
     return start + this.getCached().join(separator) + end;
   }
 
-  private getCached(): T[] {
+  private getCached(): readonly T[] {
     if (this._cache) return this._cache;
-    if (Array.isArray(this.source)) this._cache = this.source;
-    if (isCachedSeq(this.source)) this._cache = this.source.array as T[];
-    else this._cache = [...this.source];
-    return this._cache;
+    if (SeqTags.cacheable(this.source)) return this._cache = this.source.array;
+    return this._cache = [...this.source];
   }
-}
-
-function isCachedSeq<U>(seq: Iterable<U>): seq is CachedSeq<U> {
-  return seq && Object.getOwnPropertyDescriptor(seq, 'array')?.get != null;
 }

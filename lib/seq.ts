@@ -1,3 +1,5 @@
+import {IterationContext} from "./common";
+
 export type Class<T = any> = new (...args: any) => T;
 export type Condition<T> = (x: T, index: number) => unknown;
 
@@ -333,7 +335,10 @@ export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2,
   : GroupedSeq<Ks[1], T>;
 
 export interface SeqFactory {
-  <T>(source?: Iterable<T>): Seq<T>;
+  <T, U = T>(
+    source?: Iterable<T>,
+    generator?: (source: Iterable<T>, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [symbol, any][]): Seq<U>;
 }
 
 export interface CachedSeqFactory {
@@ -365,4 +370,3 @@ export const factories: {
   GroupedSeq: GroupedSeqFactory;
   SeqOfGroups: SeqOfGroupsFactory;
 } = <any>{};
-

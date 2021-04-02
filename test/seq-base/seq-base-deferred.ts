@@ -1779,16 +1779,36 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('take()', () => {
-      this.it1('should behave like Array.slice(0, count) also when count is negative', array.oneToTen, (source) => {
+      this.it1('should return sequence with number of items as specified in count parameter', array.oneToTen, (source) => {
         const input = [...source];
         const sut = this.createSut(source);
-        for (let skip = -input.length - 1; skip < input.length + 1; skip++) {
-          for (let take = -input.length - 1; take <= input.length + 1; take++) {
-            const expected = input.slice(0, take);
-            let actual = [...sut.take(take)];
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-          }
+        for (let take = 1; take <= input.length; take++) {
+          const expected = input.slice(0, take);
+          let actual = [...sut.take(take)];
+          assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(0,${take})`);
         }
+      });
+      this.it1('should return sequence with same items if count parameter is grater then number of items', array.oneToTen, (source) => {
+        const input = [...source];
+        const sut = this.createSut(source);
+
+        const expected = input.slice(0, input.length + 1);
+        let actual = [...sut.take(input.length + 1)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1('should return empty sequence when count zero negative', array.oneToTen, (source) => {
+        const sut = this.createSut(source);
+        const expected: number[] = [];
+        let actual = [...sut.take(0)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1('should return empty sequence when count is negative', array.oneToTen, (source) => {
+        const sut = this.createSut(source);
+        const expected: number[] = [];
+        let actual = [...sut.take(-2)];
+        assert.sameOrderedMembers(actual, expected);
       });
     });
 

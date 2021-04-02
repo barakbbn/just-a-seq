@@ -36,7 +36,7 @@ export const array = new class {
   }
 
   get strings(): string[] {
-    return ['boolean', 'string', 'number', 'symbol', 'null', 'undefined', '', 'object','array',' '];
+    return ['boolean', 'string', 'number', 'symbol', 'null', 'undefined', '', 'object', 'array', ' '];
   }
 
   get grades(): { name: string; grade: number; }[] {
@@ -228,3 +228,17 @@ export const iterables: arraysOnly = new Proxy(array, {
     return generator.from(array);
   }
 });
+
+export class TestableArray<T> extends Array<T> {
+  getIteratorCount: number = 0;
+
+  constructor(...items: T[]) {
+    super(...items);
+  }
+
+  [Symbol.iterator](): IterableIterator<T> {
+    this.getIteratorCount++;
+    return super[Symbol.iterator]();
+  }
+}
+
