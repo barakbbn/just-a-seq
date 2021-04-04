@@ -1,4 +1,4 @@
-import {SeqImpl} from "../lib/seq-impl";
+import {createSeq} from "../lib/seq-impl";
 import {SeqBase_Deferred_GetIterator_Tests} from "./seq-base/deferred-get-iterator";
 import {SeqBase_Deferred_Tests} from "./seq-base/seq-base-deferred";
 import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
@@ -10,14 +10,16 @@ import {array, generator} from "./test-data";
 import {assert} from "chai";
 import {SeqBase_Immutable_Tests} from "./seq-base/seq-base-immutable";
 import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
+import {Seq} from "../lib";
+import {SeqBase} from "../lib/seq-base";
 
-function createSut<T>(input: Iterable<T>): SeqImpl<T> {
-  return new SeqImpl(input);
+function createSut<T>(input: Iterable<T>): SeqBase<T> {
+  return createSeq(input);
 }
 
 class SeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
-  createSut<T>(input: Iterable<T>): SeqImpl<T> {
-    return new SeqImpl(input);
+  createSut<T>(input: Iterable<T>): Seq<T> {
+    return createSeq(input);
   }
 }
 

@@ -44,7 +44,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   readonly asSeq = (): Seq<T> => {
-    return factories.Seq(this.getSource(), undefined, [
+    return factories.Seq(this.getSourceForNewSequence(), undefined, [
       [SeqTags.$notAffectingNumberOfItems, true],
       [SeqTags.$notMapItems, true]]);
   };
@@ -83,7 +83,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   cache(now?: boolean): CachedSeq<T> {
-    return factories.CachedSeq(this.getSource(), now);
+    return factories.CachedSeq(this.getSourceForNewSequence(), now);
   }
 
   chunk(size: number): Seq<Seq<T>> {
@@ -335,7 +335,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
-    return factories.SeqOfGroups(this.getSource(), keySelector, toComparableKey, valueSelector);
+    return factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector);
   }
 
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I> {
@@ -357,22 +357,29 @@ export abstract class SeqBase<T> implements Seq<T> {
   ifEmpty({useFactory}: { useFactory: () => T }): Seq<T>;
 
   ifEmpty(value: T | { useSequence: Iterable<T> } | { useFactory: () => T }): Seq<T> {
-    // TODO: Optimize by tag $empty
     const isSequence = (v: any): v is { useSequence: Iterable<T> } => v && isIterable(v.useSequence);
     const isFactory = (v: any): v is { useFactory: () => T } => v && typeof (v.useFactory) === 'function';
+
+    if (SeqTags.empty(this)) return factories.Seq(
+      isSequence(value) ? value.useSequence : isFactory(value) ? {
+        * [Symbol.iterator]() {
+          yield value.useFactory();
+        }
+      } : [value as T]);
 
     let valueProvider: () => Iterable<T>;
     if (isSequence(value)) valueProvider = (() => value.useSequence);
     else if (isFactory(value)) valueProvider = (() => [value.useFactory()]);
     else valueProvider = (() => [value as T]);
 
-    return this.generate(function* ifEmpty(items) {
-      let empty = true;
-      for (const item of items) {
-        empty = false;
-        yield item;
+    return this.generate(function* ifEmpty(items, iterationContext) {
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+      if (next.done) yield* valueProvider();
+      else while (!next.done) {
+        yield next.value;
+        next = iterator.next();
       }
-      if (empty) yield* valueProvider();
     }, [[SeqTags.$notMapItems, true]]);
   }
 
@@ -1006,15 +1013,15 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   sort(comparer?: Comparer<T>): SortedSeq<T> {
-    return factories.SortedSeq(this.getSource(), undefined, comparer || LEGACY_COMPARER);
+    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, comparer || LEGACY_COMPARER);
   }
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
-    return factories.SortedSeq(this.getSource(), valueSelector, undefined, reverse);
+    return factories.SortedSeq(this.getSourceForNewSequence(), valueSelector, undefined, reverse);
   }
 
   sorted(reverse = false): Seq<T> {
-    return factories.SortedSeq(this.getSource(), undefined, undefined, reverse);
+    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, undefined, reverse);
   }
 
   split(atIndex: number): [Seq<T>, Seq<T>];
@@ -1356,11 +1363,9 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   protected hasAtLeastOptimized(source: Iterable<any>, count: number): boolean {
     if (count <= 0) throw new RangeError('count must be positive');
-    if (SeqTags.infinite(this)) return true;
-    if (SeqTags.empty(this)) return false;
 
     const maxCount = SeqTags.maxCount(this);
-    if (maxCount !== undefined) return maxCount >= count;
+    if (maxCount != null &&  maxCount < count) return false;
 
     if (SeqTags.notAffectingNumberOfItems(this)) {
       if (Array.isArray(source)) return source.length >= count;
@@ -1376,7 +1381,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   protected generate<U>(
     generator: (items: Iterable<T>, iterationContext: IterationContext) => Iterator<U>,
     tags?: readonly [symbol, any][]): Seq<U> {
-    return factories.Seq(this.getSource(), generator, tags);
+    return factories.Seq(this.getSourceForNewSequence(), generator, tags);
   }
 
   protected getIterator(): Iterator<T> {
@@ -1424,7 +1429,8 @@ export abstract class SeqBase<T> implements Seq<T> {
     for (const item of this) if (condition ? condition(item, index++) : true) return true;
     return false;
   }
-  protected getSource(): Iterable<T>{
+
+  protected getSourceForNewSequence(): Iterable<T> {
     return this;
   }
 
@@ -1496,7 +1502,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   private splitAtIndex(atIndex: number): [Seq<T>, Seq<T>] {
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this.getSource(), function* splitAtIndexFirst(source) {
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
       iterator = getIterator(source);
       next = iterator.next();
       let index = 0;
@@ -1523,7 +1529,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   private splitByCondition(condition: Condition<T>): [Seq<T>, Seq<T>] {
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this.getSource(), function* splitAtIndexFirst(source) {
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
       iterator = getIterator(source);
       next = iterator.next();
       let index = 0;

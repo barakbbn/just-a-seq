@@ -1,7 +1,7 @@
 import {assert} from "chai";
 import {array} from "./test-data";
 import {asSeq, empty, indexes, random, range, repeat} from "../lib";
-import {SeqImpl} from "../lib/seq-impl";
+import {createSeq, GeneratorSeqImpl} from "../lib/seq-impl";
 import {describe} from "mocha";
 
 export class SeqFactory_Tests {
@@ -14,7 +14,7 @@ export class SeqFactory_Tests {
         sut = asSeq(array.oneToTen);
         assert.sameOrderedMembers([...sut], array.oneToTen);
 
-        sut = asSeq(new SeqImpl(array.oneToTen));
+        sut = asSeq(createSeq(array.oneToTen));
         assert.sameOrderedMembers([...sut], array.oneToTen);
       });
 
@@ -27,7 +27,7 @@ export class SeqFactory_Tests {
         sut = asSeq(input.values());
         assert.sameOrderedMembers([...sut], input);
 
-        sut = asSeq(new SeqImpl(input));
+        sut = asSeq(createSeq(input));
         assert.sameOrderedMembers([...sut], input);
       });
 
