@@ -1,14 +1,12 @@
 import {generate, SeqTags} from "./common";
 import {factories, Seq} from "./seq";
 
-const _empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]]);
+let _empty: Seq<any>;
 
-const _random = factories.Seq(undefined, function* randomize() {
-  while (true) yield Math.random();
-}, [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]]);
+let _random: Seq<number>
 
 export function empty<T = any>(_ofType?: T): Seq<T> {
-  return _empty as unknown as Seq<T>;
+  return _empty ?? (_empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]])) as unknown as Seq<T>;
 }
 
 export function range(start: number, end?: number, step: number = 1): Seq<number> {
@@ -45,7 +43,9 @@ export function repeat<T>(value: T, count: number): Seq<T> {
 }
 
 export function random(): Seq<number> {
-  return _random;
+  return _random ?? (_random = factories.Seq(undefined, function* randomize() {
+    while (true) yield Math.random();
+  }, [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]]));
 }
 
 export function asSeq<T>(items: Iterable<T>): Seq<T>;

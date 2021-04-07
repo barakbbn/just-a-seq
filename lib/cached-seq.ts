@@ -3,7 +3,7 @@ import {SeqTags, TaggedSeq, tapGenerator} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, TaggedSeq {
-  // We don't tag the sequence with every reasonable tag (i.e. $sourceIsArray, $notAffectingNumberOfItems, $notMapItems)
+  // We don't tag the sequence with every reasonable tag (i.e. $sourceIsArray, $notAffectingNumberOfItems)
   // In order to avoid optimizations that might override this cacheable sequence from being cached when operated upon
   // i.e. if source is another sequence, then any() will optimize by calling the source sequence.any()
   readonly [SeqTags.$seq] = true;
@@ -16,17 +16,8 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, Tagged
     super();
 
     if (SeqTags.infinite(source)) throw new RangeError('Cannot cache infinite sequence');
-
   }
 
-  // TaggedSeq
-  get [SeqTags.$sourceIsArray](): boolean {
-    return Array.isArray(this.source);
-  }
-
-  get [SeqTags.$cached](): boolean {
-    return this._cache !== undefined;
-  }
 
   get array(): ReadonlyArray<T> {
     return this.getCached();
@@ -67,7 +58,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, Tagged
   last(fallback: T): T;
   last(fallback?: T): T | undefined {
     const array = this.array;
-    return array[array.length - 1] ?? fallback;
+    return array.length? array[array.length - 1]: fallback;
   }
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number {

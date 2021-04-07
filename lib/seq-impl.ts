@@ -1,7 +1,8 @@
 import {CloseableIterator, EMPTY_ARRAY, IterationContext, SeqTags, TaggedSeq} from './common'
 
-import {Condition, Selector, Seq} from './seq'
+import {Condition, factories, Selector, Seq} from './seq'
 import {SeqBase} from "./seq-base";
+import {empty} from "./seq-factory";
 
 export function createSeq<TSource = any, T = TSource>(
   source: Iterable<TSource> = EMPTY_ARRAY as unknown as TSource[],
@@ -28,12 +29,6 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> imp
     tags.forEach(([tag, value]) => (this as any)[tag] = value);
   }
 
-  // TaggedSeq
-  get [SeqTags.$sourceIsArray](): boolean {
-    return Array.isArray(this.source);
-  }
-
-
   any(condition?: Condition<T>): boolean {
     return super.anyOptimized(this.source, condition);
   }
@@ -46,6 +41,10 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> imp
     return this.hasAtLeastOptimized(this.source, count);
   }
 
+  includes(itemToFind: T, fromIndex: number = 0): boolean {
+    return super.includesOptimized(this.source, itemToFind, fromIndex);
+  }
+
   [Symbol.iterator](): Iterator<T> {
     return new CloseableIterator<TSource, T>(this.source, this.generator);
   }
@@ -54,9 +53,7 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> imp
 
 export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   readonly [SeqTags.$seq] = true;
-  readonly [SeqTags.$sourceIsArray] = true;
   readonly [SeqTags.$notAffectingNumberOfItems] = true;
-  readonly [SeqTags.$notMapItems] = true;
 
   constructor(protected readonly source: readonly T[] = EMPTY_ARRAY) {
     super();
@@ -68,7 +65,11 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   }
 
   any(condition?: Condition<T>): boolean {
-    return super.anyOptimized(this.source, condition);
+    return condition ? this.source.some(condition) : this.source.length > 0;
+  }
+
+  all(condition: Condition<T>): boolean {
+    return this.every(condition);
   }
 
   at(index: number, fallback?: T): T | undefined {
@@ -77,8 +78,22 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     return this.source[index] ?? fallback;
   }
 
+  chunk(size: number): Seq<Seq<T>> {
+    if (size < 1 || this.source.length === 0) return empty<Seq<T>>();
+
+    return this.generateForSource(this.source, function* chunk(source: T[]) {
+      for (let skip = 0; skip < source.length; skip += size) {
+        yield factories.Seq<T>(source).slice(skip, skip + size);
+      }
+    });
+  }
+
   count(condition: Condition<T> = () => true): number {
     return this.countOptimized(this.source, condition);
+  }
+
+  every(condition: Condition<T>): boolean {
+    return this.source.every(condition);
   }
 
   hasAtLeast(count: number): boolean {
@@ -99,13 +114,24 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 
   last(fallback?: T): T | undefined {
     const items = this.source;
-    return items[items.length - 1] ?? fallback;
+    return items.length ? items[items.length - 1] : fallback;
   }
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number {
     return fromIndex == null ?
       this.source.lastIndexOf(itemToFind) :
       this.source.lastIndexOf(itemToFind, fromIndex);
+  }
+
+  reverse(): Seq<T> {
+    if (this.source.length === 0) return empty<T>();
+
+    return factories.Seq(this.source, function* reverse(source: T[]) {
+      for (let i = source.length - 1; i >= 0; i--) yield source[i];
+    }, [
+      [SeqTags.$notMappingItems, true],
+      [SeqTags.$notAffectingNumberOfItems, true]
+    ]);
   }
 
   sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): boolean {
@@ -118,6 +144,44 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     return super.sameOrderedItems(second, equals);
   }
 
+  some(condition: Condition<T> = () => true): boolean {
+    return this.any(condition);
+  }
+
+  slice(start: number, end: number): Seq<T> {
+    if (start < 0) start += this.source.length;
+    if (start < 0) start = 0;
+    if (end < 0) end += this.source.length;
+    if (end < 0) end = 0;
+    else if (end > this.source.length) end = this.source.length;
+
+    if (end === 0 || end - start <= 0 || start >= this.source.length) return empty<T>();
+
+    return this.generateForSource(this.source, function* slice(source: T[]) {
+      for (let i = start; i < end; i++) yield source[i];
+    }, [[SeqTags.$notMappingItems, true]]);
+  }
+
+  skip(count: number): Seq<T> {
+    if (count <= 0) return this;
+    if (count >= this.source.length) return empty<T>();
+
+    return this.generateForSource(this.source, function* skip(source: T[]) {
+      for (let i = count; i < source.length; i++) yield source[i];
+    }, [[SeqTags.$notMappingItems, true]]);
+  }
+
+  split(atIndex: number): [Seq<T>, Seq<T>];
+
+  split(condition: Condition<T>): [Seq<T>, Seq<T>];
+
+  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] {
+    if (typeof atIndexOrCondition !== 'number') return super.split(atIndexOrCondition);
+    if (atIndexOrCondition <= 0) return [empty<T>(), this];
+    if (atIndexOrCondition >= this.source.length) return [this, empty<T>()];
+
+    return [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)]
+  }
 
   startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
     if (Array.isArray(items)) {
@@ -127,6 +191,20 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     return super.startsWith(items, keySelector);
   }
 
+  take(count: number): Seq<T> {
+    if (count >= this.source.length) return this;
+    return super.take(count);
+  }
+
+  takeLast(count: number): Seq<T> {
+    if (this.source.length <= 0) return empty<T>();
+    if (count > this.source.length) return this;
+
+    return this.generateForSource(this.source, function* takeLast(source: T[]) {
+      const startIndex = source.length - count;
+      for (let i = startIndex; i < source.length; i++) yield source[i];
+    }, [[SeqTags.$notMappingItems, true]]);
+  }
 
   [Symbol.iterator](): Iterator<T> {
     return this.source[Symbol.iterator]();
@@ -166,7 +244,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   readonly [SeqTags.$seq] = true;
   readonly [SeqTags.$notAffectingNumberOfItems] = true;
-  readonly [SeqTags.$notMapItems] = true;
+  readonly [SeqTags.$notMappingItems] = true;
 
   constructor(
     protected readonly source: Iterable<T>,
@@ -175,6 +253,10 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     super();
 
     tags.forEach(([tag, value]) => (this as any)[tag] = value);
+  }
+
+  includes(itemToFind: T, fromIndex: number = 0): boolean {
+    return super.includesOptimized(this.source, itemToFind, fromIndex);
   }
 
   [Symbol.iterator](): Iterator<T> {

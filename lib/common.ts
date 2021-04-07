@@ -122,23 +122,16 @@ export const EMPTY_ARRAY: readonly any[] = []
 
 export class SeqTags {
 
-  static readonly $sourceIsArray: unique symbol = Symbol('sourceIsArray');
   static readonly $seq: unique symbol = Symbol('seq');
   static readonly $cacheable: unique symbol = Symbol('cacheable');
-  static readonly $cached: unique symbol = Symbol('cached');
   static readonly $sorted: unique symbol = Symbol('sorted');
   static readonly $notAffectingNumberOfItems: unique symbol = Symbol('notAffectingNumberOfItems');
-  static readonly $notMapItems: unique symbol = Symbol('notMapItems');
   static readonly $maxCount: unique symbol = Symbol('maxCount');
+  static readonly $notMappingItems: unique symbol = Symbol('notMappingItems');
 
   static getTag<Tag extends keyof TaggedSeq>(seq: Iterable<any>, tag: Tag): TaggedSeq[Tag] {
     const guard = (seq: any): seq is TaggedSeq => seq;
     return guard(seq) ? seq[tag] : undefined;
-  }
-
-  static sourceIsArray<T>(seq: Iterable<T>): seq is T[] {
-    const isNot = !this.getTag(seq, this.$sourceIsArray);
-    return !isNot;
   }
 
   static isSeq<T>(seq: Iterable<T>): seq is Seq<T> {
@@ -151,11 +144,6 @@ export class SeqTags {
     return !isNot;
   }
 
-  static cached(seq: Iterable<any>): boolean {
-    const isNot = !this.getTag(seq, this.$cached)
-    return !isNot;
-  }
-
   static sorted<T>(seq: Iterable<T>): seq is SortedSeq<T> {
     const isNot = !this.getTag(seq, this.$sorted);
     return !isNot;
@@ -163,11 +151,6 @@ export class SeqTags {
 
   static notAffectingNumberOfItems(seq: Iterable<any>): boolean | unknown {
     const isNot = !this.getTag(seq, this.$notAffectingNumberOfItems)
-    return !isNot;
-  }
-
-  static notMapItems(seq: Iterable<any>): boolean | unknown {
-    const isNot = !this.getTag(seq, this.$notMapItems)
     return !isNot;
   }
 
@@ -184,18 +167,19 @@ export class SeqTags {
     const maxCount = this.maxCount(seq) ?? Number.MAX_SAFE_INTEGER;
     return maxCount === 0;
   }
+
+  static notMappingItems(seq: Iterable<any>): boolean | unknown {
+    const isNot = !this.getTag(seq, this.$notMappingItems)
+    return !isNot;
+  }
 }
 
-// export type TaggedSeq = { [TAG in keyof Omit<typeof SeqTags, 'prototype'> as typeof SeqTags[TAG] extends symbol ? typeof SeqTags[TAG] : never]?: boolean; }
-
 export interface TaggedSeq {
-  [SeqTags.$sourceIsArray]?: boolean;
   [SeqTags.$seq]?: boolean;
   [SeqTags.$cacheable]?: boolean;
-  [SeqTags.$cached]?: boolean;
   [SeqTags.$sorted]?: boolean;
   [SeqTags.$notAffectingNumberOfItems]?: boolean;
-  [SeqTags.$notMapItems]?: boolean;
   [SeqTags.$maxCount]?: number;
+  [SeqTags.$notMappingItems]?: boolean;
 }
 

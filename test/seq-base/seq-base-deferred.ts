@@ -1625,12 +1625,9 @@ export abstract class SeqBase_Deferred_Tests {
         const input = [...source];
         const sut = this.createSut(source);
         for (let skip = -input.length - 1; skip < input.length + 1; skip++) {
-          for (let take = -input.length - 1; take <= input.length + 1; take++) {
-            const expected = input.slice(skip);
-            const actual = [...sut.skip(skip)];
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-          }
+          const expected = input.slice(Math.max(skip, 0));
+          const actual = [...sut.skip(skip)];
+          assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip})`);
         }
       });
     });

@@ -335,9 +335,9 @@ export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2,
   : GroupedSeq<Ks[1], T>;
 
 export interface SeqFactory {
-  <T, U = T>(
+  <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
     source?: Iterable<T>,
-    generator?: (source: Iterable<T>, iterationContext: IterationContext) => Iterator<U>,
+    generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
     tags?: readonly [symbol, any][]): Seq<U>;
 }
 

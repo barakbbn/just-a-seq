@@ -103,18 +103,11 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
               protected selectors: GroupingSelector[] = [],
               private cacheable = false) {
     super();
-
-    const tagged = this as TaggedSeq;
-    if (cacheable) tagged[SeqTags.$cacheable] = true;
   }
 
   // TaggedSeq
-  get [SeqTags.$sourceIsArray](): boolean {
-    return Array.isArray(this.source);
-  }
-
-  get [SeqTags.$cached](): boolean {
-    return this._cache !== undefined;
+  get [SeqTags.$cacheable](): boolean {
+    return this.cacheable;
   }
 
   get array(): ReadonlyArray<MultiGroupedSeq<Ks, TOut>> {
@@ -147,12 +140,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     instance.key = this.key;
 
     return instance;
-  }
-
-  hasAtLeast(count: number): boolean {
-    if (count <= 0) throw new RangeError('count must be positive');
-    if (Array.isArray(this.source)) return this.source.length >= count;
-    return super.hasAtLeast(count);
   }
 
   mapInGroup<U>(mapFn: Selector<TOut, U>): any {

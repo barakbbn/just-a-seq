@@ -1,12 +1,10 @@
 import {Comparer, Condition, factories, Selector, Seq, SortedSeq} from "./seq";
-import {DONT_COMPARE, EMPTY_ARRAY, entries, LEGACY_COMPARER, sameValueZero, SeqTags} from "./common";
+import {DONT_COMPARE, EMPTY_ARRAY, entries, LEGACY_COMPARER, sameValueZero, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
-export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> {
+export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>, TaggedSeq {
   readonly [SeqTags.$seq] = true;
   readonly [SeqTags.$sorted] = true;
-  readonly [SeqTags.$notMapItems] = true;
-  readonly [SeqTags.$notAffectingNumberOfItems] = true;
 
   protected readonly comparer?: (a: any, b: any) => number;
   protected tapCallbacks: Selector<any, void>[] = [];
@@ -15,11 +13,6 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
               comparer?: (a: K, b: K) => number) {
     super();
     this.comparer = comparer;
-  }
-
-  // TaggedSeq
-  get [SeqTags.$sourceIsArray](): boolean {
-    return Array.isArray(this.source);
   }
 
   static create<T, K = T>(items: Iterable<T> = [],
@@ -58,6 +51,21 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     else if (aIsNullOrUndefined || bIsNullOrUndefined) return aIsNullOrUndefined ? 1 : -1;
 
     return a > b ? 1 : -1;
+  }
+
+  // TaggedSeq
+  get [SeqTags.$notAffectingNumberOfItems](): boolean {
+    return !this.tapCallbacks.length;
+  }
+  get [SeqTags.$notMappingItems](): boolean {
+    return !this.tapCallbacks.length;
+  }
+
+  includes(itemToFind: T, fromIndex: number = 0): boolean {
+    return this.tapCallbacks.length?
+      super.includes(itemToFind, fromIndex):
+      this.includesOptimized(this.source, itemToFind, fromIndex);
+
   }
 
   count(condition: Condition<T> = () => true): number {
