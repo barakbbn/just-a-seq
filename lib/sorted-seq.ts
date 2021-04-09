@@ -15,6 +15,15 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>,
     this.comparer = comparer;
   }
 
+  // TaggedSeq
+  get [SeqTags.$notAffectingNumberOfItems](): boolean {
+    return !this.tapCallbacks.length;
+  }
+
+  get [SeqTags.$notMappingItems](): boolean {
+    return !this.tapCallbacks.length;
+  }
+
   static create<T, K = T>(items: Iterable<T> = [],
                           keySelector?: (x: T) => K,
                           comparer?: Comparer<K>,
@@ -53,17 +62,9 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>,
     return a > b ? 1 : -1;
   }
 
-  // TaggedSeq
-  get [SeqTags.$notAffectingNumberOfItems](): boolean {
-    return !this.tapCallbacks.length;
-  }
-  get [SeqTags.$notMappingItems](): boolean {
-    return !this.tapCallbacks.length;
-  }
-
   includes(itemToFind: T, fromIndex: number = 0): boolean {
-    return this.tapCallbacks.length?
-      super.includes(itemToFind, fromIndex):
+    return this.tapCallbacks.length ?
+      super.includes(itemToFind, fromIndex) :
       this.includesOptimized(this.source, itemToFind, fromIndex);
 
   }
@@ -88,8 +89,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>,
   //   return this.thenByInternal(keySelector, comparer, true);
   // }
 
-  tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T> {
-    if (thisArg) callback = callback.bind(thisArg);
+  tap(callback: Selector<T, void>,): SortedSeq<T> {
     const instance = new SortedSeqImpl<T, K>(this.source, this.comparer);
     instance.tapCallbacks.push(...this.tapCallbacks, callback);
 
@@ -109,15 +109,15 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>,
   }
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse: boolean = false): SortedSeq<T> {
-    return this.tapCallbacks.length ?
-      super.sortBy(valueSelector, reverse) :
-      factories.SortedSeq(this.source, valueSelector, undefined, reverse);
+    const optimize = SeqTags.optimize(this);
+    if (this.tapCallbacks.length || !optimize) return super.sortBy(valueSelector, reverse);
+    return this.transferOptimizeTag(factories.SortedSeq(this.source, valueSelector, undefined, reverse));
   }
 
   sorted(reverse = false): Seq<T> {
-    return this.tapCallbacks.length ?
-      super.sorted(reverse) :
-      factories.SortedSeq(this.source, undefined, undefined, reverse);
+    const optimize = SeqTags.optimize(this);
+    if (this.tapCallbacks.length || !optimize) return super.sorted(reverse);
+    return this.transferOptimizeTag(factories.SortedSeq(this.source, undefined, undefined, reverse));
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer?: Comparer<K>, descending: boolean = false): SortedSeq<T> {

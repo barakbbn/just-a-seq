@@ -39,7 +39,7 @@ export function repeat<T>(value: T, count: number): Seq<T> {
   if (count < 0) throw new Error('count must be positive');
   return factories.Seq<T>(generate(function* repeat() {
     while (count--) yield value;
-  }))
+  }), undefined, [[SeqTags.$maxCount, count]])
 }
 
 export function random(): Seq<number> {
@@ -49,9 +49,8 @@ export function random(): Seq<number> {
 }
 
 export function asSeq<T>(items: Iterable<T>): Seq<T>;
-export function asSeq<T>(generator: () => Iterator<T>, thisArg?: any): Seq<T>;
-export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>), thisArg?: any): Seq<T> {
+export function asSeq<T>(generator: () => Iterator<T>): Seq<T>;
+export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): Seq<T> {
   if (typeof itemsProvider !== "function") return factories.Seq(itemsProvider);
-  if (thisArg) itemsProvider = itemsProvider.bind(thisArg);
   return factories.Seq<T>(generate(itemsProvider));
 }

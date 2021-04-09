@@ -1978,24 +1978,6 @@ export abstract class SeqBase_Deferred_Tests {
         assert.sameOrderedMembers(actual2, expected);
         assert.sameOrderedMembers(actual3, expected);
       });
-
-      this.it1('should use provided `this` argument with callback', array.oneToTen, (input) => {
-        const expected = [...input];
-        const actual = new class {
-          items: number[] = [];
-
-          add(value: number): void {
-            this.items.push(value);
-          }
-        };
-
-        const sut = this.createSut(input);
-
-        const tapped = sut.tap(actual.add, actual);
-        for (const item of tapped) {
-        }
-        assert.sameOrderedMembers(actual.items, expected);
-      });
     });
 
     describe('transform', () => {

@@ -64,7 +64,7 @@ export interface Seq<T> extends Iterable<T> {
   every(condition: Condition<T>): boolean;
 
   // It seems the order of the overloads affects Typescript recognizing the right signature
-  filter<S extends T>(typeGuard: (item: T, index: number) => item is S, thisArg?: any): Seq<S>;
+  filter<S extends T>(typeGuard: (item: T, index: number) => item is S): Seq<S>;
 
   filter(condition: Condition<T>): Seq<T>;
 
@@ -92,7 +92,7 @@ export interface Seq<T> extends Iterable<T> {
 
   flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void;
+  forEach(callback: (value: T, index: number, breakLoop: object) => void): void;
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
@@ -247,7 +247,7 @@ export interface Seq<T> extends Iterable<T> {
 
   takeWhile(condition: Condition<T>): Seq<T>;
 
-  tap(callback: Selector<T, void>, thisArg?: any): Seq<T>;
+  tap(callback: Selector<T, void>): Seq<T>;
 
   toArray(): T[];
 
@@ -272,7 +272,7 @@ export interface Seq<T> extends Iterable<T> {
 }
 
 export interface SortedSeq<T> extends Seq<T> {
-  tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T>;
+  tap(callback: Selector<T, void>): SortedSeq<T>;
 
   // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
@@ -284,7 +284,7 @@ export interface SortedSeq<T> extends Seq<T> {
 export interface CachedSeq<T> extends Seq<T> {
   readonly array: ReadonlyArray<T>;
 
-  tap(callback: Selector<T, void>, thisArg?: any): CachedSeq<T>;
+  tap(callback: Selector<T, void>): CachedSeq<T>;
 }
 
 export interface IHaveKey<K> {
@@ -293,13 +293,13 @@ export interface IHaveKey<K> {
 
 export interface GroupedSeq<K, T> extends Seq<T>, IHaveKey<K> {
 
-  tap(callback: Selector<T, void>, thisArg?: any): GroupedSeq<K, T>;
+  tap(callback: Selector<T, void>): GroupedSeq<K, T>;
 
   map<U>(mapFn: Selector<T, U>): GroupedSeq<K, U>;
 }
 
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
-  tap(callback: Selector<GroupedSeq<K, T>, void>, thisArg?: any): this;
+  tap(callback: Selector<GroupedSeq<K, T>, void>): this;
 
   mapInGroup<U>(mapFn: Selector<T, U>): SeqOfGroups<K, U>;
 
@@ -317,7 +317,7 @@ export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<SubGroupedSeq<
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>, thisArg?: any): this;
+  tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>): this;
 
   mapInGroup<U>(mapFn: Selector<T, U>): SeqOfMultiGroups<Ks, U>;
 
@@ -363,10 +363,17 @@ export interface SeqOfGroupsFactory {
                     valueSelector?: Selector<T, U>): SeqOfGroups<K, U>
 }
 
+export interface FilterMapSeqFactory {
+  <T, U = T>(source: Iterable<T>, map: { map: Selector<T, U> }): Seq<U>;
+  <T>(source: Iterable<T>, filter: { filter: Condition<T> }): Seq<T>;
+  <T, S extends T>(source: Iterable<T>, filter: { filter: (item: T, index: number) => item is S }): Seq<S>;
+}
+
 export const factories: {
   Seq: SeqFactory;
   CachedSeq: CachedSeqFactory;
   SortedSeq: SortedSeqFactory;
   GroupedSeq: GroupedSeqFactory;
   SeqOfGroups: SeqOfGroupsFactory;
+  FilterMapSeq: FilterMapSeqFactory;
 } = <any>{};

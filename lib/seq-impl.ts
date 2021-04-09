@@ -1,6 +1,6 @@
 import {CloseableIterator, EMPTY_ARRAY, IterationContext, SeqTags, TaggedSeq} from './common'
 
-import {Condition, factories, Selector, Seq} from './seq'
+import {Condition, Selector, Seq} from './seq'
 import {SeqBase} from "./seq-base";
 import {empty} from "./seq-factory";
 
@@ -80,10 +80,10 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1 || this.source.length === 0) return empty<Seq<T>>();
-
+    const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
       for (let skip = 0; skip < source.length; skip += size) {
-        yield factories.Seq<T>(source).slice(skip, skip + size);
+        yield self.createDefaultSeq<T>(source).slice(skip, skip + size);
       }
     });
   }
@@ -126,7 +126,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   reverse(): Seq<T> {
     if (this.source.length === 0) return empty<T>();
 
-    return factories.Seq(this.source, function* reverse(source: T[]) {
+    return this.createDefaultSeq(this.source, function* reverse(source: T[]) {
       for (let i = source.length - 1; i >= 0; i--) yield source[i];
     }, [
       [SeqTags.$notMappingItems, true],

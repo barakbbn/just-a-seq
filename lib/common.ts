@@ -91,10 +91,9 @@ export function* tapGenerator<T>(items: Iterable<T>, callbacks: ((item: T, index
   }
 }
 
-export function tapIterable<T>(items: Iterable<T>, callback: (item: T, index: number) => void, thisArg?: any): Iterable<T> {
+export function tapIterable<T>(items: Iterable<T>, callback: (item: T, index: number) => void): Iterable<T> {
   return {
     [Symbol.iterator]() {
-      if (thisArg) callback = callback.bind(thisArg);
       return tapGenerator(items, [callback]);
     }
   }
@@ -121,6 +120,7 @@ export const EMPTY_ARRAY: readonly any[] = []
 
 
 export class SeqTags {
+  static readonly $optimize: unique symbol = Symbol('optimize');
 
   static readonly $seq: unique symbol = Symbol('seq');
   static readonly $cacheable: unique symbol = Symbol('cacheable');
@@ -132,6 +132,11 @@ export class SeqTags {
   static getTag<Tag extends keyof TaggedSeq>(seq: Iterable<any>, tag: Tag): TaggedSeq[Tag] {
     const guard = (seq: any): seq is TaggedSeq => seq;
     return guard(seq) ? seq[tag] : undefined;
+  }
+
+  static optimize<T>(seq: Iterable<T>): boolean {
+    const isNot = !this.getTag(seq, this.$optimize);
+    return !isNot;
   }
 
   static isSeq<T>(seq: Iterable<T>): seq is Seq<T> {
@@ -175,6 +180,7 @@ export class SeqTags {
 }
 
 export interface TaggedSeq {
+  [SeqTags.$optimize]?: boolean;
   [SeqTags.$seq]?: boolean;
   [SeqTags.$cacheable]?: boolean;
   [SeqTags.$sorted]?: boolean;

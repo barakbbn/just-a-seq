@@ -1,7 +1,7 @@
 import {assert} from "chai";
 import {array} from "./test-data";
 import {asSeq, empty, indexes, random, range, repeat} from "../lib";
-import {createSeq, GeneratorSeqImpl} from "../lib/seq-impl";
+import {createSeq} from "../lib/seq-impl";
 import {describe} from "mocha";
 
 export class SeqFactory_Tests {
@@ -61,7 +61,7 @@ export class SeqFactory_Tests {
         }
 
         const generator = new GeneratorTester(input);
-        const sut = asSeq(generator.generate, generator);
+        const sut = asSeq(()=> generator.generate());
         assert.sameOrderedMembers([...sut], input);
       });
     });

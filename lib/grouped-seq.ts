@@ -21,8 +21,8 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
     return new GroupedSeqImpl<K, T>(key, items);
   }
 
-  tap(callback: Selector<T, void>, thisArg?: any): GroupedSeq<K, T> {
-    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback, thisArg));
+  tap(callback: Selector<T, void>): GroupedSeq<K, T> {
+    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback));
   }
 
   map<U = T>(mapFn: Selector<T, U>): GroupedSeq<K, U> {
@@ -161,8 +161,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     );
   }
 
-  tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>, thisArg?: any): any {
-    if (thisArg) callback = callback.bind(thisArg);
+  tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>): any {
     const tappable = new SeqOfMultiGroupsImpl(this.source, this.selectors);
     tappable.tapCallbacks.push(callback);
     tappable.key = this.key;
@@ -279,24 +278,26 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     class GroupedSeqGenerator implements Iterable<GroupedSeq<any, any> | TOut> {
       private readonly containerGenerator: ContainerGenerator<TOut>;
 
-      constructor(container: Container) {
+      constructor(container: Container, private optimize: boolean) {
         this.containerGenerator = new ContainerGenerator<TOut>(container);
       }
 
       * [Symbol.iterator](): Generator<GroupedSeq<any, any> | TOut> {
         if (this.containerGenerator.isLast) yield* (this.containerGenerator as any);
         else for (const container of this.containerGenerator as Iterable<Container>) {
-          yield factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container))
+          const seq = factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container, this.optimize))
+          if (this.optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+          yield seq;
         }
       }
     }
 
     class SeqOfGroupsGenerator implements Iterable<any> {
-      constructor(private readonly container: Container) {
+      constructor(private readonly container: Container, private optimize: boolean) {
       }
 
       * [Symbol.iterator](): any {
-        const groupedSeqGenerator = new GroupedSeqGenerator(this.container);
+        const groupedSeqGenerator = new GroupedSeqGenerator(this.container, this.optimize);
         yield* groupedSeqGenerator;
         while (!next.done) {
           const localNext: any = next;
@@ -309,7 +310,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
     let next = sessionIterator.next();
     const rootContainer: Container = next.value.rootContainer;
-    const generator = new SeqOfGroupsGenerator(rootContainer);
+    const generator = new SeqOfGroupsGenerator(rootContainer, SeqTags.optimize(this));
 
     generated = generator;
     if (this.cacheable) generated = this._cache = [...generator];

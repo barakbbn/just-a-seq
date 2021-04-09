@@ -89,10 +89,10 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, Tagged
     return super.startsWith(items, keySelector);
   }
 
-  tap(callback: Selector<T, void>, thisArg?: any): CachedSeq<T> {
+  tap(callback: Selector<T, void>): CachedSeq<T> {
     const tappable = new CachedSeqImpl<T>(this);
     const callbacks = [...this.tapCallbacks];
-    callbacks.push(thisArg ? callback.bind(thisArg) : callback);
+    callbacks.push(callback);
     tappable.tapCallbacks = callbacks;
     return tappable;
   }

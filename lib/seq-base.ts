@@ -22,6 +22,7 @@ import {
   LEGACY_COMPARER,
   sameValueZero,
   SeqTags,
+  TaggedSeq,
   tapIterable
 } from "./common";
 import {empty} from "./seq-factory";
@@ -45,7 +46,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   readonly asSeq = (): Seq<T> => {
-    return factories.Seq(this.getSourceForNewSequence(), undefined, [
+    return this.createDefaultSeq(this.getSourceForNewSequence(), undefined, [
       [SeqTags.$notAffectingNumberOfItems, true]]);
   };
 
@@ -83,15 +84,17 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   cache(now?: boolean): CachedSeq<T> {
-    return factories.CachedSeq(this.getSourceForNewSequence(), now);
+    return this.transferOptimizeTag(factories.CachedSeq(this.getSourceForNewSequence(), now));
   }
 
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1) return empty<Seq<T>>();
+    const self = this;
+    const optimize = SeqTags.optimize(this);
     return this.generate(function* chunk(items, iterationContext) {
       if (Array.isArray(items)) {
         for (let skip = 0; skip < items.length; skip += size) {
-          yield factories.Seq<T>(items).slice(skip, skip + size);
+          yield self.createDefaultSeq<T>(items).slice(skip, skip + size);
         }
 
       } else {
@@ -102,14 +105,13 @@ export abstract class SeqBase<T> implements Seq<T> {
         while (!next.done) {
           innerSeq?.consume();
           if (next.done) break;
-
-          innerSeq = factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
+          innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
             let count = 0;
             while (size > count++ && !next.done) {
               yield next.value;
               next = iterator.next();
             }
-          }));
+          })), optimize);
           yield innerSeq;
         }
       }
@@ -240,10 +242,9 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   filter(condition: Condition<T>): Seq<T>;
 
-  filter<S extends T>(condition: (item: T, index: number) => item is S, thisArg?: any): Seq<S> {
-    return this.generate(function* filter(self) {
-      for (const {value, index} of entries(self)) if (condition(value, index)) yield value;
-    });
+  filter<S extends T>(condition: (item: T, index: number) => item is S): Seq<S> {
+    const filter = {filter: condition};
+    return factories.FilterMapSeq<T, S>(this.getSourceForNewSequence(), filter);
   }
 
   findIndex(condition: Condition<T>): number;
@@ -321,8 +322,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void {
-    if (thisArg) callback = callback.bind(thisArg);
+  forEach(callback: (value: T, index: number, breakLoop: object) => void): void {
     const breakLoop: any = {};
 
     for (const {value, index,} of entries(this)) {
@@ -335,7 +335,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
-    return factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector);
+    return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
   }
 
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I> {
@@ -360,7 +360,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     const isSequence = (v: any): v is { useSequence: Iterable<T> } => v && isIterable(v.useSequence);
     const isFactory = (v: any): v is { useFactory: () => T } => v && typeof (v.useFactory) === 'function';
 
-    if (SeqTags.empty(this)) return factories.Seq(
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return this.createDefaultSeq(
       isSequence(value) ? value.useSequence : isFactory(value) ? {
         * [Symbol.iterator]() {
           yield value.useFactory();
@@ -602,7 +602,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   isEmpty(): boolean {
-    if (SeqTags.empty(this)) return true;
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return true;
     // noinspection LoopStatementThatDoesntLoopJS
     for (const _ of this) return false;
     return true;
@@ -666,9 +666,8 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U> {
-    return this.generate(function* map(self: Iterable<T>) {
-      for (const {value, index} of entries(self)) yield mapFn(value, index);
-    });
+    const map = {map: mapFn};
+    return factories.FilterMapSeq<T, U>(this.getSourceForNewSequence(), map);
   }
 
   max(): T extends number ? number : never;
@@ -753,7 +752,7 @@ export abstract class SeqBase<T> implements Seq<T> {
       const fn = instanceOf;
       return this.filter(value => value instanceof fn);
     }
-    return factories.Seq<any>();
+    return this.createDefaultSeq<any>();
   }
 
   prepend(...items: Iterable<T>[]): Seq<T> {
@@ -1106,9 +1105,8 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  tap(callback: Selector<T, void>, thisArg?: any): Seq<T> {
+  tap(callback: Selector<T, void>): Seq<T> {
     return this.generate(function* tap(items: Iterable<T>) {
-      if (thisArg) callback = callback.bind(thisArg);
       for (const {value, index} of entries(items)) {
         callback(value, index);
         yield value;
@@ -1353,6 +1351,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   protected anyOptimized(source: Iterable<any>, condition?: Condition<T>): boolean {
+    if (!SeqTags.optimize(this)) return this.anyInternal(condition);
     if (SeqTags.empty(this)) return false;
 
     if (!condition) {
@@ -1367,6 +1366,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   protected countOptimized(source: Iterable<any>, condition: Condition<T> = () => true): number {
+    if (!SeqTags.optimize(this)) return this.countInternal(condition);
     if (SeqTags.infinite(this)) throw RangeError('Cannot count infinite sequence');
     if (SeqTags.empty(this)) return 0;
 
@@ -1379,7 +1379,7 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   protected hasAtLeastOptimized(source: Iterable<any>, count: number): boolean {
     if (count <= 0) throw new RangeError('count must be positive');
-
+    if (!SeqTags.optimize(this)) return this.hasAtLeastInternal(count);
     const maxCount = SeqTags.maxCount(this);
     if (maxCount != null && maxCount < count) return false;
 
@@ -1391,7 +1391,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   protected includesOptimized(source: Iterable<any>, itemToFind: T, fromIndex: number = 0): boolean {
-    if (SeqTags.notAffectingNumberOfItems(this) && SeqTags.notMappingItems(this)) {
+    if (SeqTags.optimize(this) && SeqTags.notAffectingNumberOfItems(this) && SeqTags.notMappingItems(this)) {
       if (Array.isArray(source) && source.length) return source.includes(itemToFind, fromIndex);
       if (SeqTags.isSeq(source)) return source.includes(itemToFind, fromIndex);
     }
@@ -1402,7 +1402,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     generator: (items: TSeq, iterationContext: IterationContext) => Iterator<U>,
     tags?: readonly [symbol, any][]): Seq<U> {
 
-    return factories.Seq(this.getSourceForNewSequence(), generator, tags);
+    return this.createDefaultSeq(this.getSourceForNewSequence(), generator, tags);
   }
 
   protected generateForSource<S, U, TSeq extends Iterable<S> = Iterable<S>>(
@@ -1410,7 +1410,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     generator: (items: TSeq, iterationContext: IterationContext) => Iterator<U>,
     tags?: readonly [symbol, any][]): Seq<U> {
 
-    return factories.Seq(source, generator, tags);
+    return this.createDefaultSeq(source, generator, tags);
   }
 
 
@@ -1418,8 +1418,8 @@ export abstract class SeqBase<T> implements Seq<T> {
     return getIterator(this);
   }
 
-  protected tapGenerator(callback: Selector<T, void>, thisArg?: any): Iterable<T> {
-    return tapIterable(this, callback, thisArg);
+  protected tapGenerator(callback: Selector<T, void>): Iterable<T> {
+    return tapIterable(this, callback);
   }
 
   protected findFirstByConditionInternal(fromIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
@@ -1449,6 +1449,26 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this;
   }
 
+  protected createDefaultSeq<T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
+    source?: Iterable<T>,
+    generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [symbol, any][]): Seq<U> {
+    const optimize = SeqTags.optimize(this);
+    tags = optimize ? [...tags ?? [], [SeqTags.$optimize, true]] : tags;
+
+    return factories.Seq(source, generator, tags);
+  }
+
+  protected transferOptimizeTag<TSeq extends Seq<any>>(to: TSeq): TSeq {
+    if (SeqTags.optimize(this)) this.tagAsOptimized(to);
+    return to;
+  }
+
+  protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
+    if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
+  }
+
   private groupJoinInternal<TOut, TIn, K>(outers: Iterable<TOut>, outerKeySelector: Selector<TOut, K>, inners: Iterable<TIn>, innerKeySelector: Selector<TIn, K>): SeqOfGroups<TOut, TIn> {
     // TODO: Think if can optimize or make more lazy
     function* leftOuterJoin(self: Iterable<TOut>) {
@@ -1468,7 +1488,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     }
 
     const gen = new Gen(outers, leftOuterJoin);
-    return factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner);
+    return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
   }
 
   private findFirstByCondition(fromIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [number, T | undefined] {
