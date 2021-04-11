@@ -9,3 +9,4 @@ if (!factories.FilterMapSeq) factories.FilterMapSeq = require('./filter-map-seq'
 
 export * from './seq';
 export * from './seq-factory';
+export * as Optimized from './optimized'

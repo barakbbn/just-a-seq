@@ -1,6 +1,6 @@
 import {assert} from "chai";
 import {array} from "./test-data";
-import {asSeq, empty, indexes, random, range, repeat} from "../lib";
+import {asSeq, empty, indexes, random, range, repeat} from "../lib/optimized";
 import {createSeq} from "../lib/seq-impl";
 import {describe} from "mocha";
 

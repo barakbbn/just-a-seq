@@ -271,6 +271,10 @@ export interface Seq<T> extends Iterable<T> {
   zipWithIndex<U = T>(): Seq<[T, number]>;
 }
 
+export namespace Seq {
+  export let enableOptimization = false;
+}
+
 export interface SortedSeq<T> extends Seq<T> {
   tap(callback: Selector<T, void>): SortedSeq<T>;
 

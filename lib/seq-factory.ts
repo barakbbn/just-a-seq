@@ -1,9 +1,8 @@
 import {generate, SeqTags} from "./common";
 import {factories, Seq} from "./seq";
+import {randomInternal} from "./internal";
 
 let _empty: Seq<any>;
-
-let _random: Seq<number>
 
 export function empty<T = any>(_ofType?: T): Seq<T> {
   return _empty ?? (_empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]])) as unknown as Seq<T>;
@@ -43,9 +42,7 @@ export function repeat<T>(value: T, count: number): Seq<T> {
 }
 
 export function random(): Seq<number> {
-  return _random ?? (_random = factories.Seq(undefined, function* randomize() {
-    while (true) yield Math.random();
-  }, [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]]));
+  return randomInternal(Seq.enableOptimization);
 }
 
 export function asSeq<T>(items: Iterable<T>): Seq<T>;
@@ -54,3 +51,5 @@ export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): Seq<
   if (typeof itemsProvider !== "function") return factories.Seq(itemsProvider);
   return factories.Seq<T>(generate(itemsProvider));
 }
+
+
