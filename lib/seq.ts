@@ -68,6 +68,8 @@ export interface Seq<T> extends Iterable<T> {
 
   filter(condition: Condition<T>): Seq<T>;
 
+  find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined; // Overload
 
   find(fromIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
@@ -76,6 +78,8 @@ export interface Seq<T> extends Iterable<T> {
 
   findIndex(fromIndex: number, condition: Condition<T>): number;
 
+  findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
   findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
 
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
@@ -92,7 +96,7 @@ export interface Seq<T> extends Iterable<T> {
 
   flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void): void;
+  forEach(callback: (value: T, index: number, breakLoop: object) => unknown): void;
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 

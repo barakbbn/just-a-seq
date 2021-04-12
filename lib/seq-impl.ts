@@ -214,7 +214,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     return this.source;
   }
 
-  protected findFirstByConditionInternal(fromIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T>|((item: T, index: number) => item is S), fallback?: S): [number, S | undefined] {
     if (fromIndex >= this.source.length) return [-1, fallback];
     for (let index = fromIndex; index < this.source.length; index++) {
       const item = this.source[index];

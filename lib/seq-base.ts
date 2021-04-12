@@ -254,12 +254,14 @@ export abstract class SeqBase<T> implements Seq<T> {
   findIndex(fromIndex: number | Condition<T>, condition?: Condition<T>): number {
     return this.findFirstByCondition(fromIndex, condition)[0];
   }
+  find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
 
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
   find(fromIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
-  find(fromIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): T | undefined {
+  find<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): S | undefined {
     return this.findFirstByCondition(fromIndex, condition, fallback)[1];
   }
 
@@ -322,7 +324,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void): void {
+  forEach(callback: (value: T, index: number, breakLoop: object) => unknown): void {
     const breakLoop: any = {};
 
     for (const {value, index,} of entries(this)) {
@@ -1422,7 +1424,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     return tapIterable(this, callback);
   }
 
-  protected findFirstByConditionInternal(fromIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T>|((item: T, index: number) => item is S), fallback?: S): [number, S | undefined] {
     let index = -1;
     for (const item of this) {
       index++;
@@ -1491,10 +1493,10 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
   }
 
-  private findFirstByCondition(fromIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [number, T | undefined] {
+  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [number, S | undefined] {
     [fromIndex, condition, fallback] = (typeof fromIndex === "number") ?
-      [fromIndex, condition as Condition<T>, fallback] :
-      [0, fromIndex, condition as T | undefined];
+      [fromIndex, condition as (item: T, index: number) => item is S, fallback] :
+      [0, fromIndex, condition as S | undefined];
 
     if (fromIndex < 0) fromIndex = 0;
 
