@@ -27,7 +27,8 @@ import {
 } from "./common";
 import {empty} from "./seq-factory";
 
-export abstract class SeqBase<T> implements Seq<T> {
+export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
+  readonly [SeqTags.$seq] = true;
 
   readonly length = this.count;
 
@@ -254,6 +255,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   findIndex(fromIndex: number | Condition<T>, condition?: Condition<T>): number {
     return this.findFirstByCondition(fromIndex, condition)[0];
   }
+
   find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
   find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
 
@@ -637,6 +639,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   last(fallback: T): T;
 
   last(fallback?: T): T | undefined {
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return fallback;
     let lastItem = fallback;
     for (const item of this) lastItem = item;
     return lastItem;
@@ -918,7 +921,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     if (count <= 0) return empty<T>();
     return this.generate(function* skipLast(items) {
       const array: T[] = Array.isArray(items) ? items : [...items];
-      yield* array.slice(0, -count);
+      for (let i = 0; i < array.length - count; i++) yield array[i];
     })
   }
 
@@ -1404,7 +1407,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     generator: (items: TSeq, iterationContext: IterationContext) => Iterator<U>,
     tags?: readonly [symbol, any][]): Seq<U> {
 
-    return this.createDefaultSeq(this.getSourceForNewSequence(), generator, tags);
+    return this.generateForSource(this.getSourceForNewSequence(), generator, tags);
   }
 
   protected generateForSource<S, U, TSeq extends Iterable<S> = Iterable<S>>(
@@ -1424,7 +1427,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     return tapIterable(this, callback);
   }
 
-  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T>|((item: T, index: number) => item is S), fallback?: S): [number, S | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [number, S | undefined] {
     let index = -1;
     for (const item of this) {
       index++;
@@ -1625,6 +1628,7 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 
   * [Symbol.iterator](): Iterator<T> {
+    if (this.start < 0) return;
     let [index1, count1] = [this.start, this.end < this.start ? this.bufferSize : this.end + 1];
     let [index2, count2] = [0, this.end < this.start ? (this.end + 1) : 0];
 

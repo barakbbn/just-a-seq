@@ -16,9 +16,7 @@ export function createSeq<TSource = any, T = TSource>(
     new GeneratorSeqImpl(source, generator, tags);
 }
 
-export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> implements TaggedSeq {
-  readonly [SeqTags.$seq] = true;
-
+export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
   constructor(
     protected readonly source: Iterable<TSource>,
     private generator: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>,
@@ -51,8 +49,7 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> imp
 
 }
 
-export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
-  readonly [SeqTags.$seq] = true;
+export class ArraySeqImpl<T = any> extends SeqBase<T> {
   readonly [SeqTags.$notAffectingNumberOfItems] = true;
 
   constructor(protected readonly source: readonly T[] = EMPTY_ARRAY) {
@@ -79,7 +76,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   }
 
   chunk(size: number): Seq<Seq<T>> {
-    if (size < 1 || this.source.length === 0) return empty<Seq<T>>();
+    if (size < 1) return empty<Seq<T>>();
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
       for (let skip = 0; skip < source.length; skip += size) {
@@ -124,7 +121,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   }
 
   reverse(): Seq<T> {
-    if (this.source.length === 0) return empty<T>();
+    if (this.source.length === 0) return this;
 
     return this.createDefaultSeq(this.source, function* reverse(source: T[]) {
       for (let i = source.length - 1; i >= 0; i--) yield source[i];
@@ -155,7 +152,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     if (end < 0) end = 0;
     else if (end > this.source.length) end = this.source.length;
 
-    if (end === 0 || end - start <= 0 || start >= this.source.length) return empty<T>();
+    if (end === 0 || end - start <= 0) return empty<T>();
 
     return this.generateForSource(this.source, function* slice(source: T[]) {
       for (let i = start; i < end; i++) yield source[i];
@@ -164,7 +161,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 
   skip(count: number): Seq<T> {
     if (count <= 0) return this;
-    if (count >= this.source.length) return empty<T>();
 
     return this.generateForSource(this.source, function* skip(source: T[]) {
       for (let i = count; i < source.length; i++) yield source[i];
@@ -178,7 +174,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] {
     if (typeof atIndexOrCondition !== 'number') return super.split(atIndexOrCondition);
     if (atIndexOrCondition <= 0) return [empty<T>(), this];
-    if (atIndexOrCondition >= this.source.length) return [this, empty<T>()];
 
     return [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)]
   }
@@ -197,7 +192,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   }
 
   takeLast(count: number): Seq<T> {
-    if (this.source.length <= 0) return empty<T>();
     if (count > this.source.length) return this;
 
     return this.generateForSource(this.source, function* takeLast(source: T[]) {
@@ -242,7 +236,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 
 
 export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
-  readonly [SeqTags.$seq] = true;
   readonly [SeqTags.$notAffectingNumberOfItems] = true;
   readonly [SeqTags.$notMappingItems] = true;
 

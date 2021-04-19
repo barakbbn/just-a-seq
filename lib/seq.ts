@@ -59,7 +59,7 @@ export interface Seq<T> extends Iterable<T> {
 
   endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
-  entries(): Seq<[number, T]>;
+  entries(): Seq<[index:number, value:T]>;
 
   every(condition: Condition<T>): boolean;
 
@@ -90,7 +90,7 @@ export interface Seq<T> extends Iterable<T> {
 
   first(defaultIfEmpty?: T): T | undefined;
 
-  firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
+  firstAndRest(defaultIfEmpty?: T): [first:T, rest:Seq<T>];
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
@@ -233,8 +233,8 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(reverse?: boolean): Seq<T>;
 
-  split(atIndex: number): [Seq<T>, Seq<T>]; // Overload
-  split(condition: Condition<T>): [Seq<T>, Seq<T>];
+  split(atIndex: number): [first:Seq<T>, second:Seq<T>]; // Overload
+  split(condition: Condition<T>): [first:Seq<T>, second:Seq<T>];
 
   startsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
@@ -272,7 +272,7 @@ export interface Seq<T> extends Iterable<T> {
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;
 
-  zipWithIndex<U = T>(): Seq<[T, number]>;
+  zipWithIndex<U = T>(): Seq<[value:T, index:number]>;
 }
 
 export namespace Seq {
@@ -315,7 +315,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 
   toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
-  toMap(): MapHierarchy<[K], T>;
+  toMap(): MapHierarchy<[key:K], T>;
 
   cache(): this & CachedSeq<GroupedSeq<K, T>>
 }
@@ -346,7 +346,7 @@ export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
     source?: Iterable<T>,
     generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
-    tags?: readonly [symbol, any][]): Seq<U>;
+    tags?: readonly [tag:symbol, value:any][]): Seq<U>;
 }
 
 export interface CachedSeqFactory {

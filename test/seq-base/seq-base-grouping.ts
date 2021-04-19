@@ -156,6 +156,13 @@ export abstract class SeqBase_Grouping_Tests {
         assert.deepEqual(actual, expected);
       });
 
+      it('should return empty sequence when source sequence is empty', () => {
+        const input: number[] = [];
+        const sut = this.createSut(input).groupBy(s => s > 5);
+        const actual = [...sut];
+        assert.lengthOf(actual, 0);
+      });
+
       describe('thenGroupBy()', () => {
         function expectedSamplesHierarchy() {
           const input = array.samples;

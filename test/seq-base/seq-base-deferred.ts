@@ -1659,7 +1659,7 @@ export abstract class SeqBase_Deferred_Tests {
     describe('skipLast()', () => {
       this.it1('should return new sequence without last skipped items', array.oneToTen, (source) => {
         const input = [...source];
-        const sut = this.createSut(input);
+        const sut = this.createSut(source);
         for (let count = 0; count < input.length + 1; count++) {
           const expected = input.slice(0, -count);
           let actual = [...sut.skipLast(count)];
@@ -1820,9 +1820,13 @@ export abstract class SeqBase_Deferred_Tests {
         }
       });
 
-      this.it1('should return empty sequence is count non positive', [], (input) => {
+      this.it1('should return empty sequence is count non positive', array.oneToTen, (input) => {
         assert.sameOrderedMembers([...this.createSut(input).takeLast(0)], []);
         assert.sameOrderedMembers([...this.createSut(input).takeLast(-1)], []);
+      });
+
+      this.it1('should return empty sequence is source sequence is empty', [], (input) => {
+        assert.sameOrderedMembers([...this.createSut(input).takeLast(10)], []);
       });
     });
 

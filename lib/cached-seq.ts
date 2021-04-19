@@ -2,11 +2,10 @@ import {CachedSeq, Condition, Selector} from "./seq";
 import {SeqTags, TaggedSeq, tapGenerator} from "./common";
 import {SeqBase} from "./seq-base";
 
-export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T>, TaggedSeq {
+export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   // We don't tag the sequence with every reasonable tag (i.e. $sourceIsArray, $notAffectingNumberOfItems)
   // In order to avoid optimizations that might override this cacheable sequence from being cached when operated upon
   // i.e. if source is another sequence, then any() will optimize by calling the source sequence.any()
-  readonly [SeqTags.$seq] = true;
   readonly [SeqTags.$cacheable] = true;
 
   private _cache?: readonly T[];

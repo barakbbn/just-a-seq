@@ -7,9 +7,15 @@ import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
+import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
+import {Seq} from "../lib";
+import {SeqTags, TaggedSeq} from "../lib/common";
 
 function createSut<T>(input?: Iterable<T>): GroupedSeqImpl<string, T> {
-  return new GroupedSeqImpl('key', input ?? []);
+  const seq = new GroupedSeqImpl('key', input ?? []);
+  if (Seq.enableOptimization) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+  return seq;
+
 }
 
 class GroupedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
@@ -37,6 +43,10 @@ class GroupedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
 
 }
 
+class GroupedSeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+  protected readonly createSut = createSut;
+}
+
 export class GroupedSeqImpl_Tests {
   readonly run = () => describe('GroupedSeqImpl', () => {
     new GroupedSeqImpl_Deferred_GetIterator_Tests().run();
@@ -45,6 +55,7 @@ export class GroupedSeqImpl_Tests {
     new GroupedSeqImpl_SortedSeq_Tests().run();
     new GroupedSeqImpl_CachedSeq_Tests().run();
     new GroupedSeqImpl_Grouping_Tests().run();
+    new GroupedSeqImpl_Change_Source_Tests().run();
 
     describe('key property', () => {
       it('should return value that was set in creation', () => {

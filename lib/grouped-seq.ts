@@ -9,7 +9,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
-import {consume, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
+import {consume, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
@@ -92,9 +92,8 @@ class Container {
 
 export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   extends SeqBase<MultiGroupedSeq<Ks, TOut>>
-  implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>>, TaggedSeq {
+  implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>> {
 
-  readonly [SeqTags.$seq] = true;
   key: any;
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
@@ -251,7 +250,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       return;
     }
     let yielded = false;
-    let generated: Iterable<any>;
+    let generated: Iterable<any> = EMPTY_ARRAY;
 
     if (!this.cacheable) {
       iterationContext.onClose(() => {
@@ -309,11 +308,12 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     }
 
     let next = sessionIterator.next();
-    const rootContainer: Container = next.value.rootContainer;
-    const generator = new SeqOfGroupsGenerator(rootContainer, SeqTags.optimize(this));
+    if(!next.done) {
+      const rootContainer: Container = next.value.rootContainer;
+      generated = new SeqOfGroupsGenerator(rootContainer, SeqTags.optimize(this));
+    }
 
-    generated = generator;
-    if (this.cacheable) generated = this._cache = [...generator];
+    if (this.cacheable) generated = this._cache = [...generated];
     for (const entry of entries(generated)) {
       this.tapCallbacks.forEach(callback => callback(entry.value, entry.index));
       yielded = true;

@@ -2,8 +2,7 @@ import {Comparer, Condition, factories, Selector, Seq, SortedSeq} from "./seq";
 import {DONT_COMPARE, EMPTY_ARRAY, entries, LEGACY_COMPARER, sameValueZero, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
-export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T>, TaggedSeq {
-  readonly [SeqTags.$seq] = true;
+export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> {
   readonly [SeqTags.$sorted] = true;
 
   protected readonly comparer?: (a: any, b: any) => number;

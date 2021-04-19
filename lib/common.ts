@@ -23,13 +23,13 @@ class IterationContextImpl implements IterationContext {
   }
 }
 
-export class CloseableIterator<T, U = T> implements Iterator<U> {
+export class CloseableIterator<T, U = T, TSeq extends Iterable<T> = Iterable<T>> implements Iterator<U> {
   private iterator: Iterator<U>;
   private done = false;
   private iterationContext = new IterationContextImpl();
 
-  constructor(private source: Iterable<T>,
-              private generator: (seq: Iterable<T>, iterationContext: IterationContext) => Iterator<U>) {
+  constructor(private source: TSeq,
+              private generator: (seq: TSeq, iterationContext: IterationContext) => Iterator<U>) {
   }
 
   return(value?: any): IteratorResult<any> {
@@ -47,13 +47,13 @@ export class CloseableIterator<T, U = T> implements Iterator<U> {
   }
 }
 
-export class Gen<T, U = T> implements Iterable<U> {
+export class Gen<T, U = T, TSeq extends Iterable<T> = Iterable<T>> implements Iterable<U> {
 
-  constructor(private seq: Iterable<T>, private generator: (seq: Iterable<T>, iterationContext: IterationContext) => Iterator<U>) {
+  constructor(private seq: TSeq, private generator: (seq: TSeq, iterationContext: IterationContext) => Iterator<U>) {
   }
 
   [Symbol.iterator](): Iterator<U> {
-    return new CloseableIterator<T, U>(this.seq, this.generator);
+    return new CloseableIterator<T, U, TSeq>(this.seq, this.generator);
   }
 }
 

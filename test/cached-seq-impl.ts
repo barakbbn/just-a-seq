@@ -7,9 +7,13 @@ import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {array} from "./test-data";
 import {assert} from "chai";
+import {Seq} from "../lib";
+import {SeqTags, TaggedSeq} from "../lib/common";
 
 function createSut<T>(input?: Iterable<T>): CachedSeqImpl<T> {
-  return new CachedSeqImpl(input ?? []);
+  const seq = new CachedSeqImpl(input ?? []);
+  if (Seq.enableOptimization) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+  return seq;
 }
 
 class CachedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {

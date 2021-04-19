@@ -12,9 +12,12 @@ import {SeqBase_Immutable_Tests} from "./seq-base/seq-base-immutable";
 import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {Seq} from "../lib";
 import {SeqBase} from "../lib/seq-base";
+import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
+import {SeqTags} from "../lib/common";
 
 function createSut<T>(input: Iterable<T>): SeqBase<T> {
-  return createSeq(input);
+  const tags: [symbol, any][] = Seq.enableOptimization?[[SeqTags.$optimize, true]]:[];
+  return createSeq(input, undefined, tags);
 }
 
 class SeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
@@ -51,6 +54,10 @@ class SeqImpl_Close_Iterator_Tests extends SeqBase_Close_Iterator_Tests {
   protected createSut = createSut
 }
 
+class SeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+  protected readonly createSut = createSut;
+}
+
 export class SeqImpl_Tests {
   protected createSut = createSut;
 
@@ -63,6 +70,7 @@ export class SeqImpl_Tests {
     new SeqImpl_Grouping_Tests().run();
     new SeqImpl_Immutable_Tests().run();
     new SeqImpl_Close_Iterator_Tests().run();
+    new SeqImpl_Change_Source_Tests().run();
 
     describe('cache()', () => {
       it('should return same items on re-consume although source sequence changed', () => {

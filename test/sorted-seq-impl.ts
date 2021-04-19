@@ -6,12 +6,16 @@ import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
-import {DONT_COMPARE} from "../lib/common";
+import {DONT_COMPARE, SeqTags, TaggedSeq} from "../lib/common";
 import {array, generator, iterables, Sample} from "./test-data";
 import {assert} from "chai";
+import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
+import {Seq} from "../lib";
 
 function createSut<T>(input: Iterable<T>): SortedSeqImpl<T> {
-  return SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
+  const seq = SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
+  if (Seq.enableOptimization) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+  return seq;
 }
 
 class SortedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
@@ -39,6 +43,10 @@ class SortedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
 
 }
 
+class SortedSeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+  protected readonly createSut = createSut;
+}
+
 export class SortedSeqImpl_Tests {
   readonly run = () => describe('SortedSeqImpl', () => {
     new SortedSeqImpl_Deferred_GetIterator_Tests().run();
@@ -47,6 +55,7 @@ export class SortedSeqImpl_Tests {
     new SortedSeqImpl_SortedSeq_Tests().run();
     new SortedSeqImpl_CachedSeq_Tests().run();
     new SortedSeqImpl_Grouping_Tests().run();
+    new SortedSeqImpl_Change_Source_Tests().run();
 
     describe("at()", () => {
       it("Return an item at expected index", () => {
