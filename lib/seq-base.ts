@@ -1174,9 +1174,33 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return transformer(this);
   }
 
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T> {
-    // TODO: use single generator function
-    return this.concat(second).distinct(keySelector);
+  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
+
+  union<K>(second: Iterable<T>, keySelectorOrOpts?: ((value: T) => K) | { preferSecond?: boolean; }, opts?: { preferSecond?: boolean; }): Seq<T> {
+    const isOpts = (value: any): value is { preferSecond?: boolean; } => typeof value?.['preferSecond'] === "boolean";
+    let keySelector: (value: T) => K = x => x as unknown as K;
+    if(isOpts(keySelectorOrOpts)) {
+      opts = keySelectorOrOpts;
+    } else {
+      keySelector = keySelectorOrOpts ?? keySelector;
+    }
+
+    const [left, right] = opts?.preferSecond?[second,this]:[this, second];
+    return this.generateForSource(left, function * union() {
+      function *concat(){
+        yield *left;
+        yield *right;
+      }
+      const keys = new Set<K>();
+      for (const item of concat()) {
+        const key = keySelector(item);
+        if (keys.has(key)) continue;
+        keys.add(key);
+        yield item;
+      }
+      keys.clear();
+    })
   }
 
   unshift(...items: T[]): Seq<T> {

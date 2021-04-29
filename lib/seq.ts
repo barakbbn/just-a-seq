@@ -264,7 +264,8 @@ export interface Seq<T> extends Iterable<T> {
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T>;
+  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
 
