@@ -259,8 +259,7 @@ export interface Seq<T> extends Iterable<T> {
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
-  toString(separator?: string): string; // Overload
-  toString(opts: { start?: string; separator?: string, end?: string; }): string;
+  toString(): string;
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 

@@ -1162,12 +1162,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return set;
   }
 
-  toString(separator?: string): string; // Overload
-
-  toString(opts: { start?: string; separator?: string, end?: string; }): string;
-
-  toString(separatorOrOpts?: string | { start?: string; separator?: string; end?: string }): string {
-    return this.join(separatorOrOpts as any);
+  toString(): string {
+    return this.join({start: '[', end: ']'});
   }
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U> {
