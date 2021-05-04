@@ -21,9 +21,7 @@ function createSut<T>(input: Iterable<T>): SeqBase<T> {
 }
 
 class SeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
-  createSut<T>(input: Iterable<T>): Seq<T> {
-    return createSeq(input);
-  }
+  protected createSut = createSut
 }
 
 class SeqImpl_Deferred_Tests extends SeqBase_Deferred_Tests {

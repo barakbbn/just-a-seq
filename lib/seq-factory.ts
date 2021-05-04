@@ -48,7 +48,9 @@ export function random(): Seq<number> {
 export function asSeq<T>(items: Iterable<T>): Seq<T>;
 export function asSeq<T>(generator: () => Iterator<T>): Seq<T>;
 export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): Seq<T> {
-  if (typeof itemsProvider !== "function") return factories.Seq(itemsProvider);
+  if (typeof itemsProvider !== "function") {
+    return SeqTags.isSeq(itemsProvider) ? itemsProvider : factories.Seq(itemsProvider);
+  }
   return factories.Seq<T>(generate(itemsProvider));
 }
 

@@ -267,8 +267,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findFirstByCondition(fromIndex, condition, fallback)[1];
   }
 
-  findLast(condition: Condition<T>, fallback?: T | undefined): T | undefined;
-
+  findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+  findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
   findLast(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): T | undefined {
@@ -1447,7 +1448,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return tapIterable(this, callback);
   }
 
-  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [number, S | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [index:number, first:S | undefined] {
     let index = -1;
     for (const item of this) {
       index++;
@@ -1458,7 +1459,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return [-1, fallback];
   }
 
-  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
+  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index:number, last:T | undefined] {
     let index = -1;
     let found: [number, T] = [-1, fallback as T];
     for (const item of this) {
@@ -1516,7 +1517,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
   }
 
-  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [number, S | undefined] {
+  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index:number, first:S | undefined] {
     [fromIndex, condition, fallback] = (typeof fromIndex === "number") ?
       [fromIndex, condition as (item: T, index: number) => item is S, fallback] :
       [0, fromIndex, condition as S | undefined];
@@ -1526,7 +1527,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findFirstByConditionInternal(fromIndex, condition, fallback);
   }
 
-  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [number, T | undefined] {
+  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [index:number, last:T | undefined] {
     [tillIndex, condition, fallback] = (typeof tillIndex === "number") ?
       [tillIndex, condition as Condition<T>, fallback] :
       [Number.NaN, tillIndex, condition as T | undefined];

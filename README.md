@@ -16,38 +16,27 @@ ___
   (Since most existing libraries already mimics .Net IEnumerable).
 * Additional useful functionalities that can make you more productive.
 
-
-#### See: *[Full API documentation](https://github.com/barakbbn/just-a-seq/wiki/docs)* 
+#### See: *[Full API documentation](https://github.com/barakbbn/just-a-seq/wiki/docs)*
 
 #### Examples
 
 ```typescript
-import {asSeq} from 'just-a-seq';
+import {asSeq} from '@barakbbn/just-a-seq/optimized';
 
-let cells: { col: number; row: number; userValue?: number; }[] = [
-  {col: 0, row: 0, userValue: 0}, {col: 0, row: 1, userValue: 1},
-  {col: 1, row: 0, userValue: 10}, {col: 1, row: 1, userValue: 11},
+const graphA = [
+  {x: 0, y: 0}, {x: 1, y: 2}, {x: 2, y: 4}, {x: 3, y: 6}, {x: 4, y: 8}, {x: 5, y: 10}
+];
+const graphB = [
+  {x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 4}, {x: 3, y: 7}, {x: 4, y: 6}, {x: 5, y: 8}
 ];
 
-const newPoints = [{x: 0, y: 0}, {x: 1, y: 1}, {x: 11, y: 11}];
+const averageDistance = asSeq(graphA)
+  .innerJoin(graphB, a => a.x, b => b.x)
+  .map(ab => Math.abs(a.y - b.y))
+  .average();
 
-// Sync cells with new points, by keeping existing cells (with user changes) and adding newer
-const changed = !asSeq(cells).includesAll(newPoints, cell => cell.col + ',' + cell.row, p => p.x + ',' + p.y);
-
-if (changed) {
-  cells = asSeq(newPoints)
-    .groupJoin(cells, p => p.x + ',' + p.y, cell => cell.col + ',' + cell.row)
-    .map(group => group.ifEmpty({col: group.key.x, row: group.key.y}))
-    .flat()
-    .toArray();
-}
-
-console.log(cells);
-// Output: [
-//   {col: 0, row: 0, userValue: 0}, 
-//   {col: 1, row: 1, userValue: 11},
-//   {col: 11, row: 11}
-// ]
+console.log('Average distance', averageDistance);
+// Output: Average distance 1
 ```
 
 <!-- Example 2 -->
@@ -55,6 +44,50 @@ console.log(cells);
 <summary><i>Example 2</i></summary>
 
 ```typescript
+import {asSeq} from '@barakbbn/just-a-seq/optimized';
+
+const users = [
+  {user: 'sa', group: 'admins'},
+  {user: 'system', group: null},
+  {user: 'guest', group: 'guests'},
+  {user: 'any', group: 'guests'},
+  {user: 'me', group: 'admins'}
+];
+
+const permissions = [
+  {group: 'admins', perm: 'read'},
+  {group: 'admins', perm: 'write'},
+  {group: 'services', perm: 'exec'},
+  {group: 'guests', perm: 'read'},
+  {group: 'admins', perm: 'exec'},
+];
+
+const usersPermissions = asSeq(users)
+  .innerJoin(permissions, o => o.group, i => i.group, ({user}, {perm}) => ({user, perm}))
+  .groupBy(x => x.user, undefined, x => x.perm)
+  .map(x => ({user: x.key, permissions: x.sorted().toArray()}))
+  .sortBy(x => x.user)
+  .toArray();
+
+console.log('Users Permissions:', usersPermissions);
+// Output: 
+// Users Permissions: [
+//   { user: 'any', permissions: [ 'read' ] },
+//   { user: 'guest', permissions: [ 'read' ] },
+//   { user: 'me', permissions: [ 'exec', 'read', 'write' ] },
+//   { user: 'sa', permissions: [ 'exec', 'read', 'write' ] }
+// ]
+```
+
+</details>
+<br>
+<!-- Example 3 -->
+<details>
+<summary><i>Example 3</i></summary>
+
+```typescript
+import {asSeq} from '@barakbbn/just-a-seq/optimized';
+
 const layers = [
   {layerId: 1, name: 'L-01', points: [{x: 0, y: 0, tag: 'center'}, {x: 1, y: 1, tag: 'opt'}], type: 'static'},
   {layerId: 2, name: 'L-02', points: [{x: 0, y: 0, tag: 'relative'}, {x: 2, y: 2, tag: 'opt'}], type: 'static'},
@@ -81,6 +114,7 @@ console.log(asSeq(layers)
 ### Functionality summary
 
 #### Immediate actions
+
 |   |   |   |   |   |
 |---|---|---|---|---|
 |all|any|at|average|
@@ -98,6 +132,7 @@ console.log(asSeq(layers)
 |toArray|toMap|toSet|toString|
 
 #### Deferred actions
+
 |   |   |   |   |   |
 |---|---|---|---|---|
 |append|
@@ -123,9 +158,79 @@ console.log(asSeq(layers)
 |union|unshift|
 |zip|zipAll|zipWithIndex|
 
-
 #### Factories
+
 |   |   |   |
 |---|---|---|
 | asSeq |indexes| empty |
 | random| range | repeat|
+
+### Optimized Mode
+
+There is an optimization mode (disabled by default) that optimize some functionalities in certain conditions.  
+It assumes no side effects are performed (especially through map() ). for side effect should use tap().  
+To use the optimized mode either:
+
+```ts
+import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
+```  
+
+Or enable global optimization flag as follow:
+
+```ts
+import {asSeq, Seq} from '@barakbbn/just-a-seq';
+
+Seq.enableOptimization = true;
+```
+
+If witnessing some mis-behaviours in optimized mode,  
+It is probably since relying on behaviours that optimization mode do shortcuts for.  
+In that case either switch to non-optimized mode, or consider adjusting the code.
+
+Examples
+
+```ts
+import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
+
+let students = loadStudents();
+let gotTopGrade = false;
+
+// DON'T
+students = students.map(s => {
+  if (s.grade === 100) gotTopGrade = true; // Side Effect
+  return s;
+});
+
+// DO
+students = students.tap(s => gotTopGrade |= (s.grade === 100));
+
+processStudents(students);
+```
+
+```ts
+import {random, Seq} from '@barakbbn/just-a-seq/optimized';
+
+class PointsComponent {
+  points: Seq<{ x: number; y: number; }> ;
+  samePoints = 0;
+
+  constructor() {
+    const points = this.loadPoints();
+
+    this.points = asSeq(points).sort((a, b) => {
+      const comparable = (a.x - b.x) || (a.y - b.y);
+      if (comparable === 0) samePoints++; // Side Effect
+      return comparable;
+    });
+    // The comparer function is not guranteed to run in optimization mode, in case a re-sort is performed.
+    // In that case don't use optimized mode. i.e. import {asSeq, random} from '@barakbbn/just-a-seq';
+  }
+
+  onUserSelectedPoint(selectedPoint: { x: number; y: number; }) {
+    if (!this.points.includes(selectedPoint)) { // Optimization-mode might skip the sorting
+      this.points = this.points.push(selectedPoint);
+    }
+    console.log('Total Points:', this.points.count()); // Optimization-mode might skip the sorting
+  }
+}
+```
