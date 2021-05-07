@@ -11,8 +11,8 @@ export function createSeq<TSource = any, T = TSource>(
 
   return !generator ?
     Array.isArray(source) ?
-      new ArraySeqImpl<T>(source) :
-      new IterableSeqImpl(source as unknown as Iterable<T>) :
+      new ArraySeqImpl<T>(source, tags) :
+      new IterableSeqImpl(source as unknown as Iterable<T>, tags) :
     new GeneratorSeqImpl(source, generator, tags);
 }
 
@@ -24,7 +24,11 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
 
     super();
 
-    tags.forEach(([tag, value]) => (this as any)[tag] = value);
+    SeqTags.setTagsIfMissing(this, tags);
+  }
+
+  all(condition: Condition<T>): boolean {
+    return super.allOptimized(this.source, condition);
   }
 
   any(condition?: Condition<T>): boolean {
@@ -50,10 +54,13 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
 }
 
 export class ArraySeqImpl<T = any> extends SeqBase<T> {
-  readonly [SeqTags.$notAffectingNumberOfItems] = true;
+  [SeqTags.$notAffectingNumberOfItems] = true;
+  [SeqTags.$notMappingItems] = true;
 
-  constructor(protected readonly source: readonly T[] = EMPTY_ARRAY) {
+  constructor(protected readonly source: readonly T[] = EMPTY_ARRAY,
+              tags: readonly [symbol, any][] = EMPTY_ARRAY) {
     super();
+    SeqTags.setTagsIfMissing(this, tags);
   }
 
   // TaggedSeq
@@ -61,12 +68,12 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return this.source.length;
   }
 
-  any(condition?: Condition<T>): boolean {
-    return condition ? this.source.some(condition) : this.source.length > 0;
-  }
-
   all(condition: Condition<T>): boolean {
     return this.every(condition);
+  }
+
+  any(condition?: Condition<T>): boolean {
+    return condition ? this.source.some(condition) : this.source.length > 0;
   }
 
   at(index: number, fallback?: T): T | undefined {
@@ -236,8 +243,8 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
 
 
 export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
-  readonly [SeqTags.$notAffectingNumberOfItems] = true;
-  readonly [SeqTags.$notMappingItems] = true;
+  [SeqTags.$notAffectingNumberOfItems] = true;
+  [SeqTags.$notMappingItems] = true;
 
   constructor(
     protected readonly source: Iterable<T>,
@@ -245,11 +252,7 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
 
     super();
 
-    tags.forEach(([tag, value]) => (this as any)[tag] = value);
-  }
-
-  includes(itemToFind: T, fromIndex: number = 0): boolean {
-    return super.includesOptimized(this.source, itemToFind, fromIndex);
+    SeqTags.setTagsIfMissing(this, tags);
   }
 
   [Symbol.iterator](): Iterator<T> {
@@ -259,5 +262,4 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   protected getSourceForNewSequence(): Iterable<T> {
     return this.source;
   }
-
 }

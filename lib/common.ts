@@ -177,6 +177,13 @@ export class SeqTags {
     const isNot = !this.getTag(seq, this.$notMappingItems)
     return !isNot;
   }
+
+  static setTagsIfMissing(on: TaggedSeq, tags: readonly [symbol, any][]): void{
+    for (const [tag, value] of tags) {
+      if (tag in on) continue;
+      (on as any)[tag] = value
+    }
+  }
 }
 
 export interface TaggedSeq {

@@ -33,9 +33,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   readonly length = this.count;
 
   all(condition: Condition<T>): boolean {
-    let index = 0;
-    for (const item of this) if (!condition(item, index++)) return false;
-    return true;
+    return this.allInternal(condition);
   }
 
   any(condition?: Condition<T>): boolean {
@@ -48,7 +46,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   readonly asSeq = (): Seq<T> => {
     return this.createDefaultSeq(this.getSourceForNewSequence(), undefined, [
-      [SeqTags.$notAffectingNumberOfItems, true]]);
+      [SeqTags.$notAffectingNumberOfItems, true],
+      [SeqTags.$notMappingItems, true]]);
   };
 
   at(index: number, fallback?: T): T | undefined {
@@ -838,19 +837,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   removeFalsy(): Seq<T> {
-    return this.generate(function* removeFalsy(self) {
-      for (const item of self) {
-        if (item) yield item;
-      }
-    });
+    return this.filter(x => x);
   }
 
   removeNulls(): Seq<T> {
-    return this.generate(function* removeNulls(self) {
-      for (const item of self) {
-        if (item != null) yield item;
-      }
-    });
+    return this.filter(x => x != null);
   }
 
   repeat(count: number): Seq<T> {
@@ -1177,18 +1168,19 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   union<K>(second: Iterable<T>, keySelectorOrOpts?: ((value: T) => K) | { preferSecond?: boolean; }, opts?: { preferSecond?: boolean; }): Seq<T> {
     const isOpts = (value: any): value is { preferSecond?: boolean; } => typeof value?.['preferSecond'] === "boolean";
     let keySelector: (value: T) => K = x => x as unknown as K;
-    if(isOpts(keySelectorOrOpts)) {
+    if (isOpts(keySelectorOrOpts)) {
       opts = keySelectorOrOpts;
     } else {
       keySelector = keySelectorOrOpts ?? keySelector;
     }
 
-    const [left, right] = opts?.preferSecond?[second,this]:[this, second];
-    return this.generateForSource(left, function * union() {
-      function *concat(){
-        yield *left;
-        yield *right;
+    const [left, right] = opts?.preferSecond ? [second, this] : [this, second];
+    return this.generateForSource(left, function* union() {
+      function* concat() {
+        yield* left;
+        yield* right;
       }
+
       const keys = new Set<K>();
       for (const item of concat()) {
         const key = keySelector(item);
@@ -1320,21 +1312,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return (matcher.done && (match || matcher.isEmpty)) ? [matchStartIndex, index] : [-1, -1];
   }
 
-  protected includesInternal(itemToFind: T, fromIndex: number) {
+  protected allInternal(condition: (x: T, index: number) => unknown) {
     let index = 0;
-
-    if (fromIndex >= 0) {
-      for (const item of this) if (index++ >= fromIndex && sameValueZero(item, itemToFind)) return true;
-      return false;
-    }
-
-    let foundIndex = Number.NaN;
-    for (const item of this) {
-      if (sameValueZero(item, itemToFind)) foundIndex = index;
-      index++;
-    }
-
-    return foundIndex >= fromIndex + index;
+    for (const item of this) if (!condition(item, index++)) return false;
+    return true;
   }
 
   protected anyInternal(condition?: Condition<T>) {
@@ -1361,6 +1342,23 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return false;
   }
 
+  protected includesInternal(itemToFind: T, fromIndex: number) {
+    let index = 0;
+
+    if (fromIndex >= 0) {
+      for (const item of this) if (index++ >= fromIndex && sameValueZero(item, itemToFind)) return true;
+      return false;
+    }
+
+    let foundIndex = Number.NaN;
+    for (const item of this) {
+      if (sameValueZero(item, itemToFind)) foundIndex = index;
+      index++;
+    }
+
+    return foundIndex >= fromIndex + index;
+  }
+
   protected joinInternal(start: string, separator: string, end: string): string {
     return start + [...this].join(separator) + end;
   }
@@ -1376,17 +1374,37 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }, [[SeqTags.$maxCount, count]]);
   }
 
+  protected allOptimized(source: Iterable<any>, condition: Condition<T>): boolean {
+    if (!SeqTags.optimize(this)) return this.allInternal(condition);
+    if (SeqTags.infinite(this)) throw RangeError('Cannot check all items of infinite sequence');
+    if (SeqTags.empty(this)) return true;
+
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (condition.length > 1 || !SeqTags.notAffectingNumberOfItems(this)) {
+      return this.allInternal(condition);
+    }
+    if (SeqTags.isSeq(source)) return source.all(condition);
+
+    return this.allInternal(condition);
+  }
+
   protected anyOptimized(source: Iterable<any>, condition?: Condition<T>): boolean {
     if (!SeqTags.optimize(this)) return this.anyInternal(condition);
     if (SeqTags.empty(this)) return false;
-
-    if (!condition) {
-      if (SeqTags.infinite(this)) return true;
-      if (SeqTags.notAffectingNumberOfItems(this)) {
-        if (Array.isArray(source)) return source.length > 0;
-        if (SeqTags.isSeq(source)) return source.any();
-      }
+    const paramsCount = condition?.length ?? 0;
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (paramsCount > 1 || affectsCount) {
+      return this.anyInternal(condition);
     }
+    if (paramsCount == 0) {
+      if (SeqTags.infinite(this)) return true;
+      if (Array.isArray(source)) return source.length > 0;
+    } else if (SeqTags.isSeq(source)) return source.any(condition);
 
     return this.anyInternal(condition);
   }
@@ -1396,10 +1414,14 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     if (SeqTags.infinite(this)) throw RangeError('Cannot count infinite sequence');
     if (SeqTags.empty(this)) return 0;
 
-    if (!condition && SeqTags.notAffectingNumberOfItems(this)) {
-      if (Array.isArray(source)) return source.length;
-      if (SeqTags.isSeq(source)) return source.count();
-    }
+    const paramsCount = condition?.length ?? 0;
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
+    if (paramsCount === 0 && Array.isArray(source)) return source.length;
+    if (SeqTags.isSeq(source)) return source.count(condition);
     return this.countInternal(condition);
   }
 
@@ -1448,7 +1470,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return tapIterable(this, callback);
   }
 
-  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [index:number, first:S | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [index: number, first: S | undefined] {
     let index = -1;
     for (const item of this) {
       index++;
@@ -1459,7 +1481,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return [-1, fallback];
   }
 
-  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index:number, last:T | undefined] {
+  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index: number, last: T | undefined] {
     let index = -1;
     let found: [number, T] = [-1, fallback as T];
     for (const item of this) {
@@ -1517,7 +1539,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
   }
 
-  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index:number, first:S | undefined] {
+  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index: number, first: S | undefined] {
     [fromIndex, condition, fallback] = (typeof fromIndex === "number") ?
       [fromIndex, condition as (item: T, index: number) => item is S, fallback] :
       [0, fromIndex, condition as S | undefined];
@@ -1527,7 +1549,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findFirstByConditionInternal(fromIndex, condition, fallback);
   }
 
-  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [index:number, last:T | undefined] {
+  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [index: number, last: T | undefined] {
     [tillIndex, condition, fallback] = (typeof tillIndex === "number") ?
       [tillIndex, condition as Condition<T>, fallback] :
       [Number.NaN, tillIndex, condition as T | undefined];

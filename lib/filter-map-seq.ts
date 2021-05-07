@@ -90,12 +90,9 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
     return this.filterMapChain.apply(this.source);
   }
 
-  filter(condition: Condition<U>): Seq<U> {
-    return new FilterMapSeqImpl<T, U>(this.source, this.filterMapChain.filter(condition));
-  }
 
-  map<V = U>(selector: Selector<U, V>): Seq<V> {
-    return new FilterMapSeqImpl<T, V>(this.source, this.filterMapChain.map(selector));
+  all(condition: Condition<U>): boolean {
+    return super.allOptimized(this.source, condition);
   }
 
   any(condition?: Condition<U>): boolean {
@@ -104,6 +101,10 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
 
   count(condition: Condition<U> = () => true): number {
     return this.countOptimized(this.source, condition);
+  }
+
+  filter(condition: Condition<U>): Seq<U> {
+    return new FilterMapSeqImpl<T, U>(this.source, this.filterMapChain.filter(condition));
   }
 
   hasAtLeast(count: number): boolean {
@@ -153,6 +154,10 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
     return fallback;
   }
 
+  map<V = U>(selector: Selector<U, V>): Seq<V> {
+    return new FilterMapSeqImpl<T, V>(this.source, this.filterMapChain.map(selector));
+  }
+
   skipLast(count: number = 1): Seq<U> {
     if (count <= 0) return this;
 
@@ -165,7 +170,7 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
       for (let i = 0; i < length; i++) yield source[i];
     });
 
-    return  new FilterMapSeqImpl<T, U>(source, this.filterMapChain.clone());
+    return new FilterMapSeqImpl<T, U>(source, this.filterMapChain.clone());
   }
 
   takeLast(count: number): Seq<U> {
@@ -180,7 +185,7 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
       for (let i = startIndex; i < source.length; i++) yield source[i];
     });
 
-    return  new FilterMapSeqImpl<T, U>(source, this.filterMapChain.clone());
+    return new FilterMapSeqImpl<T, U>(source, this.filterMapChain.clone());
   }
 
   findLastIndex(condition: Condition<U>): number;

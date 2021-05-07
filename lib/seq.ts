@@ -59,7 +59,7 @@ export interface Seq<T> extends Iterable<T> {
 
   endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
-  entries(): Seq<[index:number, value:T]>;
+  entries(): Seq<[index: number, value: T]>;
 
   every(condition: Condition<T>): boolean;
 
@@ -69,7 +69,9 @@ export interface Seq<T> extends Iterable<T> {
   filter(condition: Condition<T>): Seq<T>;
 
   find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
   find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined; // Overload
 
   find(fromIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
@@ -79,7 +81,9 @@ export interface Seq<T> extends Iterable<T> {
   findIndex(fromIndex: number, condition: Condition<T>): number;
 
   findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
   findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+
   findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
 
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
@@ -90,7 +94,7 @@ export interface Seq<T> extends Iterable<T> {
 
   first(defaultIfEmpty?: T): T | undefined;
 
-  firstAndRest(defaultIfEmpty?: T): [first:T, rest:Seq<T>];
+  firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>];
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
@@ -233,8 +237,8 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(reverse?: boolean): Seq<T>;
 
-  split(atIndex: number): [first:Seq<T>, second:Seq<T>]; // Overload
-  split(condition: Condition<T>): [first:Seq<T>, second:Seq<T>];
+  split(atIndex: number): [first: Seq<T>, second: Seq<T>]; // Overload
+  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>];
 
   startsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
@@ -264,6 +268,7 @@ export interface Seq<T> extends Iterable<T> {
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 
   union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
@@ -272,7 +277,7 @@ export interface Seq<T> extends Iterable<T> {
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;
 
-  zipWithIndex<U = T>(): Seq<[value:T, index:number]>;
+  zipWithIndex<U = T>(): Seq<[value: T, index: number]>;
 }
 
 export namespace Seq {
@@ -315,7 +320,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 
   toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
-  toMap(): MapHierarchy<[key:K], T>;
+  toMap(): MapHierarchy<[key: K], T>;
 
   cache(): this & CachedSeq<GroupedSeq<K, T>>
 }
@@ -346,7 +351,7 @@ export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
     source?: Iterable<T>,
     generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
-    tags?: readonly [tag:symbol, value:any][]): Seq<U>;
+    tags?: readonly [tag: symbol, value: any][]): Seq<U>;
 }
 
 export interface CachedSeqFactory {
@@ -373,7 +378,9 @@ export interface SeqOfGroupsFactory {
 
 export interface FilterMapSeqFactory {
   <T, U = T>(source: Iterable<T>, map: { map: Selector<T, U> }): Seq<U>;
+
   <T>(source: Iterable<T>, filter: { filter: Condition<T> }): Seq<T>;
+
   <T, S extends T>(source: Iterable<T>, filter: { filter: (item: T, index: number) => item is S }): Seq<S>;
 }
 
