@@ -140,14 +140,6 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.sourceToSeq().includesAny(items as any, keySelector as any, secondKeySelector as any);
   }
 
-  map<U = T>(mapFn: Selector<T, U>): Seq<U> {
-    if (this.tapCallbacks.length || mapFn.length > 1 || !SeqTags.optimize(this)) {
-      return super.map(mapFn);
-    }
-    const source = this.sourceToSeq().map(mapFn);
-    return new SortedSeqImpl(source, this.comparer);
-  }
-
   max(): T extends number ? number : never;
 
   max(selector: Selector<T, number>): number;
