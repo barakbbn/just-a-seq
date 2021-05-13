@@ -4,6 +4,9 @@ import {array, generator, iterables, Sample} from "../test-data"
 import {SeqBase} from "../../lib/seq-base";
 
 export abstract class SeqBase_Immediate_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
     it(title + ' - array source', () => testFn(input));
     it(title + ' - generator source', () => testFn(generator.from(input)));
@@ -648,7 +651,7 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe("findLastIndex()", () => {
-      this.it1('should return -1 if non of the items meet the condition', array.oneToTen,(input) => {
+      this.it1('should return -1 if non of the items meet the condition', array.oneToTen, (input) => {
         const expected = -1;
         let sut = this.createSut(input);
         let actual = sut.findLastIndex(() => false);

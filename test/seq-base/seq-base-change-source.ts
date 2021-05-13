@@ -52,6 +52,9 @@ class TestHarness<T> {
 }
 
 export abstract class SeqBase_Change_Source_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   readonly run = () => describe('SeqBase - Change source', () => {
     const test = <T>(title: string, source: T[], onSeq: (seq: Seq<T>) => any) => {
       const testHarness = new TestHarness(source)

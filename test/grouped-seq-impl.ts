@@ -8,54 +8,57 @@ import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
 import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
-import {Seq} from "../lib";
 import {SeqTags, TaggedSeq} from "../lib/common";
 
-function createSut<T>(input?: Iterable<T>): GroupedSeqImpl<string, T> {
-  const seq = new GroupedSeqImpl('key', input ?? []);
-  if (Seq.enableOptimization) (seq as TaggedSeq)[SeqTags.$optimize] = true;
-  return seq;
-
+function createSut<T>(optimized: boolean) {
+  return <T>(input?: Iterable<T>): GroupedSeqImpl<string, T> => {
+    const seq = new GroupedSeqImpl('key', input ?? []);
+    if (optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
+  };
 }
 
 class GroupedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class GroupedSeqImpl_Deferred_Tests extends SeqBase_Deferred_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class GroupedSeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class GroupedSeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class GroupedSeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class GroupedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 
 }
 
 class GroupedSeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
-  protected readonly createSut = createSut;
+  protected readonly createSut = createSut(this.optimized);
 }
 
 export class GroupedSeqImpl_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   readonly run = () => describe('GroupedSeqImpl', () => {
-    new GroupedSeqImpl_Deferred_GetIterator_Tests().run();
-    new GroupedSeqImpl_Deferred_Tests().run();
-    new GroupedSeqImpl_Immediate_Tests().run();
-    new GroupedSeqImpl_SortedSeq_Tests().run();
-    new GroupedSeqImpl_CachedSeq_Tests().run();
-    new GroupedSeqImpl_Grouping_Tests().run();
-    new GroupedSeqImpl_Change_Source_Tests().run();
+    new GroupedSeqImpl_Deferred_GetIterator_Tests(this.optimized).run();
+    new GroupedSeqImpl_Deferred_Tests(this.optimized).run();
+    new GroupedSeqImpl_Immediate_Tests(this.optimized).run();
+    new GroupedSeqImpl_SortedSeq_Tests(this.optimized).run();
+    new GroupedSeqImpl_CachedSeq_Tests(this.optimized).run();
+    new GroupedSeqImpl_Grouping_Tests(this.optimized).run();
+    new GroupedSeqImpl_Change_Source_Tests(this.optimized).run();
 
     describe('key property', () => {
       it('should return value that was set in creation', () => {
@@ -68,6 +71,8 @@ export class GroupedSeqImpl_Tests {
   });
 
   createSut<K, T>(key: K, input?: Iterable<T>): GroupedSeqImpl<K, T> {
-    return new GroupedSeqImpl(key, input ?? []);
+    const seq = new GroupedSeqImpl(key, input ?? []);
+    if (this.optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
   }
 }

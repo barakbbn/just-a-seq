@@ -4,6 +4,9 @@ import {assert} from "chai";
 import {array, Folder, generator, Sample} from "../test-data";
 
 export abstract class SeqBase_Deferred_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
     it(title + ' - array source', () => testFn(input));
     it(title + ' - generator source', () => testFn(generator.from(input)));
@@ -1661,15 +1664,12 @@ export abstract class SeqBase_Deferred_Tests {
         const input = [...source];
         const sut = this.createSut(source);
         for (let count = 0; count < input.length + 1; count++) {
-          const expected = input.slice(0, -count);
+          const expected = input.slice(0, -count || undefined);
           let actual = [...sut.skipLast(count)];
           assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].skipLast(${count})`);
         }
       });
 
-      this.it1('should return empty sequence is count is negative', array.oneToTen, (input) => {
-        assert.sameOrderedMembers([...this.createSut(input).skipLast(-1)], []);
-      });
     });
 
     describe("skipWhile()", () => {

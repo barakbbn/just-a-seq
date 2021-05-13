@@ -4,6 +4,9 @@ import {assert} from "chai";
 import {Seq} from "../../lib";
 
 export abstract class SeqBase_Sorting_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   readonly run = () => describe('SeqBase - Sorting functionality', () => {
     // describe('orderBy', () => {
     //   it('should sort sequence of objects by one of the properties', () => {

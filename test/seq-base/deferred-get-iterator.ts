@@ -3,6 +3,8 @@ import {assert} from "chai";
 import {TestableArray} from "../test-data";
 
 export abstract class SeqBase_Deferred_GetIterator_Tests {
+  constructor(protected optimized: boolean) {
+  }
   readonly run = () => describe('SeqBase - Deferred functionality should not perform immediate execution', () => {
     const testGetIterator = (onSeq: (seq: Seq<any>) => void) => {
       const title = 'should not get iterator';

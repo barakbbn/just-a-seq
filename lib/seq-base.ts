@@ -910,7 +910,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   skipLast(count: number = 1): Seq<T> {
-    if (count <= 0) return empty<T>();
+    if (count <= 0) return this;
     return this.generate(function* skipLast(items) {
       const array: T[] = Array.isArray(items) ? items : [...items];
       for (let i = 0; i < array.length - count; i++) yield array[i];
@@ -1382,11 +1382,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
     // then the order of items is not important and we optimize by working on the source
-    if (condition.length > 1 || !SeqTags.notAffectingNumberOfItems(this)) {
+    if (condition.length > 1 || !SeqTags.notAffectingNumberOfItems(this) || !SeqTags.notMappingItems(this)) {
       return this.allInternal(condition);
     }
     if (SeqTags.isSeq(source)) return source.all(condition);
-
+    if (Array.isArray(source)) return source.every(condition); // We assume Array.every is faster
     return this.allInternal(condition);
   }
 
@@ -1394,22 +1394,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     if (!SeqTags.optimize(this)) return this.anyInternal(condition);
     if (SeqTags.empty(this)) return false;
     const paramsCount = condition?.length ?? 0;
-    const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this);
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
     // then the order of items is not important and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) {
       return this.anyInternal(condition);
     }
-    if (paramsCount == 0) {
+    if (!condition) {
       if (SeqTags.infinite(this)) return true;
       if (Array.isArray(source)) return source.length > 0;
-    } else if (SeqTags.isSeq(source)) return source.any(condition);
-
+    }
+    if (SeqTags.notMappingItems(this)) {
+      if (SeqTags.isSeq(source)) return source.any(condition);
+      if (Array.isArray(source) && condition) return source.some(condition); // We assume Array.some is faster
+    }
     return this.anyInternal(condition);
   }
 
-  protected countOptimized(source: Iterable<any>, condition: Condition<T> = () => true): number {
+  protected countOptimized(source: Iterable<any>, condition?: Condition<T>): number {
     if (!SeqTags.optimize(this)) return this.countInternal(condition);
     if (SeqTags.infinite(this)) throw RangeError('Cannot count infinite sequence');
     if (SeqTags.empty(this)) return 0;
@@ -1420,8 +1423,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     // (Also assuming not getting wise with 2nd parameter having default value)
     // then the order of items is not important and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
-    if (paramsCount === 0 && Array.isArray(source)) return source.length;
-    if (SeqTags.isSeq(source)) return source.count(condition);
+    if (!condition && Array.isArray(source)) return source.length;
+    if (SeqTags.isSeq(source) && (!condition || SeqTags.notMappingItems(this))) {
+      return source.count(condition);
+    }
     return this.countInternal(condition);
   }
 
@@ -1440,7 +1445,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   protected includesOptimized(source: Iterable<any>, itemToFind: T, fromIndex: number = 0): boolean {
     if (SeqTags.optimize(this) && SeqTags.notAffectingNumberOfItems(this) && SeqTags.notMappingItems(this)) {
-      if (Array.isArray(source) && source.length) return source.includes(itemToFind, fromIndex);
+      if (Array.isArray(source)) return source.length ? source.includes(itemToFind, fromIndex) : false;
       if (SeqTags.isSeq(source)) return source.includes(itemToFind, fromIndex);
     }
     return this.includesInternal(itemToFind, fromIndex);
@@ -1483,7 +1488,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index: number, last: T | undefined] {
     let index = -1;
-    let found: [number, T] = [-1, fallback as T];
+    let found: [index:number, item:T] = [-1, fallback as T];
     for (const item of this) {
       index++;
       if (index > tillIndex) break;

@@ -4,7 +4,8 @@ import {describe, it} from "mocha";
 import {array, TestableArray} from "../test-data";
 
 export abstract class SeqBase_CachedSeq_Tests {
-
+  constructor(protected optimized: boolean) {
+  }
   readonly run = () => describe('SeqBase - cache()', () => {
     const it1 = (title: string, testFn: (input: Iterable<any> & { getIteratorCount: number; }) => void) => {
       const iterable = {

@@ -5,6 +5,9 @@ import {assert} from "chai";
 import {array} from "../test-data";
 
 export abstract class SeqBase_Close_Iterator_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   readonly run = () => describe('SeqBase - Close Iterator', () => {
     class ClosableIterable<T> implements Iterable<T> {
       closed = 0;

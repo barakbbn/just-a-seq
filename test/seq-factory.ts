@@ -61,7 +61,7 @@ export class SeqFactory_Tests {
         }
 
         const generator = new GeneratorTester(input);
-        const sut = asSeq(()=> generator.generate());
+        const sut = asSeq(() => generator.generate());
         assert.sameOrderedMembers([...sut], input);
       });
     });

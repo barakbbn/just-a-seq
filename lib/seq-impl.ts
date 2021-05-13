@@ -20,7 +20,7 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
   constructor(
     protected readonly source: Iterable<TSource>,
     private generator: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>,
-    tags: readonly [symbol, any][] = EMPTY_ARRAY) {
+    tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
 
     super();
 
@@ -35,7 +35,7 @@ export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
     return super.anyOptimized(this.source, condition);
   }
 
-  count(condition: Condition<T> = () => true): number {
+  count(condition?: Condition<T>): number {
     return super.countOptimized(this.source, condition);
   }
 
