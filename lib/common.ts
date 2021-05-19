@@ -118,6 +118,9 @@ export const LEGACY_COMPARER: any = {};
 export const DONT_COMPARE: any = {};
 export const EMPTY_ARRAY: readonly any[] = []
 
+export function isArray<T>(iterable: Iterable<T>): iterable is Array<T> {
+  return Array.isArray(iterable);
+}
 
 export class SeqTags {
   static readonly $optimize: unique symbol = Symbol('optimize');
@@ -178,7 +181,7 @@ export class SeqTags {
     return !isNot;
   }
 
-  static setTagsIfMissing(on: TaggedSeq, tags: readonly [symbol, any][]): void{
+  static setTagsIfMissing(on: TaggedSeq, tags: readonly [symbol, any][]): void {
     for (const [tag, value] of tags) {
       if (tag in on) continue;
       (on as any)[tag] = value

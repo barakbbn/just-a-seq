@@ -1,6 +1,6 @@
 import {Condition, Selector, Seq} from "./seq";
 import {SeqBase} from "./seq-base";
-import {entries, Gen, sameValueZero, SeqTags, TaggedSeq} from "./common";
+import {Gen, isArray, sameValueZero, SeqTags, TaggedSeq} from "./common";
 
 function isFilter(x: any): x is { filter: Condition<any>; } {
   return 'filter' in x;
@@ -12,40 +12,45 @@ function isMap(x: any): x is { filter: Condition<any>; } {
 
 class FilterMapChain {
   static FILTERED_OUT = {};
-  hasFilter: boolean;
-  hasMap: boolean;
 
-  constructor(private readonly chain: ({ filter: Condition<any>; } | { map: Selector<any, any>; })[], {
-    hasFilter,
-    hasMap
-  }: { hasFilter?: boolean; hasMap?: boolean; } = {}) {
-    this.hasFilter = hasFilter ?? false;
-    this.hasMap = hasMap ?? false;
+  constructor(
+    private readonly chain: ({ filter: Condition<any>; } | { map: Selector<any, any>; })[],
+    public readonly hasFilter: boolean,
+    public readonly hasMap: boolean,
+    public readonly anyCallbackRequiresIndex: boolean) {
   }
 
   static from(filterOrMap: { filter: Condition<any>; } | { map: Selector<any, any>; }): FilterMapChain {
-    return new FilterMapChain([filterOrMap], {
-      hasFilter: isFilter(filterOrMap),
-      hasMap: isMap(filterOrMap)
-    });
+    const callback = isFilter(filterOrMap) ? filterOrMap.filter : filterOrMap.map;
+    return new FilterMapChain([filterOrMap],
+      isFilter(filterOrMap),
+      isMap(filterOrMap),
+      callback.length > 1
+    );
   }
 
   clone(): FilterMapChain {
-    return new FilterMapChain([...this.chain]);
+    return new FilterMapChain([...this.chain],
+      this.hasFilter,
+      this.hasMap,
+      this.anyCallbackRequiresIndex
+    );
   }
 
   filter(condition: Condition<any>): FilterMapChain {
-    return new FilterMapChain([...this.chain, {filter: condition}], {
-      hasFilter: true,
-      hasMap: this.hasMap
-    });
+    return new FilterMapChain([...this.chain, {filter: condition}],
+      true,
+      this.hasMap,
+      this.anyCallbackRequiresIndex || condition.length > 1
+    );
   }
 
   map(selector: Selector<any, any>): FilterMapChain {
-    return new FilterMapChain([...this.chain, {map: selector}], {
-      hasFilter: this.hasFilter,
-      hasMap: true
-    });
+    return new FilterMapChain([...this.chain, {map: selector}],
+      this.hasFilter,
+      true,
+      this.anyCallbackRequiresIndex || selector.length > 1
+    );
   }
 
   * apply(source: Iterable<any>): Generator<any> {
@@ -54,8 +59,10 @@ class FilterMapChain {
       for (let i = 0; i < this.chain.length; i++) {
         const action = this.chain[i];
         if (isFilter(action)) {
-          if (!action.filter(value, indexes[i]++)) value = FilterMapChain.FILTERED_OUT;
-
+          if (!action.filter(value, indexes[i]++)) {
+            value = FilterMapChain.FILTERED_OUT;
+            break;
+          }
         } else value = action.map(value, indexes[i]++);
       }
 
@@ -90,11 +97,6 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
     return this.filterMapChain.apply(this.source);
   }
 
-
-  all(condition: Condition<U>): boolean {
-    return super.allOptimized(this.source, condition);
-  }
-
   any(condition?: Condition<U>): boolean {
     return this.anyOptimized(this.source, condition);
   }
@@ -114,7 +116,14 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
   last(): U | undefined;
   last(fallback: U): U;
   last(fallback?: U): U | undefined {
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source)) return super.last();
+    if (!SeqTags.optimize(this) ||
+      !isArray(this.source) ||
+      this.filterMapChain.anyCallbackRequiresIndex) {
+      return super.last(fallback as any);
+    }
+
+    if (this.source.length === 0) return fallback;
+
     const reverseSource = this.reverseSource(this.source);
     // noinspection LoopStatementThatDoesntLoopJS
     for (const item of this.filterMapChain.apply(reverseSource)) {
@@ -124,12 +133,21 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
   }
 
   lastIndexOf(itemToFind: U, fromIndex?: number): number {
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source) || this.filterMapChain.hasFilter) {
+    if (!SeqTags.optimize(this) ||
+      !isArray(this.source) ||
+      this.filterMapChain.hasFilter ||
+      this.filterMapChain.anyCallbackRequiresIndex) {
       return super.lastIndexOf(itemToFind, fromIndex);
     }
+
+    if (this.source.length === 0) return -1;
+    if(Number.isNaN(fromIndex) || fromIndex == null || fromIndex >= this.source.length) fromIndex = this.source.length - 1;
+    else if (fromIndex < 0) fromIndex += this.source.length;
+    if (fromIndex < 0) return -1
     const reverseSource = this.reverseSource(this.source, fromIndex);
-    for (const {value, index} of entries(this.filterMapChain.apply(reverseSource))) {
-      if (sameValueZero(itemToFind, value)) return this.source.length - index;
+    for (const value of this.filterMapChain.apply(reverseSource)) {
+      if (sameValueZero(itemToFind, value)) return fromIndex;
+      fromIndex--;
     }
     return -1;
   }
@@ -143,13 +161,21 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
       [tillIndex, condition as Condition<U>, fallback] :
       [Number.NaN, tillIndex, condition as U | undefined];
 
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source)) {
+    if (!SeqTags.optimize(this) ||
+      !isArray(this.source) ||
+      this.filterMapChain.hasFilter ||
+      this.filterMapChain.anyCallbackRequiresIndex ||
+      condition.length > 1) {
       return super.findLast(tillIndex, condition, fallback);
     }
 
-    const reverseSource = this.reverseSource(this.source);
-    for (const {value, index} of entries(this.filterMapChain.apply(reverseSource))) {
-      if (condition(value, index)) return value;
+    if (this.source.length === 0) return fallback;
+    if(Number.isNaN(tillIndex) || tillIndex >= this.source.length) tillIndex = this.source.length - 1;
+    else if (tillIndex < 0 || this.source.length === 0) return fallback;
+
+    const reverseSource = this.reverseSource(this.source, tillIndex);
+    for (const value of this.filterMapChain.apply(reverseSource)) {
+      if (condition(value, tillIndex--)) return value;
     }
     return fallback;
   }
@@ -161,7 +187,7 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
   skipLast(count: number = 1): Seq<U> {
     if (count <= 0) return this;
 
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source) || this.filterMapChain.hasFilter) {
+    if (!SeqTags.optimize(this) || !isArray(this.source) || this.filterMapChain.hasFilter) {
       return super.skipLast(count);
     }
 
@@ -174,7 +200,7 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
   }
 
   takeLast(count: number): Seq<U> {
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source) || this.filterMapChain.hasFilter) {
+    if (!SeqTags.optimize(this) || !isArray(this.source) || this.filterMapChain.hasFilter) {
       return super.takeLast(count);
     }
     if (this.source.length <= 0) return this;
@@ -197,22 +223,27 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
       [tillIndex, condition as Condition<U>] :
       [Number.NaN, tillIndex];
 
-    if (!SeqTags.optimize(this) || !Array.isArray(this.source) || this.filterMapChain.hasFilter) {
+    if (!SeqTags.optimize(this) ||
+      !isArray(this.source) ||
+      this.filterMapChain.hasFilter ||
+      this.filterMapChain.anyCallbackRequiresIndex ||
+      condition?.length > 1) {
       return super.findLastIndex(tillIndex, condition);
     }
 
-    const reverseSource = this.reverseSource(this.source);
-    for (const {value, index} of entries(this.filterMapChain.apply(reverseSource))) {
-      if (condition(value, index)) return this.source.length - index;
+    if (tillIndex < 0 || this.source.length === 0) return -1;
+    tillIndex = Number.isNaN(tillIndex) || tillIndex >= this.source.length ? this.source.length - 1 : tillIndex;
+
+    const reverseSource = this.reverseSource(this.source, tillIndex);
+    for (const value of this.filterMapChain.apply(reverseSource)) {
+      if (condition(value, tillIndex)) return tillIndex;
+      tillIndex--;
     }
     return -1;
   }
 
 
-  private* reverseSource(source: U[], fromIndex = source.length - 1): Generator<U> {
-    if (fromIndex >= source.length) fromIndex = source.length - 1;
-    else if (fromIndex < 0) fromIndex += source.length;
-    if (fromIndex <= 0) return;
-    for (let i = fromIndex; i >= 0; i--) yield source[i];
+  private* reverseSource(source: T[], tillIndex = source.length - 1): Generator<T> {
+    for (let i = tillIndex; i >= 0; i--) yield source[i];
   }
 }
