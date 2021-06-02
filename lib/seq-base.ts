@@ -92,28 +92,21 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const self = this;
     const optimize = SeqTags.optimize(this);
     return this.generate(function* chunk(items, iterationContext) {
-      if (Array.isArray(items)) {
-        for (let skip = 0; skip < items.length; skip += size) {
-          yield self.createDefaultSeq<T>(items).slice(skip, skip + size);
-        }
-
-      } else {
-        let innerSeq: Seq<T> | undefined;
-        iterationContext.onClose(() => innerSeq?.consume())
-        const iterator = iterationContext.closeWhenDone(getIterator(items));
-        let next = iterator.next();
-        while (!next.done) {
-          innerSeq?.consume();
-          if (next.done) break;
-          innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
-            let count = 0;
-            while (size > count++ && !next.done) {
-              yield next.value;
-              next = iterator.next();
-            }
-          })), optimize);
-          yield innerSeq;
-        }
+      let innerSeq: Seq<T> | undefined;
+      iterationContext.onClose(() => innerSeq?.consume())
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+      while (!next.done) {
+        innerSeq?.consume();
+        if (next.done) break;
+        innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
+          let count = 0;
+          while (size > count++ && !next.done) {
+            yield next.value;
+            next = iterator.next();
+          }
+        })), optimize);
+        yield innerSeq;
       }
     });
   }
@@ -1488,7 +1481,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index: number, last: T | undefined] {
     let index = -1;
-    let found: [index:number, item:T] = [-1, fallback as T];
+    let found: [index: number, item: T] = [-1, fallback as T];
     for (const item of this) {
       index++;
       if (index > tillIndex) break;
