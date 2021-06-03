@@ -1,6 +1,6 @@
 {
   "name": "@barakbbn/just-a-seq",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
   "scripts": {
     "build": "tsc",
