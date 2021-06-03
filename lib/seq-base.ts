@@ -5,10 +5,10 @@ import {
   factories,
   FlatSeq,
   Iterables,
-  SortedSeq,
   Selector,
   Seq,
   SeqOfGroups,
+  SortedSeq,
   ToComparableKey
 } from "./seq";
 import {
@@ -21,23 +21,23 @@ import {
   IterationContext,
   LEGACY_COMPARER,
   sameValueZero,
-  tapGenerator
+  SeqTags,
+  TaggedSeq,
+  tapIterable
 } from "./common";
+import {empty} from "./seq-factory";
 
-export abstract class SeqBase<T> implements Seq<T> {
+export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
+  readonly [SeqTags.$seq] = true;
 
   readonly length = this.count;
 
   all(condition: Condition<T>): boolean {
-    let index = 0;
-    for (const item of this) if (!condition(item, index++)) return false;
-    return true;
+    return this.allInternal(condition);
   }
 
   any(condition?: Condition<T>): boolean {
-    let index = 0;
-    for (const item of this) if (condition ? condition(item, index++) : true) return true;
-    return false;
+    return this.anyInternal(condition);
   }
 
   as<U>(): Seq<U> {
@@ -45,7 +45,9 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   readonly asSeq = (): Seq<T> => {
-    return factories.Seq(this);
+    return this.createDefaultSeq(this.getSourceForNewSequence(), undefined, [
+      [SeqTags.$notAffectingNumberOfItems, true],
+      [SeqTags.$notMappingItems, true]]);
   };
 
   at(index: number, fallback?: T): T | undefined {
@@ -82,35 +84,29 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   cache(now?: boolean): CachedSeq<T> {
-    return factories.CachedSeq(this, now);
+    return this.transferOptimizeTag(factories.CachedSeq(this.getSourceForNewSequence(), now));
   }
 
   chunk(size: number): Seq<Seq<T>> {
-    if (size < 1) return factories.Seq<Seq<T>>();
+    if (size < 1) return empty<Seq<T>>();
+    const self = this;
+    const optimize = SeqTags.optimize(this);
     return this.generate(function* chunk(items, iterationContext) {
-      if (Array.isArray(items)) {
-        for (let skip = 0; skip < items.length; skip += size) {
-          yield factories.Seq<T>(items.slice(skip, skip + size));
-        }
-
-      } else {
-        let innerSeq: Seq<T> | undefined;
-        iterationContext.onClose(() => innerSeq?.consume())
-        const iterator = iterationContext.closeWhenDone(getIterator(items));
-        let next = iterator.next();
-        while (!next.done) {
-          innerSeq?.consume();
-          if (next.done) break;
-
-          innerSeq = factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
-            let count = 0;
-            while (size > count++ && !next.done) {
-              yield next.value;
-              next = iterator.next();
-            }
-          }));
-          yield innerSeq;
-        }
+      let innerSeq: Seq<T> | undefined;
+      iterationContext.onClose(() => innerSeq?.consume())
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+      while (!next.done) {
+        innerSeq?.consume();
+        if (next.done) break;
+        innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
+          let count = 0;
+          while (size > count++ && !next.done) {
+            yield next.value;
+            next = iterator.next();
+          }
+        })), optimize);
+        yield innerSeq;
       }
     });
   }
@@ -137,12 +133,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   count(condition: Condition<T> = () => true): number {
-    let count = 0;
-    let index = 0;
-    for (const item of this) {
-      if (condition(item, index++)) count++;
-    }
-    return count;
+    return this.countInternal(condition);
   }
 
   diff<K = T>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
@@ -223,8 +214,8 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean {
-    const first =Array.from(this, keySelector as Selector<T, K>)
-    const second = (!keySelector && Array.isArray(items))? items:  Array.from(items, keySelector as Selector<T, K>);
+    const first = Array.from(this, keySelector as Selector<T, K>)
+    const second = (!keySelector && Array.isArray(items)) ? items : Array.from(items, keySelector as Selector<T, K>);
 
     let offset = first.length - second.length;
     if (offset < 0) return false;
@@ -244,10 +235,9 @@ export abstract class SeqBase<T> implements Seq<T> {
 
   filter(condition: Condition<T>): Seq<T>;
 
-  filter<S extends T>(condition: (item: T, index: number) => item is S, thisArg?: any): Seq<S>{
-    return this.generate(function* filter(self) {
-      for (const {value, index} of entries(self)) if (condition(value, index)) yield value;
-    });
+  filter<S extends T>(condition: (item: T, index: number) => item is S): Seq<S> {
+    const filter = {filter: condition};
+    return factories.FilterMapSeq<T, S>(this.getSourceForNewSequence(), filter);
   }
 
   findIndex(condition: Condition<T>): number;
@@ -258,16 +248,20 @@ export abstract class SeqBase<T> implements Seq<T> {
     return this.findFirstByCondition(fromIndex, condition)[0];
   }
 
+  find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
   find(fromIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
-  find(fromIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): T | undefined {
+  find<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): S | undefined {
     return this.findFirstByCondition(fromIndex, condition, fallback)[1];
   }
 
-  findLast(condition: Condition<T>, fallback?: T | undefined): T | undefined;
-
+  findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+  findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+  findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
   findLast(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): T | undefined {
@@ -325,8 +319,7 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void {
-    if (thisArg) callback = callback.bind(thisArg);
+  forEach(callback: (value: T, index: number, breakLoop: object) => unknown): void {
     const breakLoop: any = {};
 
     for (const {value, index,} of entries(this)) {
@@ -339,7 +332,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
-    return factories.SeqOfGroups(this, keySelector, toComparableKey, valueSelector);
+    return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
   }
 
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I> {
@@ -351,12 +344,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   hasAtLeast(count: number): boolean {
-    if (count <= 0) throw new RangeError('count must be positive');
-    for (const item of this) {
-      count--;
-      if (count === 0) return true;
-    }
-    return false;
+    return this.hasAtLeastInternal(count);
   }
 
   ifEmpty(value: T): Seq<T>;
@@ -369,36 +357,31 @@ export abstract class SeqBase<T> implements Seq<T> {
     const isSequence = (v: any): v is { useSequence: Iterable<T> } => v && isIterable(v.useSequence);
     const isFactory = (v: any): v is { useFactory: () => T } => v && typeof (v.useFactory) === 'function';
 
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return this.createDefaultSeq(
+      isSequence(value) ? value.useSequence : isFactory(value) ? {
+        * [Symbol.iterator]() {
+          yield value.useFactory();
+        }
+      } : [value as T]);
+
     let valueProvider: () => Iterable<T>;
     if (isSequence(value)) valueProvider = (() => value.useSequence);
     else if (isFactory(value)) valueProvider = (() => [value.useFactory()]);
     else valueProvider = (() => [value as T]);
 
-    return this.generate(function* ifEmpty(items) {
-      let empty = true;
-      for (const item of items) {
-        empty = false;
-        yield item;
+    return this.generate(function* ifEmpty(items, iterationContext) {
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+      if (next.done) yield* valueProvider();
+      else while (!next.done) {
+        yield next.value;
+        next = iterator.next();
       }
-      if (empty) yield* valueProvider();
     });
   }
 
   includes(itemToFind: T, fromIndex: number = 0): boolean {
-    let index = 0;
-
-    if (fromIndex >= 0) {
-      for (const item of this) if (index++ >= fromIndex && sameValueZero(item, itemToFind)) return true;
-      return false;
-    }
-
-    let foundIndex = Number.NaN;
-    for (const item of this) {
-      if (sameValueZero(item, itemToFind)) foundIndex = index;
-      index++;
-    }
-
-    return foundIndex >= fromIndex + index;
+    return this.includesInternal(itemToFind, fromIndex);
   }
 
   includesAll<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean;
@@ -453,20 +436,16 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   indexOf(itemToFind: T, fromIndex: number = 0): number {
-    let index = 0;
-
     if (fromIndex >= 0) {
-      for (const item of this) {
-        if (index >= fromIndex && sameValueZero(itemToFind, item)) return index;
-        index++;
+      for (const {value, index} of entries(this)) {
+        if (index >= fromIndex && sameValueZero(itemToFind, value)) return index;
       }
       return -1;
     }
 
     const buffer = new CyclicBuffer<number>(-fromIndex);
-    for (const item of this) {
-      if (sameValueZero(itemToFind, item)) buffer.write(index);
-      index++;
+    for (const {value, index} of entries(this)) {
+      if (sameValueZero(itemToFind, value)) buffer.write(index);
     }
 
     const foundIndex = buffer.at(0);
@@ -505,7 +484,6 @@ export abstract class SeqBase<T> implements Seq<T> {
       }
     });
   }
-
 
   insert(atIndex: number, ...items: Iterable<T>[]): Seq<T> {
     if (!items || items.length === 0) return this;
@@ -621,6 +599,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   isEmpty(): boolean {
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return true;
     // noinspection LoopStatementThatDoesntLoopJS
     for (const _ of this) return false;
     return true;
@@ -653,6 +632,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   last(fallback: T): T;
 
   last(fallback?: T): T | undefined {
+    if (SeqTags.optimize(this) && SeqTags.empty(this)) return fallback;
     let lastItem = fallback;
     for (const item of this) lastItem = item;
     return lastItem;
@@ -684,9 +664,8 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U> {
-    return this.generate(function* map(self: Iterable<T>) {
-      for (const {value, index} of entries(self)) yield mapFn(value, index);
-    });
+    const map = {map: mapFn};
+    return factories.FilterMapSeq<T, U>(this.getSourceForNewSequence(), map);
   }
 
   max(): T extends number ? number : never;
@@ -771,16 +750,8 @@ export abstract class SeqBase<T> implements Seq<T> {
       const fn = instanceOf;
       return this.filter(value => value instanceof fn);
     }
-    return factories.Seq<any>();
+    return this.createDefaultSeq<any>();
   }
-
-  // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-  //   return factories.OrderedSeq(this, keySelector, comparer);
-  // }
-  //
-  // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-  //   return factories.OrderedSeq(this, keySelector, comparer, true);
-  // }
 
   prepend(...items: Iterable<T>[]): Seq<T> {
     return this.insert(0, ...items);
@@ -791,6 +762,14 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T;
+
+  // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
+  //   return factories.OrderedSeq(this, keySelector, comparer);
+  // }
+  //
+  // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
+  //   return factories.OrderedSeq(this, keySelector, comparer, true);
+  // }
 
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
 
@@ -851,19 +830,11 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   removeFalsy(): Seq<T> {
-    return this.generate(function* removeFalsy(self) {
-      for (const item of self) {
-        if (item) yield item;
-      }
-    });
+    return this.filter(x => x);
   }
 
   removeNulls(): Seq<T> {
-    return this.generate(function* removeNulls(self) {
-      for (const item of self) {
-        if (item != null) yield item;
-      }
-    });
+    return this.filter(x => x != null);
   }
 
   repeat(count: number): Seq<T> {
@@ -923,16 +894,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   skip(count: number): Seq<T> {
-    if (count === 0) return this;
-    if (count < 0) {
-      return this.generate(function* skipNegative(items) {
-        const buffer = new CyclicBuffer<T>(-count);
-        buffer.writeMany(items);
-        yield* buffer;
-        buffer.clear();
-      });
-    }
-
+    if (count <= 0) return this;
     return this.skipWhile((_, index) => index < count);
   }
 
@@ -941,10 +903,10 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   skipLast(count: number = 1): Seq<T> {
-    if (count <= 0) return factories.Seq<T>();
+    if (count <= 0) return this;
     return this.generate(function* skipLast(items) {
       const array: T[] = Array.isArray(items) ? items : [...items];
-      yield* array.slice(0, -count);
+      for (let i = 0; i < array.length - count; i++) yield array[i];
     })
   }
 
@@ -962,7 +924,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   slice(start: number, end: number): Seq<T> {
-    if (end === 0 || end - start === 0) return factories.Seq<T>();
+    if (end === 0 || end - start === 0) return empty<T>();
 
     // Both non negative
     if (start >= 0 && end > 0) return this.generate(function* slice(self) {
@@ -1015,15 +977,15 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   sort(comparer?: Comparer<T>): SortedSeq<T> {
-    return factories.SortedSeq(this, undefined, comparer || LEGACY_COMPARER);
+    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, comparer || LEGACY_COMPARER);
   }
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
-    return factories.SortedSeq(this, valueSelector, undefined, reverse);
+    return factories.SortedSeq(this.getSourceForNewSequence(), valueSelector, undefined, reverse);
   }
 
   sorted(reverse = false): Seq<T> {
-    return factories.SortedSeq(this, undefined, undefined, reverse);
+    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, undefined, reverse);
   }
 
   split(atIndex: number): [Seq<T>, Seq<T>];
@@ -1065,19 +1027,11 @@ export abstract class SeqBase<T> implements Seq<T> {
   }
 
   take(count: number): Seq<T> {
-    if (count === 0) return factories.Seq<T>();
-
-    if (count < 0) {
-      return this.generate(function* takeNegative(self) {
-        yield* [...self].slice(0, count);
-      });
-    }
-
-    return this.takeWhile((_, index) => index < count);
+    return this.takeInternal(count);
   }
 
   takeLast(count: number): Seq<T> {
-    if (count <= 0) return factories.Seq<T>();
+    if (count <= 0) return empty<T>();
     return this.generate(function* takeLast(items) {
       if (Array.isArray(items)) {
         let index = items.length - count;
@@ -1090,7 +1044,7 @@ export abstract class SeqBase<T> implements Seq<T> {
         buffer.writeMany(items);
         yield* buffer;
       }
-    });
+    }, [[SeqTags.$maxCount, count]]);
   }
 
   takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
@@ -1098,7 +1052,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
-    return this.generate(function* takeOnly(self,iterationContext) {
+    return this.generate(function* takeOnly(self, iterationContext) {
       const map = new Map<K, number>();
       const secondIterator = iterationContext.closeWhenDone(getIterator(items));
       let secondNext = secondIterator.next();
@@ -1141,8 +1095,13 @@ export abstract class SeqBase<T> implements Seq<T> {
     });
   }
 
-  tap(callback: Selector<T, void>, thisArg?: any): Seq<T> {
-    return factories.Seq(this.tapGenerator(callback, thisArg));
+  tap(callback: Selector<T, void>): Seq<T> {
+    return this.generate(function* tap(items: Iterable<T>) {
+      for (const {value, index} of entries(items)) {
+        callback(value, index);
+        yield value;
+      }
+    });
   }
 
   toArray(): T[] {
@@ -1188,21 +1147,42 @@ export abstract class SeqBase<T> implements Seq<T> {
     return set;
   }
 
-  toString(separator?: string): string; // Overload
-
-  toString(opts: { start?: string; separator?: string, end?: string; }): string;
-
-  toString(separatorOrOpts?: string | { start?: string; separator?: string; end?: string }): string {
-    return this.join(separatorOrOpts as any);
+  toString(): string {
+    return this.join({start: '[', end: ']'});
   }
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U> {
     return transformer(this);
   }
 
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T> {
-    // TODO: use single generator function
-    return this.concat(second).distinct(keySelector);
+  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
+
+  union<K>(second: Iterable<T>, keySelectorOrOpts?: ((value: T) => K) | { preferSecond?: boolean; }, opts?: { preferSecond?: boolean; }): Seq<T> {
+    const isOpts = (value: any): value is { preferSecond?: boolean; } => typeof value?.['preferSecond'] === "boolean";
+    let keySelector: (value: T) => K = x => x as unknown as K;
+    if (isOpts(keySelectorOrOpts)) {
+      opts = keySelectorOrOpts;
+    } else {
+      keySelector = keySelectorOrOpts ?? keySelector;
+    }
+
+    const [left, right] = opts?.preferSecond ? [second, this] : [this, second];
+    return this.generateForSource(left, function* union() {
+      function* concat() {
+        yield* left;
+        yield* right;
+      }
+
+      const keys = new Set<K>();
+      for (const item of concat()) {
+        const key = keySelector(item);
+        if (keys.has(key)) continue;
+        keys.add(key);
+        yield item;
+      }
+      keys.clear();
+    })
   }
 
   unshift(...items: T[]): Seq<T> {
@@ -1325,23 +1305,170 @@ export abstract class SeqBase<T> implements Seq<T> {
     return (matcher.done && (match || matcher.isEmpty)) ? [matchStartIndex, index] : [-1, -1];
   }
 
+  protected allInternal(condition: (x: T, index: number) => unknown) {
+    let index = 0;
+    for (const item of this) if (!condition(item, index++)) return false;
+    return true;
+  }
+
+  protected anyInternal(condition?: Condition<T>) {
+    let index = 0;
+    for (const item of this) if (condition ? condition(item, index++) : true) return true;
+    return false;
+  }
+
+  protected countInternal(condition: Condition<T> = () => true): number {
+    let count = 0;
+    let index = 0;
+    for (const item of this) {
+      if (condition(item, index++)) count++;
+    }
+    return count;
+  }
+
+  protected hasAtLeastInternal(count: number): boolean {
+    if (count <= 0) throw new RangeError('count must be positive');
+    for (const item of this) {
+      count--;
+      if (count === 0) return true;
+    }
+    return false;
+  }
+
+  protected includesInternal(itemToFind: T, fromIndex: number) {
+    let index = 0;
+
+    if (fromIndex >= 0) {
+      for (const item of this) if (index++ >= fromIndex && sameValueZero(item, itemToFind)) return true;
+      return false;
+    }
+
+    let foundIndex = Number.NaN;
+    for (const item of this) {
+      if (sameValueZero(item, itemToFind)) foundIndex = index;
+      index++;
+    }
+
+    return foundIndex >= fromIndex + index;
+  }
+
   protected joinInternal(start: string, separator: string, end: string): string {
     return start + [...this].join(separator) + end;
   }
 
-  protected generate<U>(generator: (items: Iterable<T>, iterationContext: IterationContext) => Generator<U>): Seq<U> {
-    return factories.Seq<U>(new Gen(this, generator));
+  protected takeInternal(count: number): Seq<T> {
+    if (count <= 0) return empty<T>();
+
+    return this.generate(function* take(items) {
+      for (const {value, index} of entries(items)) {
+        yield value;
+        if (index + 1 === count) break;
+      }
+    }, [[SeqTags.$maxCount, count]]);
   }
+
+  protected allOptimized(source: Iterable<any>, condition: Condition<T>): boolean {
+    if (!SeqTags.optimize(this)) return this.allInternal(condition);
+    if (SeqTags.infinite(this)) throw RangeError('Cannot check all items of infinite sequence');
+    if (SeqTags.empty(this)) return true;
+
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (condition.length > 1 || !SeqTags.notAffectingNumberOfItems(this) || !SeqTags.notMappingItems(this)) {
+      return this.allInternal(condition);
+    }
+    if (SeqTags.isSeq(source)) return source.all(condition);
+    if (Array.isArray(source)) return source.every(condition); // We assume Array.every is faster
+    return this.allInternal(condition);
+  }
+
+  protected anyOptimized(source: Iterable<any>, condition?: Condition<T>): boolean {
+    if (!SeqTags.optimize(this)) return this.anyInternal(condition);
+    if (SeqTags.empty(this)) return false;
+    const paramsCount = condition?.length ?? 0;
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this);
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (paramsCount > 1 || affectsCount) {
+      return this.anyInternal(condition);
+    }
+    if (!condition) {
+      if (SeqTags.infinite(this)) return true;
+      if (Array.isArray(source)) return source.length > 0;
+    }
+    if (SeqTags.notMappingItems(this)) {
+      if (SeqTags.isSeq(source)) return source.any(condition);
+      if (Array.isArray(source) && condition) return source.some(condition); // We assume Array.some is faster
+    }
+    return this.anyInternal(condition);
+  }
+
+  protected countOptimized(source: Iterable<any>, condition?: Condition<T>): number {
+    if (!SeqTags.optimize(this)) return this.countInternal(condition);
+    if (SeqTags.infinite(this)) throw RangeError('Cannot count infinite sequence');
+    if (SeqTags.empty(this)) return 0;
+
+    const paramsCount = condition?.length ?? 0;
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
+    // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
+    // (Also assuming not getting wise with 2nd parameter having default value)
+    // then the order of items is not important and we optimize by working on the source
+    if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
+    if (!condition && Array.isArray(source)) return source.length;
+    if (SeqTags.isSeq(source) && (!condition || SeqTags.notMappingItems(this))) {
+      return source.count(condition);
+    }
+    return this.countInternal(condition);
+  }
+
+  protected hasAtLeastOptimized(source: Iterable<any>, count: number): boolean {
+    if (count <= 0) throw new RangeError('count must be positive');
+    if (!SeqTags.optimize(this)) return this.hasAtLeastInternal(count);
+    const maxCount = SeqTags.maxCount(this);
+    if (maxCount != null && maxCount < count) return false;
+
+    if (SeqTags.notAffectingNumberOfItems(this)) {
+      if (Array.isArray(source)) return source.length >= count;
+      if (SeqTags.isSeq(source)) return source.hasAtLeast(count);
+    }
+    return this.hasAtLeastInternal(count);
+  }
+
+  protected includesOptimized(source: Iterable<any>, itemToFind: T, fromIndex: number = 0): boolean {
+    if (SeqTags.optimize(this) && SeqTags.notAffectingNumberOfItems(this) && SeqTags.notMappingItems(this)) {
+      if (Array.isArray(source)) return source.length ? source.includes(itemToFind, fromIndex) : false;
+      if (SeqTags.isSeq(source)) return source.includes(itemToFind, fromIndex);
+    }
+    return this.includesInternal(itemToFind, fromIndex);
+  }
+
+  protected generate<U, TSeq extends Iterable<T> = Iterable<T>>(
+    generator: (items: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [symbol, any][]): Seq<U> {
+
+    return this.generateForSource(this.getSourceForNewSequence(), generator, tags);
+  }
+
+  protected generateForSource<S, U, TSeq extends Iterable<S> = Iterable<S>>(
+    source: Iterable<S>,
+    generator: (items: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [symbol, any][]): Seq<U> {
+
+    return this.createDefaultSeq(source, generator, tags);
+  }
+
 
   protected getIterator(): Iterator<T> {
     return getIterator(this);
   }
 
-  protected tapGenerator(callback: Selector<T, void>, thisArg?: any): Iterable<T> {
-    return tapGenerator(this, callback, thisArg);
+  protected tapGenerator(callback: Selector<T, void>): Iterable<T> {
+    return tapIterable(this, callback);
   }
 
-  protected findFirstByConditionInternal(fromIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
+  protected findFirstByConditionInternal<S extends T>(fromIndex: number, condition: | Condition<T> | ((item: T, index: number) => item is S), fallback?: S): [index: number, first: S | undefined] {
     let index = -1;
     for (const item of this) {
       index++;
@@ -1352,9 +1479,9 @@ export abstract class SeqBase<T> implements Seq<T> {
     return [-1, fallback];
   }
 
-  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [number, T | undefined] {
+  protected findLastByConditionInternal(tillIndex: number, condition: Condition<T>, fallback?: T): [index: number, last: T | undefined] {
     let index = -1;
-    let found: [number, T] = [-1, fallback as T];
+    let found: [index: number, item: T] = [-1, fallback as T];
     for (const item of this) {
       index++;
       if (index > tillIndex) break;
@@ -1362,6 +1489,30 @@ export abstract class SeqBase<T> implements Seq<T> {
     }
 
     return found;
+  }
+
+  protected getSourceForNewSequence(): Iterable<T> {
+    return this;
+  }
+
+  protected createDefaultSeq<T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
+    source?: Iterable<T>,
+    generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [symbol, any][]): Seq<U> {
+    const optimize = SeqTags.optimize(this);
+    tags = optimize ? [...tags ?? [], [SeqTags.$optimize, true]] : tags;
+
+    return factories.Seq(source, generator, tags);
+  }
+
+  protected transferOptimizeTag<TSeq extends Seq<any>>(to: TSeq): TSeq {
+    if (SeqTags.optimize(this)) this.tagAsOptimized(to);
+    return to;
+  }
+
+  protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
+    if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
   }
 
   private groupJoinInternal<TOut, TIn, K>(outers: Iterable<TOut>, outerKeySelector: Selector<TOut, K>, inners: Iterable<TIn>, innerKeySelector: Selector<TIn, K>): SeqOfGroups<TOut, TIn> {
@@ -1383,20 +1534,20 @@ export abstract class SeqBase<T> implements Seq<T> {
     }
 
     const gen = new Gen(outers, leftOuterJoin);
-    return factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner);
+    return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
   }
 
-  private findFirstByCondition(fromIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [number, T | undefined] {
+  private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index: number, first: S | undefined] {
     [fromIndex, condition, fallback] = (typeof fromIndex === "number") ?
-      [fromIndex, condition as Condition<T>, fallback] :
-      [0, fromIndex, condition as T | undefined];
+      [fromIndex, condition as (item: T, index: number) => item is S, fallback] :
+      [0, fromIndex, condition as S | undefined];
 
     if (fromIndex < 0) fromIndex = 0;
 
     return this.findFirstByConditionInternal(fromIndex, condition, fallback);
   }
 
-  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [number, T | undefined] {
+  private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [index: number, last: T | undefined] {
     [tillIndex, condition, fallback] = (typeof tillIndex === "number") ?
       [tillIndex, condition as Condition<T>, fallback] :
       [Number.NaN, tillIndex, condition as T | undefined];
@@ -1407,7 +1558,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   private removeInternal<K>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K, all: boolean = false): Seq<T> {
     return this.generate(function* remove(self) {
       const keys = new Map<K, number>();
-      for (const second of items){
+      for (const second of items) {
         const key = keySelector(second);
         const occurrencesCount = (keys.get(key) ?? 0) + 1;
         keys.set(key, occurrencesCount);
@@ -1432,7 +1583,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   private splitAtIndex(atIndex: number): [Seq<T>, Seq<T>] {
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this, function* splitAtIndexFirst(source) {
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
       iterator = getIterator(source);
       next = iterator.next();
       let index = 0;
@@ -1444,7 +1595,8 @@ export abstract class SeqBase<T> implements Seq<T> {
     }));
 
     const second = this.generate(function* splitAtIndexSecond() {
-      first.consume();
+      // apply cache
+      first.array;
       while (!next.done) {
         yield next.value;
         next = iterator.next();
@@ -1458,7 +1610,7 @@ export abstract class SeqBase<T> implements Seq<T> {
   private splitByCondition(condition: Condition<T>): [Seq<T>, Seq<T>] {
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this, function* splitAtIndexFirst(source) {
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
       iterator = getIterator(source);
       next = iterator.next();
       let index = 0;
@@ -1480,7 +1632,6 @@ export abstract class SeqBase<T> implements Seq<T> {
 
     return [first, second];
   }
-
 }
 
 class CyclicBuffer<T> implements Iterable<T> {
@@ -1518,6 +1669,7 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 
   * [Symbol.iterator](): Iterator<T> {
+    if (this.start < 0) return;
     let [index1, count1] = [this.start, this.end < this.start ? this.bufferSize : this.end + 1];
     let [index2, count2] = [0, this.end < this.start ? (this.end + 1) : 0];
 

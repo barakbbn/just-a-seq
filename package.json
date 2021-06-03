@@ -1,9 +1,7 @@
 {
   "name": "@barakbbn/just-a-seq",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
@@ -45,5 +43,19 @@
   },
   "files": [
     "dist/*"
-  ]
+  ],
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    },
+    "./optimized": {
+      "default": "./dist/optimized.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": ["./dist/index.d.ts"],
+      "optimized": ["./dist/optimized.d.ts"]
+    }
+  }
 }

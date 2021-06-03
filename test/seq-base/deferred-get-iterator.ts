@@ -1,9 +1,21 @@
 import {Seq} from "../../lib";
 import {assert} from "chai";
+import {TestableArray} from "../test-data";
 
 export abstract class SeqBase_Deferred_GetIterator_Tests {
+  constructor(protected optimized: boolean) {
+  }
   readonly run = () => describe('SeqBase - Deferred functionality should not perform immediate execution', () => {
     const testGetIterator = (onSeq: (seq: Seq<any>) => void) => {
+      const title = 'should not get iterator';
+      const test = (title: string, input: Iterable<any>, wasIterated: () => boolean) => {
+        it(title, () => {
+          const seq = this.createSut(input);
+          onSeq(seq);
+          assert.isFalse(wasIterated());
+        });
+      };
+
       const iterable = {
         getIteratorWasCalled: false,
         [Symbol.iterator](): Iterator<any> {
@@ -11,327 +23,222 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
           return [0][Symbol.iterator]();
         }
       };
-      const seq = this.createSut(iterable);
-      onSeq(seq);
-      assert.isFalse(iterable.getIteratorWasCalled);
+
+      test(title + ' - generator', iterable, () => iterable.getIteratorWasCalled);
+      const array = new TestableArray(0, 1, 2);
+      test(title + ' - array', array, () => array.getIteratorCount > 0);
     };
 
     describe('as()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.as<number>());
-      });
+      testGetIterator(sut => sut.as<number>());
     });
 
     describe('append()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.append(1));
-      });
+      testGetIterator(sut => sut.append(1));
     });
 
     describe('cache()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.cache());
-      });
+      testGetIterator(sut => sut.cache());
     });
 
     describe('chunk()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.chunk(2));
-      });
+      testGetIterator(sut => sut.chunk(2));
     });
 
     describe('concat()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.concat([2]));
-      });
+      testGetIterator(sut => sut.concat([2]));
     });
 
     describe('concat$()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.concat$([2]));
-      });
+      testGetIterator(sut => sut.concat$([2]));
     });
 
     describe('diffDistinct()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.diffDistinct([2]));
-      });
+      testGetIterator(sut => sut.diffDistinct([2]));
     });
 
     describe('diff()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.diff([2]));
-      });
+      testGetIterator(sut => sut.diff([2]));
     });
 
     describe('distinct()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.distinct());
-      });
+      testGetIterator(sut => sut.distinct());
     });
 
     describe('entries()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.entries());
-      });
+      testGetIterator(sut => sut.entries());
     });
 
     describe('filter()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.filter(() => true));
-      });
+      testGetIterator(sut => sut.filter(() => true));
     });
 
     describe('flat()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.flat(5));
-      });
+      testGetIterator(sut => sut.flat(5));
     });
 
     describe('flatMap()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.flatMap(() => [1, 2]));
-      });
+      testGetIterator(sut => sut.flatMap(() => [1, 2]));
     });
 
     describe('groupBy()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.groupBy(() => 1,));
-      });
+      testGetIterator(sut => sut.groupBy(() => 1,));
     });
 
     describe('groupJoin()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1));
-      });
+      testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1));
     });
 
     describe('innerJoin()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.innerJoin([1], () => 1, () => 1, () => 1));
-      });
+      testGetIterator(sut => sut.innerJoin([1], () => 1, () => 1, () => 1));
     });
 
     describe('ifEmpty()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.ifEmpty(1));
-      });
+      testGetIterator(sut => sut.ifEmpty(1));
     });
 
     describe('insert()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.insert(1));
-      });
+      testGetIterator(sut => sut.insert(1));
     });
 
     describe('insertBefore()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.insertBefore(() => true));
-      });
+      testGetIterator(sut => sut.insertBefore(() => true));
     });
 
     describe('insertAfter()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.insertAfter(() => true));
-      });
+      testGetIterator(sut => sut.insertAfter(() => true));
     });
 
     describe('intersect()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.intersect([1]));
-      });
+      testGetIterator(sut => sut.intersect([1]));
     });
 
     describe('intersperse()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.intersperse(','));
-      });
+      testGetIterator(sut => sut.intersperse(','));
     });
 
     describe('map()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.map(() => 1));
-      });
+      testGetIterator(sut => sut.map(() => 1));
     });
 
     describe('ofType()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.ofType(Number));
-      });
+      testGetIterator(sut => sut.ofType(Number));
     });
 
     // describe('orderBy()', () => {
-    //   it('should not get iterator', function () {
     //     testGetIterator(sut => sut.orderBy(x => x));
-    //   });
     // });
 
     // describe('orderByDescending()', () => {
-    //   it('should not get iterator', function () {
     //     testGetIterator(sut => sut.orderByDescending(x => x));
-    //   });
     // });
 
     describe('prepend()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.prepend([1]));
-      });
+      testGetIterator(sut => sut.prepend([1]));
     });
 
     describe('push()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.push(1));
-      });
+      testGetIterator(sut => sut.push(1));
     });
 
     describe('remove()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.remove([1]));
-      });
+      testGetIterator(sut => sut.remove([1]));
     });
 
     describe('removeAll()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.removeAll([1]));
-      });
+      testGetIterator(sut => sut.removeAll([1]));
     });
 
     describe('removeFalsy()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.removeFalsy());
-      });
+      testGetIterator(sut => sut.removeFalsy());
     });
 
     describe('removeNulls()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.removeNulls());
-      });
+      testGetIterator(sut => sut.removeNulls());
     });
 
     describe('repeat()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.repeat(2));
-      });
+      testGetIterator(sut => sut.repeat(2));
     });
 
     describe('reverse()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.reverse());
-      });
+      testGetIterator(sut => sut.reverse());
     });
 
     describe('skip()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.skip(2));
-      });
+      testGetIterator(sut => sut.skip(2));
     });
 
     describe('skipFirst()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.skipFirst());
-      });
+      testGetIterator(sut => sut.skipFirst());
     });
 
     describe('skipLast()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.skipLast());
-      });
+      testGetIterator(sut => sut.skipLast());
     });
 
     describe('skipWhile()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.skipWhile(() => false));
-      });
+      testGetIterator(sut => sut.skipWhile(() => false));
     });
 
     describe('slice()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.slice(0, 2));
-      });
+      testGetIterator(sut => sut.slice(0, 2));
     });
 
     describe('sort()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.sort());
-      });
+      testGetIterator(sut => sut.sort());
     });
 
     describe('sortBy()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.sortBy(x => x));
-      });
+      testGetIterator(sut => sut.sortBy(x => x));
     });
 
     describe('sorted()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.sorted());
-      });
+      testGetIterator(sut => sut.sorted());
     });
 
     describe('split()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.split(2));
-      });
+      testGetIterator(sut => sut.split(2));
     });
 
     describe('take()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.take(2));
-      });
+      testGetIterator(sut => sut.take(2));
     });
 
     describe('takeLast()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.takeLast(2));
-      });
+      testGetIterator(sut => sut.takeLast(2));
     });
 
     describe('takeWhile()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.takeWhile(() => true));
-      });
+      testGetIterator(sut => sut.takeWhile(() => true));
     });
 
     describe('takeOnly()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.takeOnly([1], x => x));
-      });
+      testGetIterator(sut => sut.takeOnly([1], x => x));
     });
 
     describe('tap()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.tap(x => x));
-      });
+      testGetIterator(sut => sut.tap(x => x));
     });
 
     describe('union()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.union([1]));
-      });
+      testGetIterator(sut => sut.union([1]));
     });
 
     describe('unshift()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.unshift(1));
-      });
+      testGetIterator(sut => sut.unshift(1));
     });
 
     describe('zip()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.zip([1]));
-      });
+      testGetIterator(sut => sut.zip([1]));
     });
 
     describe('zipAll()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.zipAll([1]));
-      });
+      testGetIterator(sut => sut.zipAll([1]));
     });
 
     describe('zipWithIndex()', () => {
-      it('should not get iterator', function () {
-        testGetIterator(sut => sut.zipWithIndex());
-      });
+      testGetIterator(sut => sut.zipWithIndex());
     });
 
   });

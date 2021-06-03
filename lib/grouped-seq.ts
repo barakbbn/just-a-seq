@@ -9,7 +9,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
-import {consume, entries, Gen, IGNORED_ITEM, IterationContext} from "./common";
+import {consume, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
@@ -21,8 +21,8 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
     return new GroupedSeqImpl<K, T>(key, items);
   }
 
-  tap(callback: Selector<T, void>, thisArg?: any): GroupedSeq<K, T> {
-    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback, thisArg));
+  tap(callback: Selector<T, void>): GroupedSeq<K, T> {
+    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback));
   }
 
   map<U = T>(mapFn: Selector<T, U>): GroupedSeq<K, U> {
@@ -65,7 +65,7 @@ class GroupingSelector {
   }
 
   private selectKey(value: any, index: number): any {
-    return this.key?this.key(value, index) : value;
+    return this.key ? this.key(value, index) : value;
   }
 
 }
@@ -97,11 +97,16 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   key: any;
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
-  private cacheable: boolean = false;
 
   constructor(protected source: Iterable<TIn>,
-              protected selectors: GroupingSelector[] = []) {
+              protected selectors: GroupingSelector[] = [],
+              private cacheable = false) {
     super();
+  }
+
+  // TaggedSeq
+  get [SeqTags.$cacheable](): boolean {
+    return this.cacheable;
   }
 
   get array(): ReadonlyArray<MultiGroupedSeq<Ks, TOut>> {
@@ -120,25 +125,20 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   cache(now?: boolean): any {
     if (this.cacheable) {
-      if (now && !this._cache) this.consume();
+      if (now && !this._cache) this.cacheNow();
       return this;
     }
 
     const instance = new SeqOfMultiGroupsImpl(
       this.source,
-      this.selectors
+      this.selectors,
+      true
     );
-    instance.cacheable = true;
-    instance.tapCallbacks = this.tapCallbacks;
+
+    instance.tapCallbacks.push(...this.tapCallbacks);
     instance.key = this.key;
 
     return instance;
-  }
-
-  hasAtLeast(count: number): boolean {
-    if (count <= 0) throw new RangeError('count must be positive');
-    if (Array.isArray(this.source)) return this.source.length >= count;
-    return super.hasAtLeast(count);
   }
 
   mapInGroup<U>(mapFn: Selector<TOut, U>): any {
@@ -160,7 +160,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     );
   }
 
-  tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>, thisArg?: any): any {
+  tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>): any {
     const tappable = new SeqOfMultiGroupsImpl(this.source, this.selectors);
     tappable.tapCallbacks.push(callback);
     tappable.key = this.key;
@@ -250,7 +250,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       return;
     }
     let yielded = false;
-    let generated: Iterable<any>;
+    let generated: Iterable<any> = EMPTY_ARRAY;
 
     if (!this.cacheable) {
       iterationContext.onClose(() => {
@@ -277,24 +277,26 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     class GroupedSeqGenerator implements Iterable<GroupedSeq<any, any> | TOut> {
       private readonly containerGenerator: ContainerGenerator<TOut>;
 
-      constructor(container: Container) {
+      constructor(container: Container, private optimize: boolean) {
         this.containerGenerator = new ContainerGenerator<TOut>(container);
       }
 
       * [Symbol.iterator](): Generator<GroupedSeq<any, any> | TOut> {
         if (this.containerGenerator.isLast) yield* (this.containerGenerator as any);
         else for (const container of this.containerGenerator as Iterable<Container>) {
-          yield factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container))
+          const seq = factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container, this.optimize))
+          if (this.optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+          yield seq;
         }
       }
     }
 
     class SeqOfGroupsGenerator implements Iterable<any> {
-      constructor(private readonly container: Container) {
+      constructor(private readonly container: Container, private optimize: boolean) {
       }
 
       * [Symbol.iterator](): any {
-        const groupedSeqGenerator = new GroupedSeqGenerator(this.container);
+        const groupedSeqGenerator = new GroupedSeqGenerator(this.container, this.optimize);
         yield* groupedSeqGenerator;
         while (!next.done) {
           const localNext: any = next;
@@ -306,11 +308,12 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     }
 
     let next = sessionIterator.next();
-    const rootContainer: Container = next.value.rootContainer;
-    const generator = new SeqOfGroupsGenerator(rootContainer);
+    if(!next.done) {
+      const rootContainer: Container = next.value.rootContainer;
+      generated = new SeqOfGroupsGenerator(rootContainer, SeqTags.optimize(this));
+    }
 
-    generated = generator;
-    if (this.cacheable) generated = this._cache = [...generator];
+    if (this.cacheable) generated = this._cache = [...generated];
     for (const entry of entries(generated)) {
       this.tapCallbacks.forEach(callback => callback(entry.value, entry.index));
       yielded = true;
@@ -340,6 +343,11 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
       yield {rootContainer, containers, entry: {value: item, index: entry.index}};
     }
+  }
+
+  private cacheNow() {
+    // noinspection LoopStatementThatDoesntLoopJS
+    for (const _ of this) break;
   }
 }
 

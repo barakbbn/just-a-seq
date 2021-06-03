@@ -1,14 +1,11 @@
-import {generate} from "./common";
+import {generate, SeqTags} from "./common";
 import {factories, Seq} from "./seq";
+import {randomInternal} from "./internal";
 
-const _empty = factories.Seq();
-
-const _random = factories.Seq(generate(function* randomize() {
-  while (true) yield Math.random();
-}));
+let _empty: Seq<any>;
 
 export function empty<T = any>(_ofType?: T): Seq<T> {
-  return _empty as unknown as Seq<T>;
+  return _empty ?? (_empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]])) as unknown as Seq<T>;
 }
 
 export function range(start: number, end?: number, step: number = 1): Seq<number> {
@@ -17,6 +14,8 @@ export function range(start: number, end?: number, step: number = 1): Seq<number
   if (step === 0) throw new Error('step parameter cannot be zero');
   if (Number.isNaN(step)) throw new Error('step parameter cannot be NaN');
   if (!Number.isFinite(step)) throw new Error(`step parameter cannot be Infinite`);
+
+  const tags: [symbol, any][] | undefined = end === undefined ? [[SeqTags.$maxCount, Number.POSITIVE_INFINITY]] : undefined;
 
   return factories.Seq(generate(function* range() {
     if (end !== undefined && start > end && step > 0) step *= -1;
@@ -28,7 +27,7 @@ export function range(start: number, end?: number, step: number = 1): Seq<number
       if (end !== undefined && (step < 0 && value < end || step > 0 && value > end)) break;
       yield value;
     }
-  }));
+  }), undefined, tags);
 }
 
 export function indexes(count: number): Seq<number> {
@@ -39,17 +38,20 @@ export function repeat<T>(value: T, count: number): Seq<T> {
   if (count < 0) throw new Error('count must be positive');
   return factories.Seq<T>(generate(function* repeat() {
     while (count--) yield value;
-  }))
+  }), undefined, [[SeqTags.$maxCount, count]])
 }
 
 export function random(): Seq<number> {
-  return _random;
+  return randomInternal(Seq.enableOptimization);
 }
 
 export function asSeq<T>(items: Iterable<T>): Seq<T>;
-export function asSeq<T>(generator: () => Generator<T>, thisArg?: any): Seq<T>;
-export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>), thisArg?: any): Seq<T> {
-  if (typeof itemsProvider !== "function") return factories.Seq(itemsProvider);
-  if (thisArg) itemsProvider = itemsProvider.bind(thisArg);
+export function asSeq<T>(generator: () => Iterator<T>): Seq<T>;
+export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): Seq<T> {
+  if (typeof itemsProvider !== "function") {
+    return SeqTags.isSeq(itemsProvider) ? itemsProvider : factories.Seq(itemsProvider);
+  }
   return factories.Seq<T>(generate(itemsProvider));
 }
+
+

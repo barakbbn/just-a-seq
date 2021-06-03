@@ -1,14 +1,27 @@
-import {Comparer, factories, SortedSeq, Selector, Seq} from "./seq";
-import {DONT_COMPARE, EMPTY_ARRAY, LEGACY_COMPARER, sameValueZero} from "./common";
+import {Comparer, Condition, factories, Selector, Seq, SortedSeq} from "./seq";
+import {DONT_COMPARE, EMPTY_ARRAY, entries, LEGACY_COMPARER, sameValueZero, SeqTags} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> {
-  protected readonly comparer?: (a: any, b: any) => number;
 
-  constructor(protected readonly items: Iterable<T> = EMPTY_ARRAY,
+  readonly [SeqTags.$sorted] = true;
+
+  protected readonly comparer?: (a: any, b: any) => number;
+  protected tapCallbacks: Selector<any, void>[] = [];
+
+  constructor(protected readonly source: Iterable<T> = EMPTY_ARRAY,
               comparer?: (a: K, b: K) => number) {
     super();
     this.comparer = comparer;
+  }
+
+  // TaggedSeq
+  get [SeqTags.$notAffectingNumberOfItems](): boolean {
+    return !this.tapCallbacks.length;
+  }
+
+  get [SeqTags.$notMappingItems](): boolean {
+    return !this.tapCallbacks.length;
   }
 
   static create<T, K = T>(items: Iterable<T> = [],
@@ -49,10 +62,154 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return a > b ? 1 : -1;
   }
 
+  all(condition: Condition<T>): boolean {
+    return this.tapCallbacks.length ?
+      super.all(condition) :
+      super.allOptimized(this.source, condition);
+  }
+
+  any(condition?: Condition<T>): boolean {
+    return this.tapCallbacks.length ?
+      super.any(condition) :
+      this.anyOptimized(this.source, condition);
+  }
+
+  average(): T extends number ? number : never;
+
+  average(selector: Selector<T, number>): number;
+
+  average(selector?: Selector<T, number>): number | never {
+    if (this.tapCallbacks.length || (selector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.average(selector as any);
+    }
+    return this.sourceToSeq().average(selector as any);
+  }
+
+  count(condition: Condition<T> = () => true): number {
+    return this.tapCallbacks.length ?
+      super.count(condition) :
+      super.countOptimized(this.source, condition);
+  }
+
+  distinct<K>(keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
+    if (this.tapCallbacks.length || (keySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.distinct(keySelector);
+    }
+    const source = this.sourceToSeq().distinct(keySelector);
+    return new SortedSeqImpl(source, this.comparer);
+  }
+
+  filter(condition: Condition<T>): Seq<T> {
+    if (this.tapCallbacks.length || condition.length > 1 || !SeqTags.optimize(this)) {
+      return super.filter(condition);
+    }
+    const source = this.sourceToSeq().filter(condition);
+    return new SortedSeqImpl(source, this.comparer);
+  }
+
   hasAtLeast(count: number): boolean {
-    if (count <= 0) throw new RangeError('count must be positive');
-    if (Array.isArray(this.items)) return this.items.length >= count;
-    return super.hasAtLeast(count);
+    return this.tapCallbacks.length ?
+      super.hasAtLeast(count) :
+      this.hasAtLeastOptimized(this.source, count);
+  }
+
+  includes(itemToFind: T, fromIndex: number = 0): boolean {
+    return this.tapCallbacks.length ?
+      super.includes(itemToFind, fromIndex) :
+      this.includesOptimized(this.source, itemToFind, fromIndex);
+  }
+
+  includesAll<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean; // Overload
+  includesAll<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
+
+  includesAll<U, K>(items: Iterable<T> | Iterable<U>, keySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = keySelector as unknown as Selector<U, K>): boolean {
+    if (this.tapCallbacks.length || keySelector.length > 1 || !SeqTags.optimize(this)) {
+      return super.includesAll(items as any, keySelector, secondKeySelector);
+    }
+    return this.sourceToSeq().includesAll(items as any, keySelector, secondKeySelector);
+  }
+
+  includesAny<K>(items: Iterable<T>, keySelector?: Selector<T, K>): boolean;
+
+  includesAny<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
+
+  includesAny<U, K>(items: Iterable<T> | Iterable<U>, keySelector?: Selector<T, K>, secondKeySelector?: Selector<U, K>): boolean {
+    if (this.tapCallbacks.length || (keySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.includesAny(items as any, keySelector as any, secondKeySelector as any);
+    }
+    return this.sourceToSeq().includesAny(items as any, keySelector as any, secondKeySelector as any);
+  }
+
+  max(): T extends number ? number : never;
+
+  max(selector: Selector<T, number>): number;
+
+  max(selector?: Selector<T, number>): number | void {
+    if (this.tapCallbacks.length || (selector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.max(selector as any);
+    }
+    return this.sourceToSeq().max(selector as any);
+  }
+
+  min(): T extends number ? number : never;
+
+  min(selector: Selector<T, number>): number;
+
+  min(selector?: Selector<T, number>): number | void {
+    if (this.tapCallbacks.length || (selector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.min(selector as any);
+    }
+    return this.sourceToSeq().min(selector as any);
+  }
+
+  remove<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T> {
+    if (this.tapCallbacks.length || (keySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.remove(items, keySelector);
+    }
+    const source = this.sourceToSeq().remove(items, keySelector);
+    return new SortedSeqImpl(source, this.comparer);
+  }
+
+  removeAll<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T> {
+    if (this.tapCallbacks.length || (keySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.removeAll(items, keySelector);
+    }
+    const source = this.sourceToSeq().removeAll(items, keySelector);
+    return new SortedSeqImpl(source, this.comparer);
+  }
+
+  sameItems<K>(second: Iterable<T>, keySelector?: (item: T) => K): boolean;
+
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): boolean;
+
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector?: Selector<U, K>): boolean {
+    if (this.tapCallbacks.length || (firstKeySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.sameItems(second, firstKeySelector as any, secondKeySelector as any);
+    }
+    return this.sourceToSeq().sameItems(second, firstKeySelector as any, secondKeySelector as any);
+  }
+
+  sum(): T extends number ? number : never;
+
+  sum(selector: Selector<T, number>): number;
+
+  sum(selector?: Selector<T, number>): number | void {
+    if (this.tapCallbacks.length || (selector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.sum(selector as any);
+    }
+    return this.sourceToSeq().sum(selector as any);
+  }
+
+  takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
+
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
+
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
+    if (this.tapCallbacks.length || (firstKeySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
+      return super.takeOnly(items, firstKeySelector, secondKeySelector);
+    }
+    const source = this.sourceToSeq().takeOnly(items, firstKeySelector, secondKeySelector);
+    return new SortedSeqImpl(source, this.comparer);
   }
 
   // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): SortedSeq<T> {
@@ -67,26 +224,35 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   //   return this.thenByInternal(keySelector, comparer, true);
   // }
 
-  tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T> {
-    return new SortedSeqImpl<T, K>(this.tapGenerator(callback, thisArg), this.comparer);
+  tap(callback: Selector<T, void>,): SortedSeq<T> {
+    const instance = new SortedSeqImpl<T, K>(this.source, this.comparer);
+    instance.tapCallbacks.push(...this.tapCallbacks, callback);
+
+    return instance;
   }
 
   * [Symbol.iterator](): Iterator<T> {
-    if (this.comparer === DONT_COMPARE) {
-      yield* this.items;
-      return;
+    const items: Iterable<T> = (this.comparer === DONT_COMPARE) ?
+      this.source :
+      [...this.source].sort(this.comparer as Comparer<T>);
+
+    if (this.tapCallbacks.length) for (const entry of entries(items)) {
+      this.tapCallbacks.forEach(callback => callback(entry.value, entry.index));
+      yield entry.value;
     }
-    const array = [...this.items];
-    const sorted = array.sort(this.comparer as Comparer<T>);
-    yield* sorted;
+    else yield* items;
   }
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse: boolean = false): SortedSeq<T> {
-    return factories.SortedSeq(this.items, valueSelector, undefined, reverse);
+    const optimize = SeqTags.optimize(this);
+    if (this.tapCallbacks.length || !optimize) return super.sortBy(valueSelector, reverse);
+    return this.transferOptimizeTag(factories.SortedSeq(this.source, valueSelector, undefined, reverse));
   }
 
   sorted(reverse = false): Seq<T> {
-    return factories.SortedSeq(this.items, undefined, undefined, reverse);
+    const optimize = SeqTags.optimize(this);
+    if (this.tapCallbacks.length || !optimize) return super.sorted(reverse);
+    return this.transferOptimizeTag(factories.SortedSeq(this.source, undefined, undefined, reverse));
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer?: Comparer<K>, descending: boolean = false): SortedSeq<T> {
@@ -95,6 +261,17 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     let finalComparer = baseComparer ?
       (a: any, b: any) => baseComparer(a, b) || nextComparer(a, b) :
       (a: any, b: any) => nextComparer(a, b);
-    return new SortedSeqImpl(this.items, finalComparer);
+    const instance = new SortedSeqImpl(this.source, finalComparer);
+    instance.tapCallbacks.push(...this.tapCallbacks);
+
+    return instance;
+  }
+
+  private sourceToSeq(): Seq<T> {
+    return SeqTags.isSeq(this.source) ?
+      this.source :
+      this.createDefaultSeq(this.source, undefined, [
+        [SeqTags.$notAffectingNumberOfItems, true],
+        [SeqTags.$notMappingItems, true]]);
   }
 }

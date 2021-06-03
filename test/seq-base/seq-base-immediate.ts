@@ -4,6 +4,9 @@ import {array, generator, iterables, Sample} from "../test-data"
 import {SeqBase} from "../../lib/seq-base";
 
 export abstract class SeqBase_Immediate_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
     it(title + ' - array source', () => testFn(input));
     it(title + ' - generator source', () => testFn(generator.from(input)));
@@ -648,7 +651,7 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe("findLastIndex()", () => {
-      this.it1('should return -1 if non of the items meet the condition', array.oneToTen,(input) => {
+      this.it1('should return -1 if non of the items meet the condition', array.oneToTen, (input) => {
         const expected = -1;
         let sut = this.createSut(input);
         let actual = sut.findLastIndex(() => false);
@@ -3938,39 +3941,13 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe('toString()', () => {
-      it('should behave like Array.join', () => {
-        for (const input of <any[][]>[array.abc, [], [1]]) {
-          const sutArray = this.createSut<any>(input);
-          const sutGenerator = this.createSut(generator.from<any>(input));
-          for (const separator of <string[]>[undefined, '', ' ', ',', '|', "<=>", '/', null]) {
-            const expected = input.join(separator);
-            let actual = sutArray.toString(separator);
-            assert.equal(actual, expected, `string "${actual}" doesn't equals expected string "${expected}" when doing [${input}].join(${separator})`);
-            actual = sutGenerator.toString(separator);
-            assert.equal(actual, expected, `string "${actual}" doesn't equals expected string "${expected}" when doing [${input}].join(${separator})`);
-          }
-        }
-      });
-
-      it('should return wrapped the string with either a start and/or end string', () => {
-        for (const start of <string[]>['', undefined, null, '[', '{', ' ']) {
-          for (const end of <string[]>['', undefined, null, ']', '}', ' ']) {
-            for (const input of <any[]>[array.abc, [], [1]]) {
-              const sutArray = this.createSut<any>(input);
-              const sutGenerator = this.createSut(generator.from<any>(input));
-              for (const separator of <string[]>[undefined, '', ' ', ',', '|', "<=>", '/', null]) {
-                const expected = (start === undefined ? '' : start) + input.join(separator) + (end === undefined ? '' : end);
-                let actual = sutArray.toString({start, separator, end});
-                assert.equal(actual, expected, `string "${actual}" doesn't equals expected string "${expected}" when doing [${input}].join({start: ${start}, separator: ${separator}, end: ${end}})`);
-                actual = sutGenerator.toString({start, separator, end});
-                assert.equal(actual, expected, `string "${actual}" doesn't equals expected string "${expected}" when doing [${input}].join({start: ${start}, separator: ${separator}, end: ${end}})`);
-              }
-            }
-          }
-        }
+      it('should return comma delimited string  of the sequence items, confined within square brackets', () => {
+        const input = array.oneToTen;
+        const expected = '[' + input.join() + ']';
+        const actual = this.createSut(input).toString();
+        assert.equal(actual, expected);
       });
     });
-
   });
 
   protected abstract createSut<T>(input?: Iterable<T>): SeqBase<T>;

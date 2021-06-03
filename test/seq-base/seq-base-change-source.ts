@@ -1,82 +1,169 @@
 import {SeqBase} from "../../lib/seq-base";
-import {describe} from "mocha";
+import {describe, it} from "mocha";
+import {array, generator} from "../test-data";
 import {Seq} from "../../lib";
 import {assert} from "chai";
-import {array} from "../test-data";
 
-export abstract class SeqBase_Close_Iterator_Tests {
+class TestHarness<T> {
+  expected: { longer: any; empty: any; shorter: any };
+  private readonly prototype: T[];
+
+  constructor(source: T[] = []) {
+    this.prototype = source.slice()
+  }
+
+  materialize(value: any): any {
+    function isIterable(value: any): value is Iterable<any> {
+      return value && typeof value !== 'string' && typeof value[Symbol.iterator] === 'function';
+    }
+
+    function* deepToArray(iterable: Iterable<any>): Generator<any> {
+      for (const item of iterable) yield isIterable(item) ? [...deepToArray(item)] : item;
+    }
+
+    return isIterable(value) ? [...deepToArray(value)] : value;
+  }
+
+  makeShort(source: T[]) {
+    source.splice(0, source.length, ...this.prototype.slice(1, -1));
+    return source;
+  }
+
+  makeLong(source: T[] = []) {
+    source.splice(0, source.length, ...[
+      ...this.prototype.slice(-3),
+      ...this.prototype.slice(1, -1),
+      ...this.prototype.slice(0, 3)].reverse());
+    return source;
+  }
+
+  makeEmpty(source: T[]) {
+    return source.splice(0);
+  }
+
+  initExpected(createExpected: (seq: Iterable<T>) => any): void {
+    if (this.expected) return;
+    this.expected = {
+      empty: this.materialize(createExpected([])),
+      shorter: this.materialize(createExpected(this.makeShort(this.prototype.slice()))),
+      longer: this.materialize(createExpected(this.makeLong(this.prototype.slice())))
+    };
+  }
+}
+
+export abstract class SeqBase_Change_Source_Tests {
   constructor(protected optimized: boolean) {
   }
 
-  readonly run = () => describe('SeqBase - Close Iterator', () => {
-    class ClosableIterable<T> implements Iterable<T> {
-      closed = 0;
-      iterated = false;
-
-      constructor(private source: Iterable<T>) {
-      }
-
-      [Symbol.iterator]() {
-        const self = this;
-        return new class Iterator2 implements Iterator<T> {
-          iterator: Iterator<T>;
-
-          return(value?: any): IteratorReturnResult<any> {
-            self.closed++;
-            if (typeof this.iterator?.return === 'function') this.iterator?.return?.(value);
-            return {done: true, value};
-          }
-
-          next(): IteratorResult<T> {
-            if (self.closed) return {done: true, value: undefined};
-            if (!this.iterator) this.iterator = self.source[Symbol.iterator]();
-            self.iterated = true;
-            const {value, done} = this.iterator.next();
-            return done ? this.return(value) : {value};
-          }
-        };
-      }
-    }
-
+  readonly run = () => describe('SeqBase - Change source', () => {
     const test = <T>(title: string, source: T[], onSeq: (seq: Seq<T>) => any) => {
-      it(`${title} should close source iterator`, () => {
-        const closeable = new ClosableIterable(source)
-        const seq = this.createSut(closeable);
-        const maybeIterable = onSeq(seq);
-        if (maybeIterable) {
-          const iterator = maybeIterable[Symbol.iterator];
-          if (typeof iterator === 'function') {
-            // noinspection LoopStatementThatDoesntLoopJS
-            for (const _ of maybeIterable) {
-              break;
-            }
-          }
-        }
-        assert.isTrue(!closeable.iterated || closeable.closed > 0, `expected '${closeable.iterated}' closeable.iterated to be 'false' or '${closeable.closed}' closeable.closed to be greater than zero`);
-        if (closeable.closed > 1) it.skip(`${title} closed iterator ${closeable.closed} times`, () => {
-        });
+      const testHarness = new TestHarness(source)
+
+      const withSource = (input: T[], source: Iterable<T>) => {
+        testHarness.initExpected(input => onSeq(this.createSut(input)));
+
+        const sut = this.createSut(source);
+        testHarness.materialize(onSeq(sut));
+
+        testHarness.makeEmpty(input);
+        const empty = testHarness.materialize(onSeq(sut));
+        assert.deepEqual(empty, testHarness.expected.empty);
+        testHarness.makeShort(input);
+        const shorter = testHarness.materialize(onSeq(sut));
+        assert.deepEqual(shorter, testHarness.expected.shorter);
+        testHarness.makeEmpty(input);
+        const emptyAgain = testHarness.materialize(onSeq(sut));
+        assert.deepEqual(emptyAgain, testHarness.expected.empty);
+        testHarness.makeLong(input);
+        const longer = testHarness.materialize(onSeq(sut));
+        assert.deepEqual(longer, testHarness.expected.longer);
+      };
+
+      it(title + ' - array source', () => {
+        const input = source.slice();
+        withSource(input, input);
+      });
+
+      it(title + ' - generator source', () => {
+        const input = source.slice();
+        withSource(input, generator.from(input));
+      });
+
+      it(title + ' - sequence source', () => {
+        const input = source.slice();
+        withSource(input, this.createSut(input));
       });
     };
+
     const test2 = <T, U>(title: string, first: T[], second: U[], onSeq: (seq: Seq<T>, second: Iterable<U>) => any) => {
-      it(`${title} should close source iterator`, () => {
-        const firstCloseable = new ClosableIterable(first)
-        const secondCloseable = new ClosableIterable(second)
-        const seq = this.createSut(firstCloseable);
-        const maybeIterable = onSeq(seq, secondCloseable);
-        if (maybeIterable && typeof maybeIterable[Symbol.iterator] === 'function') {
-          // noinspection LoopStatementThatDoesntLoopJS
-          for (const _ of maybeIterable) {
-            break;
-          }
-        }
-        assert.isTrue(!firstCloseable.iterated || firstCloseable.closed > 0, `expected '${firstCloseable.iterated}' firstCloseable.iterated to be 'false' or '${firstCloseable.closed}' firstCloseable.closed to be greater than zero`);
-        if (firstCloseable.closed > 1) it.skip(`${title} closed iterator ${firstCloseable.closed} times`, () => {
-        });
-        assert.isTrue(!secondCloseable.iterated || secondCloseable.closed > 0, `expected '${secondCloseable.iterated}' secondCloseable.iterated to be 'false' or '${secondCloseable.closed}' secondCloseable.closed to be greater than zero`);
-        if (secondCloseable.closed > 1) it.skip(`${title} closed iterator ${secondCloseable.closed} times`, () => {
-        });
+      const testHarness = new TestHarness(first)
+
+      const withSource = (input: T[], first: Iterable<T>, second: Iterable<U>) => {
+        testHarness.initExpected(input => onSeq(this.createSut(input), second));
+
+        const sut = this.createSut(first);
+        testHarness.materialize(onSeq(sut, second));
+
+        testHarness.makeEmpty(input);
+        const empty = testHarness.materialize(onSeq(sut, second));
+        assert.deepEqual(empty, testHarness.expected.empty);
+        testHarness.makeShort(input);
+        const shorter = testHarness.materialize(onSeq(sut, second));
+        assert.deepEqual(shorter, testHarness.expected.shorter);
+        testHarness.makeEmpty(input);
+        const emptyAgain = testHarness.materialize(onSeq(sut, second));
+        assert.deepEqual(emptyAgain, testHarness.expected.empty);
+        testHarness.makeLong(input);
+        const longer = testHarness.materialize(onSeq(sut, second));
+        assert.deepEqual(longer, testHarness.expected.longer);
+      };
+
+      it(title + ' - first array, second array', () => {
+        const input = first.slice();
+        withSource(input, input, second.slice());
+      });
+
+      it(title + ' - first array, second generator', () => {
+        const input = first.slice();
+        withSource(input, input, generator.from(second));
+      });
+
+      it(title + ' - first array, second sequence', () => {
+        const input = first.slice();
+        withSource(input, input, this.createSut(second));
+      });
+
+      it(title + ' - first generator, second array', () => {
+        const input = first.slice();
+        withSource(input, generator.from(input), second.slice());
+      });
+
+      it(title + ' - first generator, second generator', () => {
+        const input = first.slice();
+        withSource(input, generator.from(input), generator.from(second));
+      });
+
+      it(title + ' - first generator, second sequence', () => {
+        const input = first.slice();
+        withSource(input, generator.from(input), this.createSut(second));
+      });
+
+      it(title + ' - first sequence, second array', () => {
+        const input = first.slice();
+        withSource(input, this.createSut(input), second.slice());
+      });
+
+      it(title + ' - first sequence, second generator', () => {
+        const input = first.slice();
+        withSource(input, this.createSut(input), generator.from(second));
+      });
+
+      it(title + ' - first sequence, second sequence', () => {
+        const input = first.slice();
+        withSource(input, this.createSut(input), this.createSut(second));
       });
     };
+
     test('all()', array.oneToTen, seq => seq.all(n => n > 5));
     test('any()', array.oneToTen, seq => seq.any(n => n > 5));
     test('at()', array.oneToTen, seq => seq.at(-1));
@@ -85,14 +172,14 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('chunk()', array.oneToTen, seq => seq.chunk(5));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
-    test('consume()', array.oneToTen, seq => seq.consume());
-    test('count()', array.oneToTen, seq => seq.count(n => n > 5));
+    test('count(condition)', array.oneToTen, seq => seq.count(n => n > 5));
+    test('count()', array.oneToTen, seq => seq.count());
     test2('diffDistinct()', array.zeroToNine, array.oneToTen, (seq, other) => seq.diffDistinct(other));
     test2('diff()', array.zeroToNine, array.oneToTen, (seq, other) => seq.diff(other));
     test('distinct()', array.tenOnes, seq => seq.distinct());
     test2('endsWith()', array.oneToTen, [9, 10], (seq, other) => seq.endsWith(other));
     test('entries()', array.oneToTen, seq => seq.entries());
-    test('filter()', array.oneToTen, seq => seq.filter(() => true));
+    test('filter()', array.oneToTen, seq => seq.filter(n => n % 2));
     test('find()', array.oneToTen, seq => seq.find(n => n > 5));
     test('findIndex()', array.oneToTen, seq => seq.findIndex(n => n > 5));
     test('findLastIndex()', array.oneToTen, seq => seq.findLastIndex(n => n > 5));
@@ -117,8 +204,7 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test2('insert()', array.oneToTen, array.oneToTen, (seq, other) => seq.insert(0, other));
     test2('insertAfter()', array.oneToTen, array.oneToTen, (seq, other) => seq.insertAfter(n => n > 5, other));
     test2('insertBefore()', array.oneToTen, array.oneToTen, (seq, other) => seq.insertBefore(n => n > 5, other));
-    test2('intersect()', array.oneToTen, array.oneToTen, (seq, other) => seq.intersect(other));
-    test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
+    test2('intersect()', array.oneToTen, array.oneToTen, (seq, other) => seq.intersect(other));    test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     test('isEmpty()', array.oneToTen, seq => seq.isEmpty());
     test('join()', array.oneToTen, seq => seq.join());
     test('last()', array.oneToTen, seq => seq.last());
@@ -126,11 +212,9 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
     test('max()', array.oneToTen, seq => seq.max());
     test('min()', array.oneToTen, seq => seq.min());
-    // test('orderBy()', array.oneToTen, seq => seq.orderBy(n => n, (a, b) => b - a));
-    // test('orderByDescending()', array.oneToTen, seq => seq.orderByDescending(n => n, (a, b) => b - a));
     test2('prepend()', array.oneToTen, [0, -1, -2], (seq, other) => seq.prepend(other));
-    test('reduce()', array.oneToTen, seq => seq.reduce((prev, curr) => prev + curr));
-    test('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr) => prev + curr));
+    test('reduce()', array.oneToTen, seq => seq.reduce((prev, curr) => prev + curr, 0));
+    test('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr) => prev + curr, 0));
     test2('remove()', array.oneToTen, [1, 2], (seq, other) => seq.remove(other));
     test2('removeAll()', array.oneToTen, [1, 2], (seq, other) => seq.removeAll(other));
     test('removeFalsy()', array.zeroToTen, seq => seq.removeFalsy());

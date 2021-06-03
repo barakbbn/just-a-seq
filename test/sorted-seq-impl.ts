@@ -6,47 +6,60 @@ import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
-import {DONT_COMPARE} from "../lib/common";
+import {DONT_COMPARE, SeqTags, TaggedSeq} from "../lib/common";
 import {array, generator, iterables, Sample} from "./test-data";
 import {assert} from "chai";
+import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
 
-function createSut<T>(input: Iterable<T>): SortedSeqImpl<T> {
-  return SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
+function createSut<T>(optimized: boolean) {
+  return <T>(input: Iterable<T>): SortedSeqImpl<T> => {
+    const seq = SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
+    if (optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
+  }
 }
 
 class SortedSeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class SortedSeqImpl_Deferred_Tests extends SeqBase_Deferred_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class SortedSeqImpl_Immediate_Tests extends SeqBase_Immediate_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class SortedSeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class SortedSeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 }
 
 class SortedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
-  protected createSut = createSut
+  protected createSut = createSut(this.optimized);
 
 }
 
+class SortedSeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+  protected readonly createSut = createSut(this.optimized);
+}
+
 export class SortedSeqImpl_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   readonly run = () => describe('SortedSeqImpl', () => {
-    new SortedSeqImpl_Deferred_GetIterator_Tests().run();
-    new SortedSeqImpl_Deferred_Tests().run();
-    new SortedSeqImpl_Immediate_Tests().run();
-    new SortedSeqImpl_SortedSeq_Tests().run();
-    new SortedSeqImpl_CachedSeq_Tests().run();
-    new SortedSeqImpl_Grouping_Tests().run();
+    new SortedSeqImpl_Deferred_GetIterator_Tests(this.optimized).run();
+    new SortedSeqImpl_Deferred_Tests(this.optimized).run();
+    new SortedSeqImpl_Immediate_Tests(this.optimized).run();
+    new SortedSeqImpl_SortedSeq_Tests(this.optimized).run();
+    new SortedSeqImpl_CachedSeq_Tests(this.optimized).run();
+    new SortedSeqImpl_Grouping_Tests(this.optimized).run();
+    new SortedSeqImpl_Change_Source_Tests(this.optimized).run();
 
     describe("at()", () => {
       it("Return an item at expected index", () => {
@@ -284,11 +297,15 @@ export class SortedSeqImpl_Tests {
   });
 
   protected createSut<T>(items: Iterable<T> = [], comparer?: (a: T, b: T) => number) {
-    return new SortedSeqImpl(items, comparer)
+    const seq = new SortedSeqImpl(items, comparer);
+    if (this.optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
   }
 
   protected createReverseSut<T>(input: Iterable<T> = [], comparer?: (a: T, b: T) => number) {
-    return SortedSeqImpl.create(input, undefined, comparer, true);
+    const seq = SortedSeqImpl.create(input, undefined, comparer, true);
+    if (this.optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+    return seq;
   }
 }
 

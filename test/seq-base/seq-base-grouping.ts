@@ -4,6 +4,9 @@ import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
 
 export abstract class SeqBase_Grouping_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
     it(title + ' - first array, second array', () => testFn(first, second));
     it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
@@ -123,14 +126,14 @@ export abstract class SeqBase_Grouping_Tests {
       it('should filter grouped sequences as expected', () => {
         const input = array.samples;
         const expectedMap = new Map<string, Sample[]>();
-        for(const s of input){
+        for (const s of input) {
           const items = expectedMap.get(s.type) ?? [];
           items.push(s);
           expectedMap.set(s.type, items);
         }
         const expectedSet = new Set<number>();
-        for(const samples of expectedMap.values()){
-          if(samples.length <= 5) continue;
+        for (const samples of expectedMap.values()) {
+          if (samples.length <= 5) continue;
           samples.map(s => s.score).forEach(s => expectedSet.add(s));
         }
         const expected = [...expectedSet];
@@ -154,6 +157,13 @@ export abstract class SeqBase_Grouping_Tests {
         let [firstGroup] = sut; // will take first child grouped-sequence and close the iterator returned by sut
         const actual = [...firstGroup];
         assert.deepEqual(actual, expected);
+      });
+
+      it('should return empty sequence when source sequence is empty', () => {
+        const input: number[] = [];
+        const sut = this.createSut(input).groupBy(s => s > 5);
+        const actual = [...sut];
+        assert.lengthOf(actual, 0);
       });
 
       describe('thenGroupBy()', () => {

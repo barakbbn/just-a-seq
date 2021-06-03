@@ -1,3 +1,5 @@
+import {IterationContext} from "./common";
+
 export type Class<T = any> = new (...args: any) => T;
 export type Condition<T> = (x: T, index: number) => unknown;
 
@@ -57,14 +59,18 @@ export interface Seq<T> extends Iterable<T> {
 
   endsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
-  entries(): Seq<[number, T]>;
+  entries(): Seq<[index: number, value: T]>;
 
   every(condition: Condition<T>): boolean;
 
   // It seems the order of the overloads affects Typescript recognizing the right signature
-  filter<S extends T>(typeGuard: (item: T, index: number) => item is S, thisArg?: any): Seq<S>;
+  filter<S extends T>(typeGuard: (item: T, index: number) => item is S): Seq<S>;
 
   filter(condition: Condition<T>): Seq<T>;
+
+  find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
+  find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
 
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined; // Overload
 
@@ -73,6 +79,10 @@ export interface Seq<T> extends Iterable<T> {
   findIndex(condition: Condition<T>): number; // Overload
 
   findIndex(fromIndex: number, condition: Condition<T>): number;
+
+  findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
+  findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
 
   findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
 
@@ -84,13 +94,13 @@ export interface Seq<T> extends Iterable<T> {
 
   first(defaultIfEmpty?: T): T | undefined;
 
-  firstAndRest(defaultIfEmpty?: T): [T, Seq<T>];
+  firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>];
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
   flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
 
-  forEach(callback: (value: T, index: number, breakLoop: object) => void, thisArg?: any): void;
+  forEach(callback: (value: T, index: number, breakLoop: object) => unknown): void;
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
@@ -227,8 +237,8 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(reverse?: boolean): Seq<T>;
 
-  split(atIndex: number): [Seq<T>, Seq<T>]; // Overload
-  split(condition: Condition<T>): [Seq<T>, Seq<T>];
+  split(atIndex: number): [first: Seq<T>, second: Seq<T>]; // Overload
+  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>];
 
   startsWith<K>(items: Iterable<T>, keySelector?: (item: T) => K): boolean;
 
@@ -245,7 +255,7 @@ export interface Seq<T> extends Iterable<T> {
 
   takeWhile(condition: Condition<T>): Seq<T>;
 
-  tap(callback: Selector<T, void>, thisArg?: any): Seq<T>;
+  tap(callback: Selector<T, void>): Seq<T>;
 
   toArray(): T[];
 
@@ -253,12 +263,13 @@ export interface Seq<T> extends Iterable<T> {
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
-  toString(separator?: string): string; // Overload
-  toString(opts: { start?: string; separator?: string, end?: string; }): string;
+  toString(): string;
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K): Seq<T>;
+  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+
+  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
 
@@ -266,11 +277,15 @@ export interface Seq<T> extends Iterable<T> {
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;
 
-  zipWithIndex<U = T>(): Seq<[T, number]>;
+  zipWithIndex<U = T>(): Seq<[value: T, index: number]>;
+}
+
+export namespace Seq {
+  export let enableOptimization = false;
 }
 
 export interface SortedSeq<T> extends Seq<T> {
-  tap(callback: Selector<T, void>, thisArg?: any): SortedSeq<T>;
+  tap(callback: Selector<T, void>): SortedSeq<T>;
 
   // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
 
@@ -282,7 +297,7 @@ export interface SortedSeq<T> extends Seq<T> {
 export interface CachedSeq<T> extends Seq<T> {
   readonly array: ReadonlyArray<T>;
 
-  tap(callback: Selector<T, void>, thisArg?: any): CachedSeq<T>;
+  tap(callback: Selector<T, void>): CachedSeq<T>;
 }
 
 export interface IHaveKey<K> {
@@ -291,13 +306,13 @@ export interface IHaveKey<K> {
 
 export interface GroupedSeq<K, T> extends Seq<T>, IHaveKey<K> {
 
-  tap(callback: Selector<T, void>, thisArg?: any): GroupedSeq<K, T>;
+  tap(callback: Selector<T, void>): GroupedSeq<K, T>;
 
   map<U>(mapFn: Selector<T, U>): GroupedSeq<K, U>;
 }
 
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
-  tap(callback: Selector<GroupedSeq<K, T>, void>, thisArg?: any): this;
+  tap(callback: Selector<GroupedSeq<K, T>, void>): this;
 
   mapInGroup<U>(mapFn: Selector<T, U>): SeqOfGroups<K, U>;
 
@@ -305,7 +320,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 
   toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
-  toMap(): MapHierarchy<[K], T>;
+  toMap(): MapHierarchy<[key: K], T>;
 
   cache(): this & CachedSeq<GroupedSeq<K, T>>
 }
@@ -315,7 +330,7 @@ export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<SubGroupedSeq<
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>, thisArg?: any): this;
+  tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>): this;
 
   mapInGroup<U>(mapFn: Selector<T, U>): SeqOfMultiGroups<Ks, U>;
 
@@ -333,7 +348,10 @@ export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2,
   : GroupedSeq<Ks[1], T>;
 
 export interface SeqFactory {
-  <T>(source?: Iterable<T>): Seq<T>;
+  <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
+    source?: Iterable<T>,
+    generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    tags?: readonly [tag: symbol, value: any][]): Seq<U>;
 }
 
 export interface CachedSeqFactory {
@@ -358,11 +376,19 @@ export interface SeqOfGroupsFactory {
                     valueSelector?: Selector<T, U>): SeqOfGroups<K, U>
 }
 
+export interface FilterMapSeqFactory {
+  <T, U = T>(source: Iterable<T>, map: { map: Selector<T, U> }): Seq<U>;
+
+  <T>(source: Iterable<T>, filter: { filter: Condition<T> }): Seq<T>;
+
+  <T, S extends T>(source: Iterable<T>, filter: { filter: (item: T, index: number) => item is S }): Seq<S>;
+}
+
 export const factories: {
   Seq: SeqFactory;
   CachedSeq: CachedSeqFactory;
   SortedSeq: SortedSeqFactory;
   GroupedSeq: GroupedSeqFactory;
   SeqOfGroups: SeqOfGroupsFactory;
+  FilterMapSeq: FilterMapSeqFactory;
 } = <any>{};
-

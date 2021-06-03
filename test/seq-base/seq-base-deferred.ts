@@ -4,6 +4,9 @@ import {assert} from "chai";
 import {array, Folder, generator, Sample} from "../test-data";
 
 export abstract class SeqBase_Deferred_Tests {
+  constructor(protected optimized: boolean) {
+  }
+
   it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
     it(title + ' - array source', () => testFn(input));
     it(title + ' - generator source', () => testFn(generator.from(input)));
@@ -1625,12 +1628,9 @@ export abstract class SeqBase_Deferred_Tests {
         const input = [...source];
         const sut = this.createSut(source);
         for (let skip = -input.length - 1; skip < input.length + 1; skip++) {
-          for (let take = -input.length - 1; take <= input.length + 1; take++) {
-            const expected = input.slice(skip);
-            const actual = [...sut.skip(skip)];
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-          }
+          const expected = input.slice(Math.max(skip, 0));
+          const actual = [...sut.skip(skip)];
+          assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip})`);
         }
       });
     });
@@ -1662,17 +1662,14 @@ export abstract class SeqBase_Deferred_Tests {
     describe('skipLast()', () => {
       this.it1('should return new sequence without last skipped items', array.oneToTen, (source) => {
         const input = [...source];
-        const sut = this.createSut(input);
+        const sut = this.createSut(source);
         for (let count = 0; count < input.length + 1; count++) {
-          const expected = input.slice(0, -count);
+          const expected = input.slice(0, -count || undefined);
           let actual = [...sut.skipLast(count)];
           assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].skipLast(${count})`);
         }
       });
 
-      this.it1('should return empty sequence is count is negative', array.oneToTen, (input) => {
-        assert.sameOrderedMembers([...this.createSut(input).skipLast(-1)], []);
-      });
     });
 
     describe("skipWhile()", () => {
@@ -1779,16 +1776,36 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('take()', () => {
-      this.it1('should behave like Array.slice(0, count) also when count is negative', array.oneToTen, (source) => {
+      this.it1('should return sequence with number of items as specified in count parameter', array.oneToTen, (source) => {
         const input = [...source];
         const sut = this.createSut(source);
-        for (let skip = -input.length - 1; skip < input.length + 1; skip++) {
-          for (let take = -input.length - 1; take <= input.length + 1; take++) {
-            const expected = input.slice(0, take);
-            let actual = [...sut.take(take)];
-            assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(${skip},${take})`);
-          }
+        for (let take = 1; take <= input.length; take++) {
+          const expected = input.slice(0, take);
+          let actual = [...sut.take(take)];
+          assert.sameOrderedMembers(actual, expected, `expected [${actual}] to have the same ordered members as [${expected}] when doing [${input}].slice(0,${take})`);
         }
+      });
+      this.it1('should return sequence with same items if count parameter is grater then number of items', array.oneToTen, (source) => {
+        const input = [...source];
+        const sut = this.createSut(source);
+
+        const expected = input.slice(0, input.length + 1);
+        let actual = [...sut.take(input.length + 1)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1('should return empty sequence when count zero negative', array.oneToTen, (source) => {
+        const sut = this.createSut(source);
+        const expected: number[] = [];
+        let actual = [...sut.take(0)];
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1('should return empty sequence when count is negative', array.oneToTen, (source) => {
+        const sut = this.createSut(source);
+        const expected: number[] = [];
+        let actual = [...sut.take(-2)];
+        assert.sameOrderedMembers(actual, expected);
       });
     });
 
@@ -1803,9 +1820,13 @@ export abstract class SeqBase_Deferred_Tests {
         }
       });
 
-      this.it1('should return empty sequence is count non positive', [], (input) => {
+      this.it1('should return empty sequence is count non positive', array.oneToTen, (input) => {
         assert.sameOrderedMembers([...this.createSut(input).takeLast(0)], []);
         assert.sameOrderedMembers([...this.createSut(input).takeLast(-1)], []);
+      });
+
+      this.it1('should return empty sequence is source sequence is empty', [], (input) => {
+        assert.sameOrderedMembers([...this.createSut(input).takeLast(10)], []);
       });
     });
 
@@ -1960,24 +1981,6 @@ export abstract class SeqBase_Deferred_Tests {
         assert.sameOrderedMembers(actual1, expected);
         assert.sameOrderedMembers(actual2, expected);
         assert.sameOrderedMembers(actual3, expected);
-      });
-
-      this.it1('should use provided `this` argument with callback', array.oneToTen, (input) => {
-        const expected = [...input];
-        const actual = new class {
-          items: number[] = [];
-
-          add(value: number): void {
-            this.items.push(value);
-          }
-        };
-
-        const sut = this.createSut(input);
-
-        const tapped = sut.tap(actual.add, actual);
-        for (const item of tapped) {
-        }
-        assert.sameOrderedMembers(actual.items, expected);
       });
     });
 
