@@ -5,6 +5,7 @@ import {
   GroupedSeq,
   MapHierarchy,
   MultiGroupedSeq,
+  ObjectHierarchy,
   Selector,
   SeqOfMultiGroups,
   ToComparableKey
@@ -95,6 +96,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>> {
 
   key: any;
+
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
 
@@ -173,35 +175,57 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   toMap<K, V>(keySelector?: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toComparableKey?: ToComparableKey<K>): any {
     if (keySelector) return super.toMap(keySelector, valueSelector, toComparableKey);
-
-    const map = new Map<ComparableType, { key: any, items: any[] | Map<ComparableType, any>, realMap?: Map<any, any>; }>();
-    const realMap = new Map<any, any[] | Map<ComparableType, any>>();
-
-    for (const entry of entries(this.source)) {
-      let currentMap = map;
-      let currentRealMap = realMap ? realMap : undefined;
-
-      for (const {value: selector, index} of entries(this.selectors)) {
-        const isLast = (this.selectors.length - 1) === index;
-        const {key, comparable} = selector.selectKeyAndComparable(entry.value, entry.index);
-        let group = currentMap.get(comparable);
-
-        if (!group) {
-          group = {key, items: isLast ? [] : new Map(), realMap: isLast ? undefined : new Map()};
-          currentMap.set(comparable, group);
-          currentRealMap?.set(key, group.realMap ?? group.items);
+    return this.materializeHierarchy<Map<any, Map<ComparableType, any>>, V[]>(
+      (parentContainer?: Map<any, Map<ComparableType, any>>, key?: any) => {
+        const container = new Map();
+        if (parentContainer) parentContainer.set(key, container);
+        return container;
+      },
+      (container: Map<any, Map<ComparableType, any>>, key: any, prev, value): V[] => {
+        if (prev === undefined) {
+          prev = [];
+          container.set(key, prev as unknown as any);
         }
-
-        if (isLast) {
-          const value = selector.selectValue(entry.value, entry.index);
-          (group.items as any[]).push(value);
-        } else {
-          currentMap = group.items as Map<ComparableType, any>;
-          currentRealMap = group.realMap;
-        }
+        if (value !== IGNORED_ITEM) prev.push(value as V);
+        return prev;
       }
-    }
-    return realMap;
+    );
+  }
+
+  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<Ks, TOut, boolean> {
+    return arrayed ? this.toObjectArray() : this.toObjectSingle();
+  }
+
+  toObjectSingle(): ObjectHierarchy<Ks, TOut, false> {
+    return this.materializeHierarchy<any, TOut>(
+      (parentContainer?: any, key?: any) => {
+        const container = {};
+        if (parentContainer) parentContainer[key] = container;
+        return container;
+      },
+      (container: any, key: any, perv, value): TOut => {
+        if (value !== IGNORED_ITEM) container[key] = value as TOut;
+        return value as TOut;
+      }
+    );
+  }
+
+  toObjectArray(): ObjectHierarchy<Ks, TOut, true> {
+    return this.materializeHierarchy<any, TOut[]>(
+      (parentContainer?: any, key?: any) => {
+        const container = {};
+        if (parentContainer) parentContainer[key] = container;
+        return container;
+      },
+      (container: any, key: any, prev, value) => {
+        if (prev === undefined) {
+          prev = [];
+          container[key] = prev;
+        }
+        if (value !== IGNORED_ITEM) prev.push(value as TOut)
+        return prev;
+      }
+    );
   }
 
   * [Symbol.iterator](): any {
@@ -308,7 +332,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     }
 
     let next = sessionIterator.next();
-    if(!next.done) {
+    if (!next.done) {
       const rootContainer: Container = next.value.rootContainer;
       generated = new SeqOfGroupsGenerator(rootContainer, SeqTags.optimize(this));
     }
@@ -348,6 +372,37 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   private cacheNow() {
     // noinspection LoopStatementThatDoesntLoopJS
     for (const _ of this) break;
+  }
+
+  private materializeHierarchy<TContainer extends object, V>(createContainer: (parentContainer?: TContainer, key?: unknown) => TContainer, setValue: (container: TContainer, key: unknown, prev: V | undefined, value: unknown) => V): TContainer {
+    const map = new Map<ComparableType, { key: any; value?: V; subMap?: Map<ComparableType, any>; container?: TContainer; }>();
+    const rootContainer = createContainer();
+
+    for (const entry of entries(this.source)) {
+      let currentMap = map;
+      let currentContainer = rootContainer;
+
+      for (const {value: selector, index} of entries(this.selectors)) {
+        const isLast = (this.selectors.length - 1) === index;
+        const {key, comparable} = selector.selectKeyAndComparable(entry.value, entry.index);
+        let group = currentMap.get(comparable);
+
+        if (!group) {
+          group = {key, subMap: isLast ? undefined : new Map()};
+          currentMap.set(comparable, group);
+          if (!isLast) group.container = createContainer(currentContainer, key);
+        }
+
+        if (isLast) {
+          const value = selector.selectValue(entry.value, entry.index);
+          group.value = setValue(currentContainer, key, group.value, value);
+        } else {
+          currentMap = group.subMap!;
+          currentContainer = group.container!;
+        }
+      }
+    }
+    return rootContainer;
   }
 }
 

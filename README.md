@@ -104,7 +104,7 @@ console.log(asSeq(layers)
   .thenSortBy(p => p.y)
   .prepend([{x: -1, y: -1, tag: '-'}]) // Add special point at the beginning
   .map(p => `{${p.x},${p.y}}`) // Map each point to string representation
-  .toString({start: '[', end: ']'}) // Convert the sequence into string wrapped in brackets
+  .toString() // Convert the sequence into string wrapped in brackets
 );
 // Output: [{-1,-1},{0,0},{1,1},{2,2},{3,3}]
 ```
