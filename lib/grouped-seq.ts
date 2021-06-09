@@ -192,11 +192,14 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     );
   }
 
-  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<Ks, TOut, boolean> {
-    return arrayed ? this.toObjectArray() : this.toObjectSingle();
+  toObject(): ObjectHierarchy<Ks, TOut>;
+  toObject(arrayed: true): ObjectHierarchy<Ks, TOut[]>;
+  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<Ks, ARRAYED extends true ? TOut[] : TOut> {
+    const object = arrayed ? this.toObjectArray() : this.toObjectSingle();
+    return object as ObjectHierarchy<Ks, ARRAYED extends true ? TOut[] : TOut>;
   }
 
-  toObjectSingle(): ObjectHierarchy<Ks, TOut, false> {
+  toObjectSingle(): ObjectHierarchy<Ks, TOut> {
     return this.materializeHierarchy<any, TOut>(
       (parentContainer?: any, key?: any) => {
         const container = {};
@@ -210,7 +213,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     );
   }
 
-  toObjectArray(): ObjectHierarchy<Ks, TOut, true> {
+  toObjectArray(): ObjectHierarchy<Ks, TOut[]> {
     return this.materializeHierarchy<any, TOut[]>(
       (parentContainer?: any, key?: any) => {
         const container = {};

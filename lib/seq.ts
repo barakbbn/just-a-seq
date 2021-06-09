@@ -10,11 +10,11 @@ export type ComparableType = string | number | boolean | undefined | null;
 export type ToComparableKey<T> = (x: T) => ComparableType;
 export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
 
-export type ObjectHierarchy<Ks extends any[], T, ARRAYED extends boolean> = Ks extends (string|number)[]?
-  Ks extends[infer K1, ...infer KRest] ?
-    K1 extends string?
-      { [key: string]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T, ARRAYED> : ARRAYED extends true?T[]: T }:
-      { [key: number]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T, ARRAYED> : ARRAYED extends true?T[]: T }
+export type ObjectHierarchy<Ks extends any[], T> = Ks extends (string | number)[] ?
+  Ks extends [infer K1, ...infer KRest] ?
+    K1 extends string ?
+      { [key: string]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T } :
+      { [key: number]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T }
     : never
   : never;
 
@@ -333,7 +333,9 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 
   cache(): this & CachedSeq<GroupedSeq<K, T>>;
 
-  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<[K], T, ARRAYED>;
+  toObject(): ObjectHierarchy<[K], T>;
+
+  toObject(arrayed: true): ObjectHierarchy<[K], T[]>;
 }
 
 export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<SubGroupedSeq<Ks, T>> {
@@ -353,7 +355,9 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
 
   cache(): this & CachedSeq<MultiGroupedSeq<Ks, T>>;
 
-  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<Ks, T, ARRAYED>;
+  toObject(): ObjectHierarchy<Ks, T>;
+
+  toObject(arrayed: true): ObjectHierarchy<Ks, T[]>;
 }
 
 export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
