@@ -194,9 +194,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   toObject(): ObjectHierarchy<Ks, TOut>;
   toObject(arrayed: true): ObjectHierarchy<Ks, TOut[]>;
-  toObject<ARRAYED extends boolean = false>(arrayed?: ARRAYED): ObjectHierarchy<Ks, ARRAYED extends true ? TOut[] : TOut> {
-    const object = arrayed ? this.toObjectArray() : this.toObjectSingle();
-    return object as ObjectHierarchy<Ks, ARRAYED extends true ? TOut[] : TOut>;
+  toObject(arrayed?: boolean): ObjectHierarchy<Ks, TOut | TOut[]> {
+    return arrayed ? this.toObjectArray() : this.toObjectSingle();
   }
 
   toObjectSingle(): ObjectHierarchy<Ks, TOut> {
