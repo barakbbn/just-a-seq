@@ -10,13 +10,11 @@ export type ComparableType = string | number | boolean | undefined | null;
 export type ToComparableKey<T> = (x: T) => ComparableType;
 export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
 
-export type ObjectHierarchy<Ks extends any[], T> = Ks extends (string | number)[] ?
+export type ObjectHierarchy<Ks extends any[], T> =
   Ks extends [infer K1, ...infer KRest] ?
-    K1 extends string ?
-      { [key: string]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T } :
-      { [key: number]: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T }
-    : never
-  : never;
+    { [key in K1 extends keyof any ? K1 : never]?: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T }
+    : never;
+
 
 export type Iterables<Ts extends any[]> = { [k in keyof Ts]: Iterable<Ts[k]> }
 
@@ -108,6 +106,69 @@ export interface Seq<T> extends Iterable<T> {
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
   flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
+
+  flatHierarchy<V1, V2, TRes = V2>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    mapResult: (lastItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, TRes = V3>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    mapResult: (lastItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, TRes = V4>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    mapResult: (lastItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, TRes = V5>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    mapResult: (lastItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, TRes = V6>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    mapResult: (lastItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    selector7: (subItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V7>,
+    mapResult: (lastItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    selector7: (subItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V7>,
+    selector8: (subItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V8>,
+    mapResult: (lastItem: V8, parent: V7, ancestor6: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
 
   forEach(callback: (value: T, index: number, breakLoop: object) => unknown): void;
 

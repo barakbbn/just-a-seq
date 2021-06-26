@@ -28,6 +28,7 @@ import {
 import {empty} from "./seq-factory";
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
+
   readonly [SeqTags.$seq] = true;
 
   readonly length = this.count;
@@ -315,6 +316,104 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
           const finalValue = mapResult ? mapResult(subValue, value, subIndex) : subValue as unknown as R;
           yield finalValue;
         }
+      }
+    });
+  }
+
+  flatHierarchy<V1, V2, TRes = V2>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    mapResult: (lastItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, TRes = V3>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    mapResult: (lastItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, TRes = V4>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    mapResult: (lastItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, TRes = V5>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    mapResult: (lastItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, TRes = V6>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    mapResult: (lastItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    selector7: (subItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V7>,
+    mapResult: (lastItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
+    selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
+    selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
+    selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
+    selector4: (subItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V4>,
+    selector5: (subItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V5>,
+    selector6: (subItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V6>,
+    selector7: (subItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V7>,
+    selector8: (subItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V8>,
+    mapResult: (lastItem: V8, parent: V7, ancestor6: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
+  ): Seq<TRes>;
+
+  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes>(
+    ...selectorsAndMapResults: (((...args: unknown[]) => Iterable<unknown>) | ((...args: unknown[]) => TRes))[]
+  ): any {
+    const mapResult = selectorsAndMapResults.pop() as (...args: unknown[]) => TRes;
+    const selectors = selectorsAndMapResults as ((...args: unknown[]) => Iterable<unknown>)[];
+
+    return this.generate(function* flatHierarchy(items) {
+      const absoluteIndexes = new Array<number>(9).fill(0);
+
+      for (const entry of entries(recursiveFlatMap(items, 0, []))) {
+        yield mapResult(...entry.value, entry.index);
+      }
+
+      function* recursiveFlatMap(children: Iterable<unknown>, level: number, context: any[]): Generator<unknown[]> {
+        const selector = selectors[level];
+
+        const parents = context.slice();
+        parents.unshift(0)
+        for (const entry of entries(children)) {
+          const subChildren: Iterable<any> = selector?.(entry.value, ...context, entry.index, absoluteIndexes[level]++);
+          parents[0] = entry.value;
+
+          if (isIterable(subChildren, true)) {
+            yield* recursiveFlatMap(subChildren, level + 1, parents);
+          } else {
+            if (subChildren !== undefined) parents.push(subChildren);
+            parents.push(entry.index);
+            yield parents;
+          }
+        }
+        parents.length = 0; // Assist in releasing memory
       }
     });
   }
@@ -1459,7 +1558,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.createDefaultSeq(source, generator, tags);
   }
 
-
   protected getIterator(): Iterator<T> {
     return getIterator(this);
   }
@@ -1632,6 +1730,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return [first, second];
   }
+
 }
 
 class CyclicBuffer<T> implements Iterable<T> {

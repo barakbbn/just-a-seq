@@ -5,6 +5,7 @@ import {TestableArray} from "../test-data";
 export abstract class SeqBase_Deferred_GetIterator_Tests {
   constructor(protected optimized: boolean) {
   }
+
   readonly run = () => describe('SeqBase - Deferred functionality should not perform immediate execution', () => {
     const testGetIterator = (onSeq: (seq: Seq<any>) => void) => {
       const title = 'should not get iterator';
@@ -79,6 +80,10 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
     describe('flatMap()', () => {
       testGetIterator(sut => sut.flatMap(() => [1, 2]));
+    });
+
+    describe('flatHierarchy()', () => {
+      testGetIterator(sut => sut.flatHierarchy(() => [1, 2], () => [3, 4], (a1, a2, a3) => ({a1, a2, a3})));
     });
 
     describe('groupBy()', () => {
