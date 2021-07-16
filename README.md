@@ -140,7 +140,7 @@ console.log(asSeq(layers)
 |diff|diffDistinct|distinct|
 |entries|
 |filter|
-|firstAndRest|flat|flatMap|
+|firstAndRest|flat|flatMap|**flatHierarchy**
 |groupBy|groupJoin|groupJoinRight|**thenGroupBy**|
 |ifEmpty|innerJoin|insert|insertAfter|insertBefore|
 |intersect|intersperse|
@@ -168,14 +168,14 @@ console.log(asSeq(layers)
 ### Optimized Mode
 
 There is an optimization mode (disabled by default) that optimize some functionalities in certain conditions.  
-It assumes no side effects are performed (especially through map() ). for side effect should use tap().  
+It assumes no side effects are being performed. (especially through map() ). for side effect should use tap().  
 To use the optimized mode either:
 
 ```ts
 import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
 ```  
 
-Or enable global optimization flag as follow:
+Or enable global optimization flag as follows:
 
 ```ts
 import {asSeq, Seq} from '@barakbbn/just-a-seq';
