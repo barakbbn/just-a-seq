@@ -341,6 +341,64 @@ export abstract class SeqBase_Immediate_Tests {
           assert.isTrue(actual);
         });
       });
+
+      describe("with second key selector", () => {
+        this.it2("should return false if sequence doesn't end with all the specified items",
+          array.gradesFiftyAndAbove.reverse(),
+          array.gradesFiftyAndBelow.map(x => ({...x, score: x.grade})),
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, first => first.grade, second => second.score);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return true if sequence ends with the specified items in same order',
+          array.grades.map(x => ({...x, score: x.grade})),
+          array.gradesFiftyAndAbove,
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, first => first.score, second => second.grade);
+            assert.isTrue(actual);
+          });
+
+        this.it2('should return false if sequence ends with the specified items but NOT in same order',
+          array.grades.map(x => ({...x, score: x.grade})),
+          array.gradesFiftyAndAbove.reverse(),
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, first => first.score, second => second.grade);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return true if source sequence not empty and items to check for is an empty sequence',
+          array.samples.map(x => ({...x, phase: x.period})),
+          [],
+          (first, second: Iterable<Sample>) => {
+            const sut = this.createSut(first);
+            let actual = sut.endsWith(second, first => first.phase, second => second.period);
+            assert.isTrue(actual);
+          });
+
+        this.it2('should return true if source sequence is empty and items to check for is an empty sequence', [], [], (first: Iterable<Sample>, second: Iterable<Sample>) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.period, x => x.period);
+          assert.isTrue(actual);
+        });
+        this.it2('should return false if source sequence is empty and checked if ends with non empty iterable', [], array.samples, (first: Iterable<Sample>, second) => {
+          const sut = this.createSut(first);
+          let actual = sut.endsWith(second, x => x.period, x => x.period);
+          assert.isFalse(actual);
+        });
+
+        this.it1('should return true if sequence is checked with itself', array.grades.map(x => ({
+          ...x,
+          score: x.grade
+        })), (input) => {
+          const sut = this.createSut(input);
+          let actual = sut.endsWith(sut, first => first.score, second => second.grade);
+          assert.isTrue(actual);
+        });
+      });
     });
 
     describe("every()", () => {
@@ -1183,7 +1241,7 @@ export abstract class SeqBase_Immediate_Tests {
       describe('with key-selector', () => {
         it('should return true if sequence contains all items from the second sequence', () => {
           const first = array.grades;
-          const second = array.gradesFiftyAndBelow;
+          const second = array.gradesFiftyAndBelow.map(x => ({...x, score: x.grade}));
           let sut = this.createSut(first);
           let actual = sut.includesAll(second, x => x.grade);
           assert.isTrue(actual);
@@ -1411,7 +1469,7 @@ export abstract class SeqBase_Immediate_Tests {
       describe('with key-selector', () => {
         it('should return true if sequence contains any item from the second sequence', () => {
           const first = array.grades;
-          const second = array.gradesFiftyAndBelow;
+          const second = array.gradesFiftyAndBelow.map(x => ({...x, score: x.grade}));
           let sut = this.createSut(first);
           let actual = sut.includesAny(second, x => x.grade);
           assert.isTrue(actual);
@@ -1671,16 +1729,13 @@ export abstract class SeqBase_Immediate_Tests {
           const first = array.tenOnes;
           const second = [1, 1, 1];
           const fromIndex = 5;
-          const expectedScannedTillIndex = fromIndex + second.length - 1;
           let sut = this.createSut(first);
-          let actual = sut.findSubSequence(second, fromIndex);
-          assert.equal(actual[0], fromIndex);
-          assert.equal(actual[1], expectedScannedTillIndex);
+          let actual = sut.includesSubSequence(second, fromIndex);
+          assert.equal(actual, true);
 
           sut = this.createSut(generator.from(first));
-          actual = sut.findSubSequence(generator.from(second), fromIndex);
-          assert.equal(actual[0], fromIndex);
-          assert.equal(actual[1], expectedScannedTillIndex);
+          actual = sut.includesSubSequence(generator.from(second), fromIndex);
+          assert.equal(actual, true);
         });
 
         it('should return false if sequence contains entire sub-sequence but not in same order', () => {
@@ -1752,7 +1807,7 @@ export abstract class SeqBase_Immediate_Tests {
       describe('with key-selector', () => {
         it('should return true if sequence contains entire sub-sequence is same order', () => {
           const first = array.grades;
-          const second = array.gradesFiftyAndAbove;
+          const second = array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade}));
 
           let sut = this.createSut(first);
           let actual = sut.includesSubSequence(second, x => x.grade);
@@ -1836,18 +1891,14 @@ export abstract class SeqBase_Immediate_Tests {
             const first = input;
             const second = input.slice(0, 3);
             const fromIndex = 5;
-            const expectedScannedTillIndex = fromIndex + second.length - 1;
 
             let sut = this.createSut(first);
-            let actual = sut.findSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.equal(actual[0], fromIndex);
-            assert.equal(actual[1], expectedScannedTillIndex);
+            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
+            assert.equal(actual, true);
 
             sut = this.createSut(generator.from(first));
-            actual = sut.findSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isTrue(actual[0] > -1);
-            assert.equal(actual[0], fromIndex);
-            assert.equal(actual[1], expectedScannedTillIndex);
+            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
+            assert.equal(actual, true);
           });
 
           it('should return false if sequence contains entire sub-sequence but not in same order', () => {
@@ -1918,6 +1969,51 @@ export abstract class SeqBase_Immediate_Tests {
             sut = this.createSut(generator.from(first));
             actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
             assert.isTrue(actual);
+          });
+        });
+      });
+
+      describe('with equality function', () => {
+        it('should return true if sequence contains entire sub-sequence is same order', () => {
+          const first = array.grades;
+          const second = array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade}));
+
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second, {equals: (a, b) => a.grade === b.score});
+          assert.isTrue(actual);
+
+          sut = this.createSut(generator.from(first));
+          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
+          assert.isTrue(actual);
+        });
+
+        it('should return false if sequence do not contain sub-sequence', () => {
+          const first = array.grades;
+          const second = first;
+
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second, {equals: (a, b) => false});
+          assert.isFalse(actual);
+
+          sut = this.createSut(generator.from(first));
+          actual = sut.includesSubSequence(generator.from(second), {equals: (a, b) => false});
+          assert.isFalse(actual);
+        });
+
+        describe('from index', () => {
+          it('should return true if sequence contains entire sub-sequence is same order', () => {
+            const input = [...'.'.repeat(10)].map(() => ({x: 0, y: 0}));
+            const first = input;
+            const second = input.slice(0, 3);
+            const fromIndex = 5;
+
+            let sut = this.createSut(first);
+            let actual = sut.includesSubSequence(second, fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
+            assert.equal(actual, true);
+
+            sut = this.createSut(generator.from(first));
+            actual = sut.includesSubSequence(generator.from(second), fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
+            assert.equal(actual, true);
           });
         });
       });
@@ -2487,6 +2583,65 @@ export abstract class SeqBase_Immediate_Tests {
             sut = this.createSut(generator.from(first));
             actual = sut.indexOfSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
             assert.equal(actual, 0);
+          });
+        });
+      });
+
+      describe('with equality function', () => {
+        it('should return true if sequence contains entire sub-sequence is same order', () => {
+          const first = array.grades;
+          const second = array.gradesFiftyAndAbove;
+          const expected = first.findIndex(x => x.grade === second[0].grade);
+          let sut = this.createSut(first);
+          let actual = sut.indexOfSubSequence(second, {equals: (a, b) => a.grade === b.grade});
+          assert.equal(actual, expected);
+
+          sut = this.createSut(generator.from(first));
+          actual = sut.indexOfSubSequence(generator.from(second), {equals: (a, b) => a.grade === b.grade});
+          assert.equal(actual, expected);
+        });
+
+        it('should return false if sequence do not contain entire sub-sequence', () => {
+          const first = array.grades;
+          const second = array.gradesFiftyAndAbove.reverse();
+
+          let sut = this.createSut(first);
+          let actual = sut.indexOfSubSequence(second, {equals: () => false});
+          assert.equal(actual, -1);
+
+          sut = this.createSut(generator.from(first));
+          actual = sut.indexOfSubSequence(generator.from(second), {equals: () => false});
+          assert.equal(actual, -1);
+        });
+
+        describe('from index', () => {
+          it('should return true if sequence contains entire sub-sequence is same order', () => {
+            const first = array.repeat({x: 0, y: 0}, 10);
+            const second = first.slice(0, 3);
+            const fromIndex = 5;
+            const expected = fromIndex;
+
+            let sut = this.createSut(first);
+            let actual = sut.indexOfSubSequence(second, fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
+            assert.equal(actual, expected);
+
+            sut = this.createSut(generator.from(first));
+            actual = sut.indexOfSubSequence(generator.from(second), fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
+            assert.equal(actual, expected);
+          });
+
+          it('should return false if sequence do not contain entire sub-sequence', () => {
+            const first = array.oneToTen.map((y) => ({x: 0, y}));
+            const second = first.slice(-3).reverse();
+            const fromIndex = 5;
+
+            let sut = this.createSut(first);
+            let actual = sut.indexOfSubSequence(second, fromIndex, {equals: () => false});
+            assert.equal(actual, -1);
+
+            sut = this.createSut(generator.from(first));
+            actual = sut.indexOfSubSequence(generator.from(second), fromIndex, {equals: () => false});
+            assert.equal(actual, -1);
           });
         });
       });
@@ -3737,6 +3892,64 @@ export abstract class SeqBase_Immediate_Tests {
           const sutGenerator = this.createSut(generator.from(input));
           assert.isTrue(sutArray.startsWith(second, x => x.grade));
           assert.isTrue(sutGenerator.startsWith(second, x => x.grade));
+
+          // Also with empty source sequence
+          assert.isTrue(this.createSut<{ name: string; grade: number; }>([]).startsWith(second, x => x.grade));
+          assert.isTrue(this.createSut<{ name: string; grade: number; }>().startsWith(second, x => x.grade));
+        });
+      });
+
+      describe('with second key selector', () => {
+        it('should return true if sequence contains second sequence from the beginning with exact same items and same order', () => {
+          const input = array.grades;
+          const sutArray = this.createSut(array.grades);
+          const sutGenerator = this.createSut(generator.from(input));
+
+          for (let take = 1; take < input.length; take++) {
+            const second = input.slice(0, take).map(x => ({...x, score: x.grade}));
+            let actual = sutArray.startsWith(second, first => first.grade, second => second.score);
+            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+            actual = sutGenerator.startsWith(second, first => first.grade, second => second.score);
+            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+          }
+        });
+
+        it("should return false if sequence doesn't start with second sequence", () => {
+          const input = array.grades;
+          let second = array.grades.map(x => ({...x, score: x.grade}));
+          second[second.length - 1] = second[second.length - 2];
+          const sutArray = this.createSut(input);
+          const sutGenerator = this.createSut(generator.from(input));
+          assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
+          assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
+        });
+
+        it('should return false if second sequence has more items', () => {
+          const input = array.gradesFiftyAndAbove;
+          const second = array.grades.map(x => ({...x, score: x.grade}));
+          const sutArray = this.createSut(input);
+          const sutGenerator = this.createSut(generator.from(input));
+          assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
+          assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
+
+
+          it('should return false second sequence starts with first sequence', () => {
+            const input = array.grades.slice(0, -1);
+            const second = array.grades.map(x => ({...x, score: x.grade}));
+            const sutArray = this.createSut(input);
+            const sutGenerator = this.createSut(generator.from(input));
+            assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
+            assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
+          });
+        });
+
+        it('should return true if second sequence is empty', () => {
+          let input = array.grades;
+          const second: { name: string; grade: number; score: number; }[] = [];
+          const sutArray = this.createSut(input);
+          const sutGenerator = this.createSut(generator.from(input));
+          assert.isTrue(sutArray.startsWith(second, first => first.grade, second => second.score));
+          assert.isTrue(sutGenerator.startsWith(second, first => first.grade, second => second.score));
 
           // Also with empty source sequence
           assert.isTrue(this.createSut<{ name: string; grade: number; }>([]).startsWith(second, x => x.grade));

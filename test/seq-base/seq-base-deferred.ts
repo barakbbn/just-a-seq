@@ -1672,6 +1672,60 @@ export abstract class SeqBase_Deferred_Tests {
           let actual = sut.remove(second, keySelector);
           assert.deepEqual([...actual], expected);
         });
+
+      describe('with second key-selector', () => {
+        this.it2('should remove occurrences of items from the source sequence that exists on the seconds sequence according to key-selector, the same number of time they exists in the second sequence',
+          [
+            {x: 1, y: 1},
+            {x: 2, y: 2},
+            {x: 2, y: 2},
+            {x: 3, y: 3},
+            {x: 3, y: 3},
+            {x: 3, y: 3},
+            {x: 4, y: 4},
+            {x: 4, y: 4},
+            {x: 4, y: 4},
+            {x: 4, y: 4},
+            {x: 5, y: 5},
+            {x: 5, y: 5},
+            {x: 5, y: 5},
+            {x: 5, y: 5},
+            {x: 5, y: 5}
+          ],
+          [
+            {X: 0, Y: 0},
+            {X: 0, Y: 0},
+            {X: 2, Y: 2},
+            {X: 2, Y: 2},
+            {X: 4, Y: 4},
+            {X: 4, Y: 4},
+            {X: 6, Y: 6},
+            {X: 6, Y: 6},
+            {X: 5, Y: 5},
+            {X: 5, Y: 5},
+            {X: 3, Y: 3},
+            {X: 3, Y: 3},
+            {X: 1, Y: 1},
+            {X: 1, Y: 1}
+          ],
+          (first, second) => {
+            const expected = [
+              {x: 3, y: 3},
+              {x: 4, y: 4},
+              {x: 4, y: 4},
+              {x: 5, y: 5},
+              {x: 5, y: 5},
+              {x: 5, y: 5}
+            ];
+
+            const sut = this.createSut(first);
+            let actual = sut.remove(second,
+              point => point.x + point.y * 1000,
+              point => point.X + point.Y * 1000);
+            const actualArray = [...actual]
+            assert.deepEqual(actualArray, expected);
+          });
+      });
     });
 
     describe('removeAll()', () => {
@@ -1694,6 +1748,20 @@ export abstract class SeqBase_Deferred_Tests {
 
           assert.deepEqual([...actual], expected)
         });
+
+      describe('with second key-selector', () => {
+        this.it2('should remove all occurrences of items from the source sequence that exists on the seconds sequence according to key-selector',
+          array.samples,
+          array.samples.filter(s => s.type === 'A').map(s => ({kind: s.type})),
+          (first, second) => {
+            const expected = [...first].filter(s => [...second].findIndex(r => r.kind === s.type) < 0);
+
+            const sut = this.createSut(first);
+            const actual = sut.removeAll(second, sample => sample.type, sample => sample.kind);
+            const actualArray = [...actual];
+            assert.deepEqual(actualArray, expected)
+          });
+      });
     });
 
     describe('removeFalsy()', () => {

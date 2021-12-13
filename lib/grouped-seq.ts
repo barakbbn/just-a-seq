@@ -6,7 +6,7 @@ import {
   MapHierarchy,
   MultiGroupedSeq,
   ObjectHierarchy,
-  Selector,
+  Selector, SeqOfGroupsWithoutLast,
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
@@ -230,6 +230,10 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     );
   }
 
+  // ungroupLast<U>(mapFn:(group: GroupedSeq<any, any>)=>U): SeqOfGroupsWithoutLast<Ks, U> {
+  //   return undefined as unknown as any
+  // }
+
   * [Symbol.iterator](): any {
     const self = this;
     yield* new Gen(this.source, function* (source, iterationContext) {
@@ -327,6 +331,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
         while (!next.done) {
           const localNext: any = next;
           yield* groupedSeqGenerator;
+          // If no one manipulated the iteration (i.e. the caller that iterating us, manipulated the iteration)
+          // then localNext will still equals `next` and it's safe to call sessionIterator.next()
+          // Otherwise, don't next() since caller might already done that.
           if (localNext === next) next = sessionIterator.next();
         }
         yield* groupedSeqGenerator;

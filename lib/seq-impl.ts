@@ -138,7 +138,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     ]);
   }
 
-  sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): boolean {
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: (item: T) => K = t => t as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     if (Array.isArray(second) && this.source.length !== second.length) return false;
     return super.sameItems(second, firstKeySelector, secondKeySelector);
   }

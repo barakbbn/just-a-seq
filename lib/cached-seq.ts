@@ -67,7 +67,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
       items.lastIndexOf(itemToFind, fromIndex);
   }
 
-  sameItems<U, K>(second: Iterable<U>, firstKeySelector: Selector<T, K> = t => t as unknown as K, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): boolean {
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: (item: T) => K = t => t as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     const items = this.array;
     if (Array.isArray(second) && items.length !== second.length) return false;
     return super.sameItems(second, firstKeySelector, secondKeySelector);
