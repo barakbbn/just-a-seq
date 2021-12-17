@@ -27,10 +27,6 @@ export type FlatSeq<Arr, Depth extends number> = {
 }[Depth extends 0 ? "done" : "recur"];
 
 export interface Seq<T> extends Iterable<T> {
-  // traverse<V1>(
-  //   childrenSelector: (parent: T) => Iterable<V1>
-  // ): Seq<V1>
-
   // same as every
   all(condition: Condition<T>): boolean; // C#
 
@@ -245,12 +241,8 @@ export interface Seq<T> extends Iterable<T> {
 
   max(): T extends number ? number : never; // Overload
   max(selector: Selector<T, number>): number;
-  // maxItem(selector: Selector<T, number>): T;
-  // maxItems(selector: Selector<T, number>): Seq<T>;
   min(): T extends number ? number : never; // Overload
   min(selector: Selector<T, number>): number;
-  // minItem(selector: Selector<T, number>): T;
-  // minItems(selector: Selector<T, number>): Seq<T>;
 
   ofType(type: 'number'): Seq<number>; // Overload
   ofType(type: 'string'): Seq<string>; // Overload
@@ -265,10 +257,6 @@ export interface Seq<T> extends Iterable<T> {
   ofType(type: typeof Object): Seq<object>; // Overload
   ofType<V extends Class>(type: V): Seq<InstanceType<V>>;
 
-  // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
-  // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
   prepend(...items: Iterable<T>[]): Seq<T>;
 
   push(...items: T[]): Seq<T>;
@@ -281,10 +269,10 @@ export interface Seq<T> extends Iterable<T> {
   reduceRight(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T; // Overload
   reduceRight<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
 
-  remove<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+  remove<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
   remove<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
-  removeAll<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+  removeAll<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
   removeAll<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
   removeFalsy(): Seq<T>;
