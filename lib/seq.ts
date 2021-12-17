@@ -65,7 +65,7 @@ export interface Seq<T> extends Iterable<T> {
   distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
 
   endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
-  endsWith<U = T, K = T>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+  endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   entries(): Seq<[index: number, value: T]>;
 
@@ -284,7 +284,7 @@ export interface Seq<T> extends Iterable<T> {
   reverse(): Seq<T>;
 
   sameItems<U = T>(second: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
-  sameItems<U = T, K = T>(second: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+  sameItems<U, K>(second: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals?: (first: T, second: U, index: number) => boolean): boolean;
 
@@ -321,9 +321,9 @@ export interface Seq<T> extends Iterable<T> {
 
   takeLast(count: number): Seq<T>
 
-  takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
+  takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
 
-  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
+  takeOnly<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
 
   takeWhile(condition: Condition<T>): Seq<T>;
 
