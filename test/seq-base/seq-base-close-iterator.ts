@@ -126,9 +126,11 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
     test('max()', array.oneToTen, seq => seq.max());
+    test('maxItem(selector)', array.grades, seq => seq.maxItem(x => x.grade));
+    test('maxItem(comparer)', array.grades, seq => seq.maxItem({comparer: (a, b) => a.grade - b.grade}));
     test('min()', array.oneToTen, seq => seq.min());
-    // test('orderBy()', array.oneToTen, seq => seq.orderBy(n => n, (a, b) => b - a));
-    // test('orderByDescending()', array.oneToTen, seq => seq.orderByDescending(n => n, (a, b) => b - a));
+    test('minItem(selector)', array.grades, seq => seq.minItem(x => x.grade));
+    test('minItem(comparer)', array.grades, seq => seq.minItem({comparer: (a, b) => a.grade - b.grade}));
     test2('prepend()', array.oneToTen, [0, -1, -2], (seq, other) => seq.prepend(other));
     test('reduce()', array.oneToTen, seq => seq.reduce((prev, curr) => prev + curr));
     test('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr) => prev + curr));

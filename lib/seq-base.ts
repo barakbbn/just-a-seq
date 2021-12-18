@@ -789,13 +789,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   max(selector: Selector<T, number>): number;
 
   max(selector: Selector<T, number> = x => x as unknown as number): number | void {
-    let max = Number.NEGATIVE_INFINITY;
-    let index = 0;
-    for (const value of this) {
-      const v = selector(value, index++);
-      if (max < v) max = v;
-    }
-    return max;
+    const maxItemResult = this.maxItemBySelector(selector);
+    return maxItemResult?.[1] ?? Number.NEGATIVE_INFINITY;
+  }
+
+  maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+  maxItem({comparer, findLast}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+  maxItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
+    if (typeof selector === 'function') return this.maxItemBySelector(selector, options?.findLast)?.[0];
+
+    if (typeof selector?.comparer === 'function') return this.maxItemByComparer(selector.comparer, selector.findLast);
+
+    throw new Error('selector or comparer parameter must be a function');
   }
 
   min(): T extends number ? number : never;
@@ -803,13 +808,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   min(selector: Selector<T, number>): number;
 
   min(selector: Selector<T, number> = x => x as unknown as number): number | void {
-    let min = Number.POSITIVE_INFINITY;
-    let index = 0;
-    for (const value of this) {
-      const v = selector(value, index++);
-      if (min > v) min = v;
-    }
-    return min;
+    const maxItemResult = this.minItemBySelector(selector);
+    return maxItemResult?.[1] ?? Number.POSITIVE_INFINITY;
+  }
+
+  minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+  minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+  minItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
+    if (typeof selector === 'function') return this.minItemBySelector(selector, options?.findLast)?.[0];
+
+    if (typeof selector?.comparer === 'function') return this.minItemByComparer(selector.comparer, selector.findLast);
+
+    throw new Error('selector or comparer parameter must be a function');
   }
 
   ofType(type: 'number'): Seq<number>;
@@ -879,6 +889,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T;
 
+  reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
+
+  reduce<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
+
   // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
   //   return factories.OrderedSeq(this, keySelector, comparer);
   // }
@@ -886,10 +900,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
   //   return factories.OrderedSeq(this, keySelector, comparer, true);
   // }
-
-  reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
-
-  reduce<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
 
   reduce<U = T>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): U {
     const iter = this.getIterator();
@@ -933,8 +943,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
    * @param keySelector
    */
   remove<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+
   remove<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
+
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T>;
+
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T> {
     return this.removeInternal(items, firstKeySelector, secondKeySelector, false);
   }
@@ -945,8 +958,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
    * @param keySelector
    */
   removeAll<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+
   removeAll<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
+
   removeAll<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T>;
+
   removeAll<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T> {
     return this.removeInternal(items, firstKeySelector, secondKeySelector, true);
   }
@@ -978,6 +994,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   sameItems<U = T>(second: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+
   sameItems<U = T, K = T>(second: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   sameItems<U, K>(second: Iterable<U>,
@@ -1122,6 +1139,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
+
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   startsWith<U, K>(items: Iterable<U>,
@@ -1284,6 +1302,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+
   union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
 
   union<K>(second: Iterable<T>, keySelectorOrOpts?: ((value: T) => K) | { preferSecond?: boolean; }, opts?: { preferSecond?: boolean; }): Seq<T> {
@@ -1641,6 +1660,60 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
     if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;
+  }
+
+  private maxItemBySelector(selector: Selector<T, number>, findLast = false): [T, number] | undefined {
+    let max = Number.NEGATIVE_INFINITY;
+    let maxItem: T;
+    let index = 0;
+    for (const item of this) {
+      const v = selector(item, index++);
+      if (max < v || findLast && max <= v) {
+        max = v;
+        maxItem = item;
+      }
+    }
+    return index ? [maxItem!, max] : undefined;
+  }
+
+  private maxItemByComparer(comparer: (a: T, b: T) => number, findLast = false): T | undefined {
+    let maxItem: any = undefined;
+    for (const item of this) {
+      if (maxItem === undefined) {
+        maxItem = item;
+        continue;
+      }
+      const compared = comparer(maxItem, item);
+      if (compared < 0 || findLast && compared === 0) maxItem = item;
+    }
+    return maxItem;
+  }
+
+  private minItemBySelector(selector: Selector<T, number>, findLast = false): [T, number] | undefined {
+    let min = Number.POSITIVE_INFINITY;
+    let minItem: T;
+    let index = 0;
+    for (const item of this) {
+      const v = selector(item, index++);
+      if (min > v || findLast && min >= v) {
+        min = v;
+        minItem = item;
+      }
+    }
+    return index ? [minItem!, min] : undefined;
+  }
+
+  private minItemByComparer(comparer: (a: T, b: T) => number, findLast = false): T | undefined {
+    let minItem: any = undefined;
+    for (const item of this) {
+      if (minItem === undefined) {
+        minItem = item;
+        continue;
+      }
+      const compared = comparer(minItem, item);
+      if (compared > 0 || findLast && compared === 0) minItem = item;
+    }
+    return minItem;
   }
 
   private groupJoinInternal<TOut, TIn, K>(outers: Iterable<TOut>, outerKeySelector: Selector<TOut, K>, inners: Iterable<TIn>, innerKeySelector: Selector<TIn, K>): SeqOfGroups<TOut, TIn> {

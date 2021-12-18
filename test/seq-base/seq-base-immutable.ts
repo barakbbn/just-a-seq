@@ -69,9 +69,11 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     testImmutable('map()', array.oneToTen, seq => seq.map(n => n - n));
     testImmutable('max()', array.oneToTen, seq => seq.max());
+    testImmutable('maxItem(selector)', array.grades, seq => seq.maxItem(x => x.grade));
+    testImmutable('maxItem(comparer)', array.grades, seq => seq.maxItem({comparer: (a, b) => a.grade - b.grade}));
     testImmutable('min()', array.oneToTen, seq => seq.min());
-    // testImmutable('orderBy()', array.oneToTen, seq => seq.orderBy(n=>n, (a,b)=>b-a));
-    // testImmutable('orderByDescending()', array.oneToTen, seq => seq.orderByDescending(n=>n, (a,b)=>b-a));
+    testImmutable('minItem(selector)', array.grades, seq => seq.minItem(x => x.grade));
+    testImmutable('minItem(comparer)', array.grades, seq => seq.minItem({comparer: (a, b) => a.grade - b.grade}));
     testImmutable('prepend()', array.oneToTen, seq => seq.prepend([0, -1, -2]));
     testImmutable('reduce()', array.oneToTen, seq => seq.reduce((prev, curr) => prev + curr));
     testImmutable('reduceRight()', array.oneToTen, seq => seq.reduceRight((prev, curr) => prev + curr));

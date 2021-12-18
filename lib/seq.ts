@@ -65,6 +65,7 @@ export interface Seq<T> extends Iterable<T> {
   distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
 
   endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   entries(): Seq<[index: number, value: T]>;
@@ -196,16 +197,20 @@ export interface Seq<T> extends Iterable<T> {
   includesAny<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   includesSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+
   includesSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): boolean;
-  includesSubSequence<U = T>(subSequence: Iterable<U>, options?: {equals(a: T, b: U): unknown}): boolean; // Overload
-  includesSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: {equals(a: T, b: U): unknown}): boolean; // Overload
+
+  includesSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): boolean; // Overload
+  includesSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): boolean; // Overload
 
   indexOf(item: T, fromIndex?: number): number;
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
+
   indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
-  indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: {equals(a: T, b: U): unknown}): number; // Overload
-  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: {equals(a: T, b: U): unknown}): number; // Overload
+
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): number; // Overload
 
   innerJoin<I, K, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>, resultSelector?: (outer: T, inner: I) => R): Seq<R>;
 
@@ -241,8 +246,17 @@ export interface Seq<T> extends Iterable<T> {
 
   max(): T extends number ? number : never; // Overload
   max(selector: Selector<T, number>): number;
+
+  maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
+  maxItem(options: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+
   min(): T extends number ? number : never; // Overload
   min(selector: Selector<T, number>): number;
+
+  minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
+  minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
 
   ofType(type: 'number'): Seq<number>; // Overload
   ofType(type: 'string'): Seq<string>; // Overload
@@ -270,9 +284,11 @@ export interface Seq<T> extends Iterable<T> {
   reduceRight<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
 
   remove<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+
   remove<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
   removeAll<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T>;
+
   removeAll<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
   removeFalsy(): Seq<T>;
@@ -284,6 +300,7 @@ export interface Seq<T> extends Iterable<T> {
   reverse(): Seq<T>;
 
   sameItems<U = T>(second: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+
   sameItems<U, K>(second: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals?: (first: T, second: U, index: number) => boolean): boolean;
@@ -312,6 +329,7 @@ export interface Seq<T> extends Iterable<T> {
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>];
 
   startsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => unknown, secondKeySelector: (item: U) => K): boolean;
 
   sum(): T extends number ? number : never; // Overload

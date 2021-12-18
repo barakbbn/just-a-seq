@@ -7,10 +7,10 @@ export abstract class SeqBase_Immediate_Tests {
   constructor(protected optimized: boolean) {
   }
 
-  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
-    it(title + ' - array source', () => testFn(input));
-    it(title + ' - generator source', () => testFn(generator.from(input)));
-    it(title + ' - sequence source', () => testFn(this.createSut(input)));
+  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: T[]) => void) {
+    it(title + ' - array source', () => testFn(input, input));
+    it(title + ' - generator source', () => testFn(generator.from(input), input));
+    it(title + ' - sequence source', () => testFn(this.createSut(input), input));
   }
 
   it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
@@ -1992,11 +1992,11 @@ export abstract class SeqBase_Immediate_Tests {
           const second = first;
 
           let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, {equals: (a, b) => false});
+          let actual = sut.includesSubSequence(second, {equals: () => false});
           assert.isFalse(actual);
 
           sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), {equals: (a, b) => false});
+          actual = sut.includesSubSequence(generator.from(second), {equals: () => false});
           assert.isFalse(actual);
         });
 
@@ -3022,6 +3022,57 @@ export abstract class SeqBase_Immediate_Tests {
       });
     });
 
+    describe("maxItem()", () => {
+      describe('with key-selector', () => {
+        this.it1("should return first item having the maximum value on item's numeric property", [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade ? grade : maxGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.maxItem(x => x.grade);
+          assert.equal(actual, expected);
+        });
+
+        this.it1("should return last item having the maximum value on item's numeric property, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade ? grade : maxGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.maxItem(x => x.grade, {findLast: true});
+          assert.equal(actual, expected);
+        });
+
+        it('should return undefined on empty sequence', () => {
+          const sut = this.createSut<{ age: number; }>();
+          const actual = sut.maxItem(x => x.age);
+          assert.isUndefined(actual);
+        });
+      });
+
+      describe('with comparer', () => {
+        this.it1("should return first item having the maximum value", [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade ? grade : maxGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.maxItem({comparer: (a, b) => a.grade - b.grade});
+          assert.equal(actual, expected);
+        });
+
+        this.it1("should return last item having the maximum value, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade ? grade : maxGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.maxItem({comparer: (a, b) => a.grade - b.grade, findLast: true});
+          assert.equal(actual, expected);
+
+        });
+
+        it('should return undefined on empty sequence', () => {
+          const sut = this.createSut<{ age: number; }>();
+          const actual = sut.maxItem({comparer: (a, b) => a.age - b.age});
+          assert.isUndefined(actual);
+        });
+      });
+    });
+
     describe("min()", () => {
       it('should return minimum value from sequence of number', () => {
         const input = array.oneToTen;
@@ -3060,6 +3111,56 @@ export abstract class SeqBase_Immediate_Tests {
         const sut2 = this.createSut<{ age: number; }>();
         const actual2 = sut2.min(x => x.age);
         assert.equal(actual2, expected);
+      });
+    });
+
+    describe("minItem()", () => {
+      describe('with key-selector', () => {
+        this.it1("should return first item having the minimum value on item's numeric property",  [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade ? grade : minGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.minItem(x => x.grade);
+          assert.equal(actual, expected);
+        });
+
+        this.it1("should return last item having the minimum value on item's numeric property, when options.findLast is true",  [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.minItem(x => x.grade, {findLast: true});
+          assert.equal(actual, expected);
+        });
+
+        it('should return undefined on empty sequence', () => {
+          const sut = this.createSut<{ age: number; }>();
+          const actual = sut.minItem(x => x.age);
+          assert.isUndefined(actual);
+        });
+      });
+
+      describe('with comparer', () => {
+        this.it1("should return first item having the minimum value",  [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade ? grade : minGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.minItem({comparer: (a, b) => a.grade - b.grade});
+          assert.equal(actual, expected);
+        });
+
+        this.it1("should return last item having the minimum value, when options.findLast is true",  [...array.grades, ...array.grades], (input, inputArray) => {
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
+
+          let sut = this.createSut(input);
+          let actual = sut.minItem({comparer: (a, b) => a.grade - b.grade, findLast: true});
+          assert.equal(actual, expected);
+        });
+
+        it('should return undefined on empty sequence', () => {
+          const sut = this.createSut<{ age: number; }>();
+          const actual = sut.minItem({comparer: (a, b) => a.age - b.age});
+          assert.isUndefined(actual);
+        });
       });
     });
 
