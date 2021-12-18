@@ -252,7 +252,7 @@ export interface Seq<T> extends Iterable<T> {
   maxItem(options: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
 
   min(): T extends number ? number : never; // Overload
-  min(selector: Selector<T, number>, options: { findLast?: boolean; }): number;
+  min(selector: Selector<T, number>): number;
 
   minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
 
