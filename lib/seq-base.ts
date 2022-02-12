@@ -133,7 +133,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     consume(this);
   }
 
-  count(condition: Condition<T> = () => true): number {
+  count(condition?: Condition<T>): number {
     return this.countInternal(condition);
   }
 
@@ -1465,12 +1465,12 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return false;
   }
 
-  protected countInternal(condition: Condition<T> = () => true): number {
+  protected countInternal(condition?: Condition<T>): number {
     let count = 0;
     let index = 0;
-    for (const item of this) {
-      if (condition(item, index++)) count++;
-    }
+    if (condition) {
+      for (const item of this) if (condition(item, index++)) count++;
+    } else for (const item of this) count++;
     return count;
   }
 
@@ -1562,7 +1562,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
-    // then the order of items is not important and we optimize by working on the source
+    // then the order of items is not important, and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
     if (!condition && Array.isArray(source)) return source.length;
     if (SeqTags.isSeq(source) && (!condition || SeqTags.notMappingItems(this))) {

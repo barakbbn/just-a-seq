@@ -101,7 +101,7 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
     return this.anyOptimized(this.source, condition);
   }
 
-  count(condition: Condition<U> = () => true): number {
+  count(condition?: Condition<U>): number {
     return this.countOptimized(this.source, condition);
   }
 
@@ -129,7 +129,6 @@ export class FilterMapSeqImpl<T, U = T> extends SeqBase<U> implements TaggedSeq 
     for (const item of this.filterMapChain.apply(reverseSource)) {
       return item;
     }
-    return fallback;
   }
 
   lastIndexOf(itemToFind: U, fromIndex?: number): number {

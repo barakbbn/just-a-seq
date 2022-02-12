@@ -85,7 +85,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.sourceToSeq().average(selector as any);
   }
 
-  count(condition: Condition<T> = () => true): number {
+  count(condition?: Condition<T>): number {
     return this.tapCallbacks.length ?
       super.count(condition) :
       super.countOptimized(this.source, condition);

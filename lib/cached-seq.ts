@@ -35,7 +35,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return this;
   }
 
-  count(condition: Condition<T> = () => true): number {
+  count(condition?: Condition<T>): number {
     if (!condition) return this.getCached().length;
     return super.count(condition);
   }
@@ -99,6 +99,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   * [Symbol.iterator](): Iterator<T> {
     let iterable: Iterable<T> = this.getCached();
     if (this.tapCallbacks?.length) iterable = tapGenerator(iterable, this.tapCallbacks)
+    // TODO: Optimize when iterable is an array that
     yield* iterable;
   }
 

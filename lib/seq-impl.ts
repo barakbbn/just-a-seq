@@ -92,7 +92,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     });
   }
 
-  count(condition: Condition<T> = () => true): number {
+  count(condition?: Condition<T>): number {
     return this.countOptimized(this.source, condition);
   }
 
