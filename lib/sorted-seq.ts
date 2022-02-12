@@ -199,15 +199,15 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.sourceToSeq().sum(selector as any);
   }
 
-  takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
+  takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
+  takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
-  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
-
-  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
     if (this.tapCallbacks.length || (firstKeySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
-      return super.takeOnly(items, firstKeySelector, secondKeySelector);
+      return super.takeOnly(items, firstKeySelector as Selector<T, K>, secondKeySelector);
     }
-    const source = this.sourceToSeq().takeOnly(items, firstKeySelector, secondKeySelector);
+    const source = this.sourceToSeq().takeOnly(items, firstKeySelector as Selector<T, K>, secondKeySelector);
     return new SortedSeqImpl(source, this.comparer);
   }
 
