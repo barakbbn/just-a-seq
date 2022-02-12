@@ -59,6 +59,10 @@ export const array = new class {
     return this.grades.filter(x => x.grade >= 50);
   }
 
+  get gradesAboveFifty(): { name: string; grade: number; }[] {
+    return this.grades.filter(x => x.grade > 50);
+  }
+
   get gradesFiftyAndBelow(): { name: string; grade: number; }[] {
     return this.grades.filter(x => x.grade <= 50);
   }
@@ -138,6 +142,9 @@ export const array = new class {
     return [...generator.repeat(value, count)];
   };
 
+  repeatConcat<T>(value: T[], count: number) {
+    return new Array<T>().concat(...generator.repeat(value, count));
+  };
 };
 
 export class Folder {
@@ -221,8 +228,8 @@ export const generator = new class {
   }
 };
 
-type arraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
-export const iterables: arraysOnly = new Proxy(array, {
+type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
+export const iterables: ArraysOnly = new Proxy(array, {
   get(target: any, p: PropertyKey, receiver: any): any {
     const array = Reflect.get(target, p, receiver);
     return generator.from(array);

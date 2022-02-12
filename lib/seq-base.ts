@@ -1193,11 +1193,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }, [[SeqTags.$maxCount, count]]);
   }
 
-  takeOnly<K = T>(items: Iterable<T>, keySelector: (item: T) => K): Seq<T>;
+  takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
+  takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
-  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
-
-  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
+  takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
     return this.generate(function* takeOnly(self, iterationContext) {
       const map = new Map<K, number>();
       const secondIterator = iterationContext.closeWhenDone(getIterator(items));
@@ -1213,7 +1213,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         }
         while (!secondNext.done) {
           const second = secondNext.value;
-          const secondKey = secondKeySelector(second, secondIndex++);
+          const secondKey = secondKeySelector ? secondKeySelector(second, secondIndex++) : second as unknown as K;
           secondNext = secondIterator.next();
           if (sameValueZero(firstKey, secondKey)) return true;
           secondCount = map.get(secondKey) || 0;
@@ -1225,7 +1225,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
       let firstIndex = 0;
       for (const first of self) {
-        const firstKey = firstKeySelector(first, firstIndex++);
+        const firstKey = firstKeySelector ? firstKeySelector(first, firstIndex++) : first as unknown as K;
         const removed = removeFromSecond(firstKey);
         if (removed) yield first;
       }
@@ -1562,7 +1562,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
-    // then the order of items is not important, and we optimize by working on the source
+    // then the order of items is not important and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
     if (!condition && Array.isArray(source)) return source.length;
     if (SeqTags.isSeq(source) && (!condition || SeqTags.notMappingItems(this))) {

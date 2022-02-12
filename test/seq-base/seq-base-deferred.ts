@@ -2084,80 +2084,202 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('takeOnly()', () => {
-      it('should return items from source sequence that exists in seconds sequence with same key', () => {
-        const existsOnlyInFirst = {name: 'first', grade: -1};
-        const existsOnlyInSecond = {name: 'second', grade: -2};
-        const input = array.grades.concat(existsOnlyInFirst);
-        const second = array.gradesFiftyAndAbove.concat(existsOnlyInSecond);
-        const expected = array.gradesFiftyAndAbove;
-        let sut = this.createSut(input);
-        let actual = [...sut.takeOnly(second, x => x.grade)];
-        assert.deepEqual(actual, expected);
+      describe('with key-selector', () => {
+        describe('should return items from source sequence that exists in seconds sequence with same key', () => {
+          const existsOnlyInFirst = {name: 'first', grade: -1};
+          const existsOnlyInSecond = {name: 'second', grade: -2};
 
-        sut = this.createSut(generator.from(input));
-        actual = [...sut.takeOnly(generator.from(second), x => x.grade)];
-        assert.deepEqual(actual, expected);
+          this.it2(
+            'first sequence is same length as second ',
+            array.grades.concat(existsOnlyInFirst),
+            array.grades.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.grades;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
 
-        const input2 = array.gradesFiftyAndAbove.concat(existsOnlyInFirst);
-        const second2 = array.grades.concat(existsOnlyInSecond);
-        const expected2 = array.gradesFiftyAndAbove;
-        let sut2 = this.createSut(input2);
-        let actual2 = [...sut2.takeOnly(second2, x => x.grade)];
-        assert.deepEqual(actual2, expected2);
+          this.it2(
+            'first sequence is longer then second ',
+            array.grades.concat(existsOnlyInFirst),
+            array.gradesFiftyAndAbove.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.gradesFiftyAndAbove;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
 
-        sut2 = this.createSut(generator.from(input2));
-        actual2 = [...sut2.takeOnly(generator.from(second2), x => x.grade)];
-        assert.deepEqual(actual2, expected2);
+          this.it2(
+            'first sequence is shorter then second ',
+            array.gradesFiftyAndAbove.concat(existsOnlyInFirst),
+            array.grades.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.gradesFiftyAndAbove;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
+        });
 
+        this.it2(
+          'should return empty sequence if non of the source items exists in second sequence',
+          array.gradesAboveFifty,
+          array.gradesFiftyAndBelow,
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second, x => x.grade)];
+            assert.isEmpty(actual);
+          });
 
-        const input3 = array.gradesFiftyAndAbove;
-        const second3 = array.gradesFiftyAndBelow;
-        const expected3 = array.gradesFiftyAndAbove.filter(x => x.grade === 50);
-        let sut3 = this.createSut(input3);
-        let actual3 = [...sut3.takeOnly(second3, x => x.grade)];
-        assert.deepEqual(actual3, expected3);
+        this.it2('should return duplicate items same as they appear in seconds sequence',
+          [{v: 1}, {v: 2}, {v: 3}, {v: 3}, {v: 2}, {v: 3}],
+          [{v: 0}, {v: 0}, {v: 1}, {v: 1}, {v: 2}, {v: 2}, {v: 3}, {v: 3}, {v: 4}, {v: 4}],
+          (first, second) => {
 
-        sut3 = this.createSut(generator.from(input3));
-        actual3 = [...sut3.takeOnly(generator.from(second3), x => x.grade)];
-        assert.deepEqual(actual3, expected3);
+            const expected = [{v: 1}, {v: 2}, {v: 3}, {v: 3}, {v: 2}];
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second, x => x.v)];
+            assert.deepEqual(actual, expected);
+          });
+
       });
 
-      it('should return empty sequence if non of the source items exists in second sequence', () => {
-        const input = array.abc;
-        const second = array.oneToTen;
-        let sut = this.createSut(input);
-        let actual = [...sut.takeOnly(second, x => x, y => y.toString())];
-        assert.sameMembers(actual, []);
-        sut = this.createSut(generator.from(input));
-        actual = [...sut.takeOnly(generator.from(second), x => x, y => y.toString())];
-        assert.sameMembers(actual, []);
+      describe('without key-selector', () => {
+        describe('should return items from source sequence that exists in seconds sequence', () => {
+          this.it2(
+            'first sequence is same length as second ',
+            array.zeroToNine,
+            array.oneToTen.reverse(),
+            (input, second) => {
+              const expected = array.oneToNine;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second)];
+              assert.deepEqual(actual, expected);
+            });
+
+          this.it2(
+            'first sequence is longer then second ',
+            array.zeroToTen,
+            array.oneToNine.reverse(),
+            (input, second) => {
+              const expected = array.oneToNine;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second)];
+              assert.deepEqual(actual, expected);
+            });
+
+          this.it2(
+            'first sequence is shorter then second ',
+            array.oneToNine,
+            array.zeroToTen.reverse(),
+            (input, second) => {
+              const expected = array.oneToNine;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second)];
+              assert.deepEqual(actual, expected);
+            });
+        });
+
+        this.it2('should return duplicate items same as they appear in seconds sequence',
+          array.tenOnes.concat(array.tenZeros),
+          array.tenZeros.concat(array.tenOnes),
+          (first, second) => {
+
+            const expected = [...first];
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second)];
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it2(
+          'should return empty sequence if non of the source items exists in second sequence',
+          array.tenZeros,
+          array.oneToTen,
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second)];
+            assert.isEmpty(actual);
+          });
       });
 
-      it('should return duplicate items same as they exists in seconds sequence', () => {
-        const input = array.repeat({x: 1, y: 1}, 3)
-          .concat(array.repeat({x: 2, y: 2}, 3))
-          .concat(array.repeat({x: 3, y: 3}, 3))
-          .concat(array.repeat({x: 4, y: 4}, 3));
+      describe('with first & second key-selectors', () => {
+        describe('should return items from source sequence that exists in seconds sequence with same key', () => {
+          const existsOnlyInFirst = {name: 'first', grade: -1};
+          const existsOnlyInSecond = {name: 'second', grade: -2};
 
-        const second = [{x: 0, y: 0, z: 0}]
-          .concat(array.repeat({x: 1, y: 1, z: 1}, 1))
-          .concat(array.repeat({x: 2, y: 2, z: 2}, 2))
-          .concat(array.repeat({x: 3, y: 3, z: 3}, 3))
-          .concat(array.repeat({x: 4, y: 4, z: 4}, 4));
+          this.it2(
+            'first sequence is same length as second ',
+            array.grades.concat(existsOnlyInFirst),
+            array.grades.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.grades;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
 
-        const expected = array.repeat({x: 1, y: 1}, 1)
-          .concat(array.repeat({x: 2, y: 2}, 2))
-          .concat(array.repeat({x: 3, y: 3}, 3))
-          .concat(array.repeat({x: 4, y: 4}, 3));
+          this.it2(
+            'first sequence is longer then second ',
+            array.grades.concat(existsOnlyInFirst),
+            array.gradesFiftyAndAbove.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.gradesFiftyAndAbove;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
 
-        let sut = this.createSut(input);
+          this.it2(
+            'first sequence is shorter then second ',
+            array.gradesFiftyAndAbove.concat(existsOnlyInFirst),
+            array.grades.concat(existsOnlyInSecond).reverse(),
+            (input, second) => {
+              const expected = array.gradesFiftyAndAbove;
+              let sut = this.createSut(input);
+              let actual = [...sut.takeOnly(second, x => x.grade)];
+              assert.deepEqual(actual, expected);
+            });
+        });
 
-        let actual = [...sut.takeOnly(second, xy => `[${xy.x},${xy.y}]`, xyz => `[${xyz.x},${xyz.y}]`)];
-        assert.deepEqual(actual, expected);
-        sut = this.createSut(generator.from(input));
-        actual = [...sut.takeOnly(generator.from(second), xy => `[${xy.x},${xy.y}]`, xyz => `[${xyz.x},${xyz.y}]`)];
-        assert.deepEqual(actual, expected);
+        this.it2('should return empty sequence if non of the source items exists in second sequence',
+          [{a: -1}, {a: -2}, {a: -3}],
+          [{b: 1}, {b: 2}, {b: 3}],
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second, x => x.a, x => x.b)];
+            assert.isEmpty(actual);
+          });
+
+        this.it2(
+          'should return duplicate items same as they appear in seconds sequence',
+          [{v: 1}, {v: 2}, {v: 3}, {v: 3}, {v: 2}, {v: 3}],
+          [{k: 0}, {k: 0}, {k: 1}, {k: 1}, {k: 2}, {k: 2}, {k: 3}, {k: 3}, {k: 4}, {k: 4}],
+          (first, second) => {
+
+            const expected = [{v: 1}, {v: 2}, {v: 3}, {v: 3}, {v: 2}];
+
+            let sut = this.createSut(first);
+            let actual = [...sut.takeOnly(second, x => x.v, x => x.k)];
+            assert.deepEqual(actual, expected);
+          });
       });
+
+      this.it2('should return empty sequence if second sequence is empty',
+        array.oneToTen, [], (first, second) => {
+          const sut = this.createSut(first);
+          const takeOnly = [...sut.takeOnly(second)];
+          assert.equal(takeOnly.length, 0);
+        });
+
+      this.it2('should return empty sequence if first sequence is empty',
+        <number[]>[], array.oneToTen, (first, second) => {
+          const sut = this.createSut(first);
+          const takeOnly = [...sut.takeOnly(second)];
+          assert.equal(takeOnly.length, 0);
+        });
+
     });
 
     describe('tap()', () => {

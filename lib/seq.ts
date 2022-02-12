@@ -339,9 +339,9 @@ export interface Seq<T> extends Iterable<T> {
 
   takeLast(count: number): Seq<T>
 
+  takeOnly(items: Iterable<T>, keySelector?: (item: T ) => unknown): Seq<T>;
   takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
-
-  takeOnly<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T>;
+  takeOnly<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
   takeWhile(condition: Condition<T>): Seq<T>;
 
