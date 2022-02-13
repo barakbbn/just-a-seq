@@ -1312,35 +1312,12 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return transformer(this);
   }
 
-  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
+  union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T> {
+    return this.unionInternal(second, keySelector, false);
+  }
 
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
-
-  union<K>(second: Iterable<T>, keySelectorOrOpts?: ((value: T) => K) | { preferSecond?: boolean; }, opts?: { preferSecond?: boolean; }): Seq<T> {
-    const isOpts = (value: any): value is { preferSecond?: boolean; } => typeof value?.['preferSecond'] === "boolean";
-    let keySelector: (value: T) => K = x => x as unknown as K;
-    if (isOpts(keySelectorOrOpts)) {
-      opts = keySelectorOrOpts;
-    } else {
-      keySelector = keySelectorOrOpts ?? keySelector;
-    }
-
-    const [left, right] = opts?.preferSecond ? [second, this] : [this, second];
-    return this.generateForSource(left, function* union() {
-      function* concat() {
-        yield* left;
-        yield* right;
-      }
-
-      const keys = new Set<K>();
-      for (const item of concat()) {
-        const key = keySelector(item);
-        if (keys.has(key)) continue;
-        keys.add(key);
-        yield item;
-      }
-      keys.clear();
-    })
+  unionRight(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T> {
+    return this.unionInternal(second, keySelector, true);
   }
 
   unshift(...items: T[]): Seq<T> {
@@ -1384,8 +1361,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return res as any;
   }
 
-  zipWithIndex<U = T>(): Seq<[T, number]> {
-    return this.map((item, index) => [item, index]);
+  zipWithIndex(startIndex = 0): Seq<[T, number]> {
+    return this.map((item, index) => [item, startIndex + index]);
   }
 
   abstract [Symbol.iterator](): Iterator<T>;
@@ -1671,6 +1648,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
     if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;
+  }
+
+  private unionInternal(second: Iterable<T>, keySelector: ((value: T) => unknown) | undefined, rightToLeft: boolean): Seq<T> {
+    const [left, right] = rightToLeft ? [second, this] : [this, second];
+    return this.generateForSource(left, function* union() {
+      function* concat() {
+        yield* left;
+        yield* right;
+      }
+
+      const keys = new Set<unknown>();
+      for (const item of concat()) {
+        const key = keySelector ? keySelector(item) : item;
+        if (keys.has(key)) continue;
+        keys.add(key);
+        yield item;
+      }
+      keys.clear();
+    })
   }
 
   private maxItemBySelector(selector: Selector<T, number>, findLast = false): [T, number] | undefined {

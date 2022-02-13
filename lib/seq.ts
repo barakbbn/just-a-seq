@@ -357,9 +357,8 @@ export interface Seq<T> extends Iterable<T> {
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 
-  union<K>(second: Iterable<T>, opts?: { preferSecond?: boolean; }): Seq<T>;
-
-  union<K>(second: Iterable<T>, keySelector?: (value: T) => K, opts?: { preferSecond?: boolean; }): Seq<T>;
+  union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
+  unionRight(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
 
@@ -367,7 +366,7 @@ export interface Seq<T> extends Iterable<T> {
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;
 
-  zipWithIndex<U = T>(): Seq<[value: T, index: number]>;
+  zipWithIndex(startIndex?: number): Seq<[value: T, index: number]>;
 }
 
 export namespace Seq {

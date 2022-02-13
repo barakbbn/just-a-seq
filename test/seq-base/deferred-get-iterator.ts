@@ -140,6 +140,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
     describe('union()', () => testGetIterator(sut => sut.union([1])));
 
+    describe('unionRight()', () => testGetIterator(sut => sut.unionRight([1])));
+
     describe('unshift()', () => testGetIterator(sut => sut.unshift(1)));
 
     describe('zip()', () => testGetIterator(sut => sut.zip([1])));

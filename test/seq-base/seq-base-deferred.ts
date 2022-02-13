@@ -2408,37 +2408,102 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('union()', () => {
-      this.it2('should return a sequence with distinct items from both sequences', array.zeroToNine, array.oneToTen, (first, second) => {
-        const expected = [...new Set([...first].concat([...second]))];
-        const sut = this.createSut(first);
+      this.it2('should return a sequence with distinct items from both sequences',
+        array.zeroToNine.concat(array.zeroToNine),
+        array.oneToTen.concat(array.oneToTen),
+        (first, second) => {
+          const expected = [...new Set([...first].concat([...second]))];
+          const sut = this.createSut(first);
 
-        let actual = [...sut.union(second)];
-        assert.deepEqual(actual, expected);
+          let actual = [...sut.union(second)];
+          assert.deepEqual(actual, expected);
+        });
 
+      this.it2('should return a sequence with distinct items from both sequences according to a key-selector',
+        array.gradesFiftyAndAbove,
+        array.gradesFiftyAndAbove,
+        (first, second) => {
+          const union = [...first].concat([...second]);
 
-        const expected2 = [...new Set(first)];
-        actual = [...sut.union(sut)];
-        assert.deepEqual(actual, expected2);
-      });
+          const keySelector = (grade: { name: string; grade: number; }) => grade.name;
+          const map = new Map<string, { name: string; grade: number; }>();
+          union.forEach((grade) => map.set(keySelector(grade), grade));
+          const expected = [...map.values()];
 
-      this.it2('should return a sequence with distinct items from both sequences according to a key-selector', array.gradesFiftyAndAbove, array.gradesFiftyAndAbove, (first, second) => {
-        const union = [...first].concat([...second]);
+          const sut = this.createSut(first);
 
-        const keySelector = (grade: { name: string; grade: number; }) => grade.name;
-        const map = new Map<string, { name: string; grade: number; }>();
-        union.concat([...second]).forEach((grade) => map.set(keySelector(grade), grade));
-        const expected = union.filter((x) => map.delete(keySelector(x)));
+          let actual = [...sut.union(second, keySelector)];
+          assert.deepEqual(actual, expected);
+        });
 
-        const sut = this.createSut(first);
+      this.it2('should return a sequence with distinct items only from first sequence if duplicates exists in second sequence',
+        [{a: 1}, {a: 2}, {a: 3}, {a: 4}, {a: 5}],
+        [{a: 0, b: 0}, {a: 2, b: 2}, {a: 4, b: 4}, {a: 6, b: 6}],
+        (first, second) => {
+          const expected = [
+            {a: 1}, {a: 2}, {a: 3}, {a: 4}, {a: 5},
+            {a: 0, b: 0}, {a: 6, b: 6}
+          ];
 
-        let actual = [...sut.union(second, keySelector)];
-        assert.deepEqual(actual, expected);
+          const sut = this.createSut(first);
 
+          let actual = [...sut.union(second as { a: number }[], x => x.a)];
+          assert.deepEqual(actual, expected);
+        });
+    });
 
-        const expected2 = [...new Set(first)];
-        actual = [...sut.union(sut, keySelector)];
-        assert.deepEqual(actual, expected2);
-      });
+    describe('unionRight()', () => {
+      this.it2('should return a sequence with items from second sequence followed by item from first sequence',
+        array.tenOnes, array.tenZeros, (first, second) => {
+          const expected = [...new Set([...second].concat([...first]))];
+          const sut = this.createSut(first);
+
+          let actual = [...sut.unionRight(second)];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it2('should return a sequence with distinct items from both sequences',
+        array.zeroToNine.concat(array.zeroToNine),
+        array.oneToTen.concat(array.oneToTen),
+        (first, second) => {
+          const expected = [...new Set([...second].concat([...first]))];
+          const sut = this.createSut(first);
+
+          let actual = [...sut.unionRight(second)];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it2('should return a sequence with distinct items only from both sequences according to a key-selector',
+        array.gradesFiftyAndAbove,
+        array.gradesFiftyAndAbove,
+        (first, second) => {
+          const union = [...second].concat([...first]);
+
+          const keySelector = (grade: { name: string; grade: number; }) => grade.name;
+          const map = new Map<string, { name: string; grade: number; }>();
+          union.forEach((grade) => map.set(keySelector(grade), grade));
+          const expected = [...map.values()];
+
+          const sut = this.createSut(first);
+
+          let actual = [...sut.unionRight(second, keySelector)];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it2('should return a sequence with distinct items from second sequence if duplicates exists in first sequence',
+        [{a: 1}, {a: 2}, {a: 3}, {a: 4}, {a: 5}],
+        [{a: 0, b: 0}, {a: 2, b: 2}, {a: 4, b: 4}, {a: 6, b: 6}],
+        (first, second) => {
+          const expected = [
+            {a: 0, b: 0}, {a: 2, b: 2}, {a: 4, b: 4}, {a: 6, b: 6}, //beginning with second (preferSecond = true)
+            {a: 1}, {a: 3}, {a: 5}];
+
+          const sut = this.createSut(first);
+
+          let actual = [...sut.unionRight(second as { a: number }[], x => x.a)];
+          assert.deepEqual(actual, expected);
+        });
+
     });
 
     describe('unshift()', () => {
@@ -2541,11 +2606,20 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('zipWithIndex()', () => {
-      this.it1('should pair all items, each with its index in the sequence', array.abc, (input) => {
+      this.it1('should pair all items, each with its index in the sequence', array.abc, input => {
         const expected = [...input].map((x, i) => [x, i]);
 
         let sut = this.createSut(input);
         let actual = [...sut.zipWithIndex()];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should return pairs or items with their index value plus the startIndex parameter value', array.abc, input => {
+        const noneZeroStartIndex = 10;
+        const expected = [...input].map((x, i) => [x, i + noneZeroStartIndex]);
+
+        let sut = this.createSut(input);
+        let actual = [...sut.zipWithIndex(noneZeroStartIndex)];
         assert.deepEqual(actual, expected);
       });
 
