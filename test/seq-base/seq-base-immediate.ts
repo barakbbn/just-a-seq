@@ -2,7 +2,7 @@ import {describe, it} from "mocha";
 import {assert} from "chai";
 import {array, generator, iterables, Sample} from "../test-data"
 import {SeqBase} from "../../lib/seq-base";
-
+import {empty} from "../../lib";
 export abstract class SeqBase_Immediate_Tests {
   constructor(protected optimized: boolean) {
   }
@@ -2648,13 +2648,16 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe('isEmpty()', () => {
-      it("should return true if sequence doesn't contain any items", () => {
-        let sut = this.createSut([]);
+      this.it1("should return true if sequence doesn't contain any items", [], input => {
+        let sut = this.createSut(input);
         let actual = sut.isEmpty();
         assert.isTrue(actual);
+      });
 
-        sut = this.createSut();
-        actual = sut.isEmpty();
+      it("should return true if sequence source is a Seq tagged as empty", () => {
+        const emptySeq = empty();
+        let sut = this.createSut(emptySeq);
+        let actual = sut.isEmpty();
         assert.isTrue(actual);
       });
 
@@ -3116,7 +3119,7 @@ export abstract class SeqBase_Immediate_Tests {
 
     describe("minItem()", () => {
       describe('with key-selector', () => {
-        this.it1("should return first item having the minimum value on item's numeric property",  [...array.grades, ...array.grades], (input, inputArray) => {
+        this.it1("should return first item having the minimum value on item's numeric property", [...array.grades, ...array.grades], (input, inputArray) => {
           const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade ? grade : minGrade);
 
           let sut = this.createSut(input);
@@ -3124,7 +3127,7 @@ export abstract class SeqBase_Immediate_Tests {
           assert.equal(actual, expected);
         });
 
-        this.it1("should return last item having the minimum value on item's numeric property, when options.findLast is true",  [...array.grades, ...array.grades], (input, inputArray) => {
+        this.it1("should return last item having the minimum value on item's numeric property, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
           const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
 
           let sut = this.createSut(input);
@@ -3148,7 +3151,7 @@ export abstract class SeqBase_Immediate_Tests {
           assert.equal(actual, expected);
         });
 
-        this.it1("should return last item having the minimum value, when options.findLast is true",  [...array.grades, ...array.grades], (input, inputArray) => {
+        this.it1("should return last item having the minimum value, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
           const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
 
           let sut = this.createSut(input);

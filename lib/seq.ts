@@ -103,7 +103,7 @@ export interface Seq<T> extends Iterable<T> {
 
   first(defaultIfEmpty?: T): T | undefined;
 
-  firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>];
+  firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>] & { first: T; rest: Seq<T>; };
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
@@ -220,7 +220,7 @@ export interface Seq<T> extends Iterable<T> {
 
   insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
-  intersect<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
+  intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   // Intersperses a value (separator) between the items in the source sequence
   // Like join(), but return a sequence instead of string
@@ -325,8 +325,8 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(reverse?: boolean): Seq<T>;
 
-  split(atIndex: number): [first: Seq<T>, second: Seq<T>]; // Overload
-  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>];
+  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
+  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
   startsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
 

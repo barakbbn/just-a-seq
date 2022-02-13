@@ -292,8 +292,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return defaultIfEmpty;
   }
 
-  firstAndRest(defaultIfEmpty?: T): [T, Seq<T>] {
-    return [this.first(defaultIfEmpty) as T, this.skip(1)];
+  firstAndRest(defaultIfEmpty?: T): [first: T, second: Seq<T>] & { first: T; rest: Seq<T>; } {
+    const first = this.first(defaultIfEmpty) as T;
+    const rest = this.skip(1);
+    const result: any = [first, rest];
+    result.first = first;
+    result.rest = rest;
+    return result as ([first: T, second: Seq<T>] & { first: T; rest: Seq<T>; });
   }
 
   flat<T, D extends number = 1>(depth?: D): Seq<FlatSeq<T, D>> {
@@ -661,9 +666,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  intersect<K = T>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
+  intersect(items: Iterable<T>, keySelector: (item: T) => unknown = x => x): Seq<T> {
     return this.generate(function* intersect(self) {
-      let secondKeys = new Set<K>();
+      let secondKeys = new Set<unknown>();
       for (const second of items) secondKeys.add(keySelector(second));
       for (const first of self) {
         const key = keySelector(first);
@@ -1128,14 +1133,19 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return factories.SortedSeq(this.getSourceForNewSequence(), undefined, undefined, reverse);
   }
 
-  split(atIndex: number): [Seq<T>, Seq<T>];
+  split(atIndex: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(condition: Condition<T>): [Seq<T>, Seq<T>];
+  split(condition: Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] {
-    return (typeof atIndexOrCondition === 'number') ?
+  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+    const result: any = (typeof atIndexOrCondition === 'number') ?
       this.splitAtIndex(atIndexOrCondition) :
       this.splitByCondition(atIndexOrCondition);
+
+    result.first = result[0];
+    result.second = result[0];
+
+    return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
   }
 
   startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
@@ -1379,7 +1389,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   abstract [Symbol.iterator](): Iterator<T>;
 
-  findSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, equals: (a: T, b: U) => unknown = sameValueZero): [number, number] {
+  protected findSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, equals: (a: T, b: U) => unknown): [number, number] {
     // console.log(`includesSubSequence()`);
 
     const matcher = new class {
@@ -1797,7 +1807,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     const second = this.generate(function* splitAtIndexSecond() {
       // apply cache
-      first.array;
+      first.cache(true);
       while (!next.done) {
         yield next.value;
         next = iterator.next();

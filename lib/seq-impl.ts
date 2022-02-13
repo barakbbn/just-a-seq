@@ -1,6 +1,6 @@
 import {CloseableIterator, EMPTY_ARRAY, IterationContext, SeqTags, TaggedSeq} from './common'
 
-import {Condition, Selector, Seq} from './seq'
+import {Condition, Seq} from './seq'
 import {SeqBase} from "./seq-base";
 import {empty} from "./seq-factory";
 
@@ -112,6 +112,10 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return this.source.indexOf(itemToFind, fromIndex);
   }
 
+  isEmpty(): boolean {
+    return this.source.length === 0;
+  }
+
   last(): T | undefined;
 
   last(fallback: T): T;
@@ -174,15 +178,19 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
-  split(atIndex: number): [Seq<T>, Seq<T>];
+  split(atIndex: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(condition: Condition<T>): [Seq<T>, Seq<T>];
+  split(condition: Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] {
-    if (typeof atIndexOrCondition !== 'number') return super.split(atIndexOrCondition);
-    if (atIndexOrCondition <= 0) return [empty<T>(), this];
+  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+    let result: any = [];
+    if (typeof atIndexOrCondition !== 'number') result = super.split(atIndexOrCondition);
+    else if (atIndexOrCondition > 0) result = [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)];
+    else result.push(empty<T>(), this);
 
-    return [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)]
+    result.first = result[0];
+    result.second = result[1];
+    return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
   }
 
   startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
@@ -253,6 +261,12 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     super();
 
     SeqTags.setTagsIfMissing(this, tags);
+  }
+
+  isEmpty(): boolean {
+    return SeqTags.isSeq(this.source)?
+      this.source.isEmpty():
+      super.isEmpty();
   }
 
   [Symbol.iterator](): Iterator<T> {
