@@ -244,6 +244,10 @@ export interface Seq<T> extends Iterable<T> {
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
+  matchBy<S extends T, U = T>(typeGuard: (item: T, index: number) => item is S, unmatchedSelector?: Selector<Exclude<T, S>, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> };
+
+  matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+
   max(): T extends number ? number : never; // Overload
   max(selector: Selector<T, number>): number;
 
@@ -438,8 +442,6 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
   toObject(): ObjectHierarchy<Ks, T>;
 
   toObject(arrayed: true): ObjectHierarchy<Ks, T[]>;
-
-  // ungroupLast<U>(mapFn:(group: GroupedSeq<any, any>)=>U): SeqOfGroupsWithoutLast<Ks, U>;
 }
 
 export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]

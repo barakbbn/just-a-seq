@@ -787,6 +787,81 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return factories.FilterMapSeq<T, U>(this.getSourceForNewSequence(), map);
   }
 
+  matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+
+  matchBy<S extends T, U = T>(condition: (item: T, index: number) => item is S, unmatchedSelector?: Selector<Exclude<T, S>, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> } {
+    const matched: S[] = [];
+    const unmatched: U[] = [];
+
+    const sourceIterator = new class {
+      private _done: boolean | undefined = false;
+      private _iter: Iterator<T> | undefined;
+      private index = -1;
+      private refCount = 2;
+
+      constructor(private source: Iterable<T>) {
+      }
+
+      get done(): boolean {
+        return !!this._done;
+      };
+
+      private get iter() {
+        if (!this._iter) this._iter = getIterator(this.source);
+        return this._iter;
+      }
+
+      iterateNext() {
+        const {value, done} = this.iter.next();
+        this._done = done;
+        this.index++;
+        if (!done) {
+          if (condition(value, this.index)) matched.push(value);
+          else {
+            let unmatchedValue = unmatchedSelector ?
+              unmatchedSelector(value, this.index) :
+              value as unknown as U;
+
+            unmatched.push(unmatchedValue);
+          }
+        }
+      }
+
+      release(): void {
+        if (this.refCount > 0) {
+          this.refCount--;
+          if (this.refCount === 0 && this._iter) {
+            this._iter.return?.();
+            this._iter = undefined
+          }
+        }
+      }
+    }(this.getSourceForNewSequence());
+
+    function* yieldNext<U>(array: U[]) {
+      while (!sourceIterator.done) {
+        if (array.length) yield* array.splice(0);
+        sourceIterator.iterateNext();
+      }
+    }
+
+    const matchedGen = new Gen(matched, function* (array, iterationContext) {
+      iterationContext.onClose(() => sourceIterator.release())
+      yield* yieldNext(array)
+    });
+    const unmatchedGen = new Gen(unmatched, function* (array, iterationContext) {
+      iterationContext.onClose(() => sourceIterator.release())
+      yield* yieldNext(array)
+    });
+    const matchedSeq = factories.CachedSeq(matchedGen);
+    const unmatchedSeq = factories.CachedSeq(unmatchedGen);
+
+    const result: any = [matchedSeq, unmatchedSeq];
+    result.matched = matchedSeq;
+    result.unmatched = unmatchedSeq;
+    return result as ([matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> });
+  }
+
   max(): T extends number ? number : never;
 
   max(selector: Selector<T, number>): number;

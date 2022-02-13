@@ -3662,6 +3662,18 @@ export abstract class SeqBase_Immediate_Tests {
         assert.isFalse(actual);
       });
 
+      it('should return false if second sequence has more items', () => {
+        const input = array.oneToNine;
+        const second = array.oneToTen;
+
+        let sut = this.createSut(input);
+        let actual = sut.sameOrderedItems(second);
+        assert.isFalse(actual);
+        sut = this.createSut(generator.from(input));
+        actual = sut.sameOrderedItems(generator.from(second));
+        assert.isFalse(actual);
+      });
+
       it('should return false if one of the sequences is empty', () => {
         let first: number[] = [];
         let second = array.oneToNine;

@@ -212,6 +212,12 @@ export abstract class SeqBase_Change_Source_Tests {
     test('last()', array.oneToTen, seq => seq.last());
     test('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
+    test('matchBy({matched})', array.oneToTen, seq => seq.matchBy(() => true).matched);
+    test('matchBy({unmatched})', array.oneToTen, seq => seq.matchBy(() => false).unmatched);
+    test('matchBy({matched+unmatched})', array.oneToTen, seq => {
+      const matchResults = seq.matchBy(() => false);
+      return matchResults.matched.zip(matchResults.unmatched)
+    });
     test('max()', array.oneToTen, seq => seq.max());
     test('min()', array.oneToTen, seq => seq.min());
     test2('prepend()', array.oneToTen, [0, -1, -2], (seq, other) => seq.prepend(other));

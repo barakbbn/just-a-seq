@@ -82,6 +82,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
     describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
 
+    describe('matchBy()', () => testGetIterator(sut => sut.matchBy(x => x)));
+
+    describe('matchBy().matched', () => testGetIterator(sut => sut.matchBy(x => x).matched));
+
+    describe('matchBy().unmatched', () => testGetIterator(sut => sut.matchBy(x => x).unmatched));
+
     describe('ofType()', () => testGetIterator(sut => sut.ofType(Number)));
 
     describe('prepend()', () => testGetIterator(sut => sut.prepend([1])));

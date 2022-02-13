@@ -69,6 +69,12 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     testImmutable('map()', array.oneToTen, seq => seq.map(n => n - n));
     testImmutable('max()', array.oneToTen, seq => seq.max());
+    testImmutable('matchBy({matched}})', array.grades, seq => seq.matchBy(() => true).matched);
+    testImmutable('matchBy({unmatched}})', array.grades, seq => seq.matchBy(() => false).unmatched);
+    testImmutable('matchBy({matched+unmatched}})', array.grades, seq => {
+      const matchResults = seq.matchBy(() => false);
+      return matchResults.matched.zip(matchResults.unmatched)
+    });
     testImmutable('maxItem(selector)', array.grades, seq => seq.maxItem(x => x.grade));
     testImmutable('maxItem(comparer)', array.grades, seq => seq.maxItem({comparer: (a, b) => a.grade - b.grade}));
     testImmutable('min()', array.oneToTen, seq => seq.min());

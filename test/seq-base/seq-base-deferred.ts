@@ -1554,6 +1554,96 @@ export abstract class SeqBase_Deferred_Tests {
       });
     });
 
+    describe('matchBy()', () => {
+      describe("matched sequence", () => {
+        this.it1('should return only items that meet the condition - numbers', array.oneToTen, (input) => {
+          const expectedEvens = [...input].filter(x => x % 2 == 0);
+          let sut = this.createSut(input);
+          const matchResults = sut.matchBy(x => x % 2 == 0);
+          const actual = [...matchResults.matched];
+          assert.sameOrderedMembers(actual, expectedEvens);
+        });
+
+        this.it1('should return only items that meet the condition - objects', array.grades, (input) => {
+          const expectedAboveFifty = [...input].filter(x => x.grade > 50);
+          let sut2 = this.createSut(input);
+          let actual2 = [...sut2.matchBy(x => x.grade > 50).matched];
+          assert.sameOrderedMembers(actual2, expectedAboveFifty);
+        });
+
+        this.it1('should return empty sequence if non of the items meet the condition - numbers', array.oneToTen, (input) => {
+          const expectedEmpty: any[] = [];
+          let sut = this.createSut(input);
+          let actual = [...sut.matchBy(() => false).matched];
+          assert.sameOrderedMembers(actual, expectedEmpty);
+        });
+
+        this.it1('should return empty sequence if non of the items meet the condition - objects', array.grades, (input) => {
+          const expectedEmpty: any[] = [];
+          const sut = this.createSut(input);
+          const actual = [...sut.matchBy(() => false).matched];
+          assert.sameOrderedMembers(actual, expectedEmpty);
+        });
+      });
+      describe("unmatched sequence", () => {
+        this.it1('should return only items that do not meet the condition - numbers', array.oneToTen, (input) => {
+          const expectedOdds = [...input].filter(x => x % 2 == 1);
+          let sut = this.createSut(input);
+          const matchResults = sut.matchBy(x => x % 2 == 0);
+          const actual = [...matchResults.unmatched];
+          assert.sameOrderedMembers(actual, expectedOdds);
+        });
+
+        this.it1('should return only items that do not meet the condition - objects', array.grades, (input) => {
+          const expectedFiftyAndBelow = [...input].filter(x => x.grade <= 50);
+          let sut2 = this.createSut(input);
+          let actual2 = [...sut2.matchBy(x => x.grade > 50).unmatched];
+          assert.sameOrderedMembers(actual2, expectedFiftyAndBelow);
+        });
+
+        this.it1('should return empty sequence if all of the items meet the condition - numbers', array.oneToTen, (input) => {
+          const expectedEmpty: any[] = [];
+          let sut = this.createSut(input);
+          let actual = [...sut.matchBy(() => true).unmatched];
+          assert.sameOrderedMembers(actual, expectedEmpty);
+        });
+
+        this.it1('should return empty sequence if all of the items meet the condition - objects', array.grades, (input) => {
+          const expectedEmpty: any[] = [];
+          const sut = this.createSut(input);
+          const actual = [...sut.matchBy(() => true).unmatched];
+          assert.sameOrderedMembers(actual, expectedEmpty);
+        });
+
+        this.it1('should convert unmatched results by provided map function',
+          [{x: 1}, {y: 2}, {x: 3}, {y: 4}], input => {
+
+            const expected = [...input]
+              .filter((x): x is { y: number; } => 'y' in x)
+              .map(x => x.y);
+
+            const sut = this.createSut(input);
+            const matchResult = sut.matchBy(
+              (x): x is { x: number; } => 'x' in x,
+              x => x.y);
+            const unmatched = [...matchResult.unmatched];
+            assert.deepEqual(unmatched, expected);
+          });
+      });
+
+      this.it1('should have the items in .matched property exactly the same as result tuple at index 0', array.oneToTen, (input) => {
+        let sut = this.createSut(input);
+        const matchResults = sut.matchBy(x => x % 2 == 0);
+        assert.sameOrderedMembers([...matchResults.matched], [...matchResults[0]]);
+      })
+      this.it1('should have the items in .unmatched property exactly the same as result tuple at index 1', array.oneToTen, (input) => {
+        let sut = this.createSut(input);
+        const matchResults = sut.matchBy(x => x % 2 == 0);
+        assert.sameOrderedMembers([...matchResults.unmatched], [...matchResults[1]]);
+      })
+
+    });
+
     describe('ofType()', () => {
       this.it1('should return filtered sequence with only the values of requested type', Array<any>().concat(
         array.oneToTen,
