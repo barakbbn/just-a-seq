@@ -30,221 +30,123 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
       test(title + ' - array', array, () => array.getIteratorCount > 0);
     };
 
-    describe('as()', () => {
-      testGetIterator(sut => sut.as<number>());
-    });
+    describe('as()', () => testGetIterator(sut => sut.as<number>()));
 
-    describe('append()', () => {
-      testGetIterator(sut => sut.append(1));
-    });
+    describe('append()', () => testGetIterator(sut => sut.append(1)));
 
-    describe('cache()', () => {
-      testGetIterator(sut => sut.cache());
-    });
+    describe('cache()', () => testGetIterator(sut => sut.cache()));
 
-    describe('chunk()', () => {
-      testGetIterator(sut => sut.chunk(2));
-    });
+    describe('chunk()', () => testGetIterator(sut => sut.chunk(2)));
 
-    describe('concat()', () => {
-      testGetIterator(sut => sut.concat([2]));
-    });
+    describe('concat()', () => testGetIterator(sut => sut.concat([2])));
 
-    describe('concat$()', () => {
-      testGetIterator(sut => sut.concat$([2]));
-    });
+    describe('concat$()', () => testGetIterator(sut => sut.concat$([2])));
 
-    describe('diffDistinct()', () => {
-      testGetIterator(sut => sut.diffDistinct([2]));
-    });
+    describe('diffDistinct()', () => testGetIterator(sut => sut.diffDistinct([2])));
 
-    describe('diff()', () => {
-      testGetIterator(sut => sut.diff([2]));
-    });
+    describe('diff()', () => testGetIterator(sut => sut.diff([2])));
 
-    describe('distinct()', () => {
-      testGetIterator(sut => sut.distinct());
-    });
+    describe('distinct()', () => testGetIterator(sut => sut.distinct()));
 
-    describe('entries()', () => {
-      testGetIterator(sut => sut.entries());
-    });
+    describe('entries()', () => testGetIterator(sut => sut.entries()));
 
-    describe('filter()', () => {
-      testGetIterator(sut => sut.filter(() => true));
-    });
+    describe('filter()', () => testGetIterator(sut => sut.filter(() => true)));
 
-    describe('flat()', () => {
-      testGetIterator(sut => sut.flat(5));
-    });
+    describe('flat()', () => testGetIterator(sut => sut.flat(5)));
 
-    describe('flatMap()', () => {
-      testGetIterator(sut => sut.flatMap(() => [1, 2]));
-    });
+    describe('flatMap()', () => testGetIterator(sut => sut.flatMap(() => [1, 2])));
 
-    describe('flatHierarchy()', () => {
-      testGetIterator(sut => sut.flatHierarchy(() => [1, 2], () => [3, 4], (a1, a2, a3) => ({a1, a2, a3})));
-    });
+    describe('flatHierarchy()', () => testGetIterator(sut => sut.flatHierarchy(() => [1, 2], () => [3, 4], (a1, a2, a3) => ({
+      a1,
+      a2,
+      a3
+    }))));
 
-    describe('groupBy()', () => {
-      testGetIterator(sut => sut.groupBy(() => 1,));
-    });
+    describe('groupBy()', () => testGetIterator(sut => sut.groupBy(() => 1,)));
 
-    describe('groupJoin()', () => {
-      testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1));
-    });
+    describe('groupJoin()', () => testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1)));
 
-    describe('innerJoin()', () => {
-      testGetIterator(sut => sut.innerJoin([1], () => 1, () => 1, () => 1));
-    });
+    describe('innerJoin()', () => testGetIterator(sut => sut.innerJoin([1], () => 1, () => 1, () => 1)));
 
-    describe('ifEmpty()', () => {
-      testGetIterator(sut => sut.ifEmpty(1));
-    });
+    describe('ifEmpty()', () => testGetIterator(sut => sut.ifEmpty(1)));
 
-    describe('insert()', () => {
-      testGetIterator(sut => sut.insert(1));
-    });
+    describe('insert()', () => testGetIterator(sut => sut.insert(1)));
 
-    describe('insertBefore()', () => {
-      testGetIterator(sut => sut.insertBefore(() => true));
-    });
+    describe('insertBefore()', () => testGetIterator(sut => sut.insertBefore(() => true)));
 
-    describe('insertAfter()', () => {
-      testGetIterator(sut => sut.insertAfter(() => true));
-    });
+    describe('insertAfter()', () => testGetIterator(sut => sut.insertAfter(() => true)));
 
-    describe('intersect()', () => {
-      testGetIterator(sut => sut.intersect([1]));
-    });
+    describe('intersect()', () => testGetIterator(sut => sut.intersect([1])));
 
-    describe('intersperse()', () => {
-      testGetIterator(sut => sut.intersperse(','));
-    });
+    describe('intersperse()', () => testGetIterator(sut => sut.intersperse(',')));
 
-    describe('map()', () => {
-      testGetIterator(sut => sut.map(() => 1));
-    });
+    describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
 
-    describe('ofType()', () => {
-      testGetIterator(sut => sut.ofType(Number));
-    });
+    describe('ofType()', () => testGetIterator(sut => sut.ofType(Number)));
 
-    // describe('orderBy()', () => {
-    //     testGetIterator(sut => sut.orderBy(x => x));
-    // });
+    describe('prepend()', () => testGetIterator(sut => sut.prepend([1])));
 
-    // describe('orderByDescending()', () => {
-    //     testGetIterator(sut => sut.orderByDescending(x => x));
-    // });
+    describe('push()', () => testGetIterator(sut => sut.push(1)));
 
-    describe('prepend()', () => {
-      testGetIterator(sut => sut.prepend([1]));
-    });
+    describe('remove()', () => testGetIterator(sut => sut.remove([1])));
 
-    describe('push()', () => {
-      testGetIterator(sut => sut.push(1));
-    });
+    describe('removeAll()', () => testGetIterator(sut => sut.removeAll([1])));
 
-    describe('remove()', () => {
-      testGetIterator(sut => sut.remove([1]));
-    });
+    describe('removeFalsy()', () => testGetIterator(sut => sut.removeFalsy()));
 
-    describe('removeAll()', () => {
-      testGetIterator(sut => sut.removeAll([1]));
-    });
+    describe('removeNulls()', () => testGetIterator(sut => sut.removeNulls()));
 
-    describe('removeFalsy()', () => {
-      testGetIterator(sut => sut.removeFalsy());
-    });
+    describe('repeat()', () => testGetIterator(sut => sut.repeat(2)));
 
-    describe('removeNulls()', () => {
-      testGetIterator(sut => sut.removeNulls());
-    });
+    describe('reverse()', () => testGetIterator(sut => sut.reverse()));
 
-    describe('repeat()', () => {
-      testGetIterator(sut => sut.repeat(2));
-    });
+    describe('skip()', () => testGetIterator(sut => sut.skip(2)));
 
-    describe('reverse()', () => {
-      testGetIterator(sut => sut.reverse());
-    });
+    describe('skipFirst()', () => testGetIterator(sut => sut.skipFirst()));
 
-    describe('skip()', () => {
-      testGetIterator(sut => sut.skip(2));
-    });
+    describe('skipLast()', () => testGetIterator(sut => sut.skipLast()));
 
-    describe('skipFirst()', () => {
-      testGetIterator(sut => sut.skipFirst());
-    });
+    describe('skipWhile()', () => testGetIterator(sut => sut.skipWhile(() => false)));
 
-    describe('skipLast()', () => {
-      testGetIterator(sut => sut.skipLast());
-    });
+    describe('slice()', () => testGetIterator(sut => sut.slice(0, 2)));
 
-    describe('skipWhile()', () => {
-      testGetIterator(sut => sut.skipWhile(() => false));
-    });
+    describe('sort()', () => testGetIterator(sut => sut.sort()));
 
-    describe('slice()', () => {
-      testGetIterator(sut => sut.slice(0, 2));
-    });
+    describe('sortBy()', () => testGetIterator(sut => sut.sortBy(x => x)));
 
-    describe('sort()', () => {
-      testGetIterator(sut => sut.sort());
-    });
+    describe('sorted()', () => testGetIterator(sut => sut.sorted()));
 
-    describe('sortBy()', () => {
-      testGetIterator(sut => sut.sortBy(x => x));
-    });
+    describe('split(at)', () => testGetIterator(sut => sut.split(2)));
 
-    describe('sorted()', () => {
-      testGetIterator(sut => sut.sorted());
-    });
+    describe('split(at)[0]', () => testGetIterator(sut => sut.split(2)[0]));
 
-    describe('split()', () => {
-      testGetIterator(sut => sut.split(2));
-    });
+    describe('split(at)[1]', () => testGetIterator(sut => sut.split(2)[1]));
 
-    describe('take()', () => {
-      testGetIterator(sut => sut.take(2));
-    });
+    describe('split(condition)', () => testGetIterator(sut => sut.split(x => x)));
 
-    describe('takeLast()', () => {
-      testGetIterator(sut => sut.takeLast(2));
-    });
+    describe('split(condition)[0]', () => testGetIterator(sut => sut.split(x => x)[0]));
 
-    describe('takeWhile()', () => {
-      testGetIterator(sut => sut.takeWhile(() => true));
-    });
+    describe('split(condition)[1]', () => testGetIterator(sut => sut.split(x => x)[1]));
 
-    describe('takeOnly()', () => {
-      testGetIterator(sut => sut.takeOnly([1], x => x));
-    });
+    describe('take()', () => testGetIterator(sut => sut.take(2)));
 
-    describe('tap()', () => {
-      testGetIterator(sut => sut.tap(x => x));
-    });
+    describe('takeLast()', () => testGetIterator(sut => sut.takeLast(2)));
 
-    describe('union()', () => {
-      testGetIterator(sut => sut.union([1]));
-    });
+    describe('takeWhile()', () => testGetIterator(sut => sut.takeWhile(() => true)));
 
-    describe('unshift()', () => {
-      testGetIterator(sut => sut.unshift(1));
-    });
+    describe('takeOnly()', () => testGetIterator(sut => sut.takeOnly([1], x => x)));
 
-    describe('zip()', () => {
-      testGetIterator(sut => sut.zip([1]));
-    });
+    describe('tap()', () => testGetIterator(sut => sut.tap(x => x)));
 
-    describe('zipAll()', () => {
-      testGetIterator(sut => sut.zipAll([1]));
-    });
+    describe('union()', () => testGetIterator(sut => sut.union([1])));
 
-    describe('zipWithIndex()', () => {
-      testGetIterator(sut => sut.zipWithIndex());
-    });
+    describe('unshift()', () => testGetIterator(sut => sut.unshift(1)));
+
+    describe('zip()', () => testGetIterator(sut => sut.zip([1])));
+
+    describe('zipAll()', () => testGetIterator(sut => sut.zipAll([1])));
+
+    describe('zipWithIndex()', () => testGetIterator(sut => sut.zipWithIndex()));
 
   });
 

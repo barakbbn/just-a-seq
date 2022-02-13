@@ -37,7 +37,7 @@ class SeqImpl_SortedSeq_Tests extends SeqBase_Sorting_Tests {
   protected createSut = createSut(this.optimized);
 }
 
-class SeqIImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
+class SeqImpl_CachedSeq_Tests extends SeqBase_CachedSeq_Tests {
   protected createSut = createSut(this.optimized);
 }
 
@@ -428,7 +428,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         });
         (sut as TaggedSeq)[SeqTags.$maxCount] = 0;
         const actual = sut.count(n => n);
-        assert.equal(actual, 0);
+        assert.strictEqual(actual, 0);
       });
 
       it('should not optimize if condition parameter expect index argument and other conditions allow optimization', () => {
@@ -783,7 +783,7 @@ export class SeqImpl_Tests {
     new SeqImpl_Deferred_Tests(this.optimized).run();
     new SeqImpl_Immediate_Tests(this.optimized).run();
     new SeqImpl_SortedSeq_Tests(this.optimized).run();
-    new SeqIImpl_CachedSeq_Tests(this.optimized).run();
+    new SeqImpl_CachedSeq_Tests(this.optimized).run();
     new SeqImpl_Grouping_Tests(this.optimized).run();
     new SeqImpl_Immutable_Tests(this.optimized).run();
     new SeqImpl_Close_Iterator_Tests(this.optimized).run();

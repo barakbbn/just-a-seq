@@ -34,13 +34,13 @@ export abstract class SeqBase_CachedSeq_Tests {
       tryIterate(maybeIterable);
       maybeIterable = onSeq(seq);
       tryIterate(maybeIterable);
-      assert.equal(input.getIteratorCount, 1);
+      assert.strictEqual(input.getIteratorCount, 1);
     }
     it('should return same instance if calling cache again', () => {
       const expected = this.createSut().cache();
       const actual = expected.cache();
 
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
 
     describe('should cache items also when further chained with other operations', () => {

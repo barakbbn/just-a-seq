@@ -64,7 +64,7 @@ export class GroupedSeqImpl_Tests {
       it('should return value that was set in creation', () => {
         for (const key of [1, 'key', true, false, Symbol.iterator, new Date(2021, 1, 1), null, undefined, '']) {
           const sut = this.createSut(key);
-          assert.equal(sut.key, key);
+          assert.strictEqual(sut.key, key);
         }
       });
     });

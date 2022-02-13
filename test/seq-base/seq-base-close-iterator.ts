@@ -69,10 +69,10 @@ export abstract class SeqBase_Close_Iterator_Tests {
             break;
           }
         }
-        assert.isTrue(!firstCloseable.iterated || firstCloseable.closed > 0, `expected '${firstCloseable.iterated}' firstCloseable.iterated to be 'false' or '${firstCloseable.closed}' firstCloseable.closed to be greater than zero`);
+        assert.isTrue(!firstCloseable.iterated || firstCloseable.closed > 0, `expected firstCloseable.iterated to be 'false' (actual: '${firstCloseable.iterated}') OR at-least firstCloseable.closed to be called once (actual: '${firstCloseable.closed}')`);
         if (firstCloseable.closed > 1) it.skip(`${title} closed iterator ${firstCloseable.closed} times`, () => {
         });
-        assert.isTrue(!secondCloseable.iterated || secondCloseable.closed > 0, `expected '${secondCloseable.iterated}' secondCloseable.iterated to be 'false' or '${secondCloseable.closed}' secondCloseable.closed to be greater than zero`);
+        assert.isTrue(!secondCloseable.iterated || secondCloseable.closed > 0, `expected secondCloseable.iterated to be 'false' (actual: '${secondCloseable.iterated}') OR at-least secondCloseable.closed to be called once (actual: '${secondCloseable.closed}')`);
         if (secondCloseable.closed > 1) it.skip(`${title} closed iterator ${secondCloseable.closed} times`, () => {
         });
       });
@@ -141,7 +141,6 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('repeat()', array.zeroToTen, seq => seq.repeat(1));
     test('reverse()', array.zeroToTen, seq => seq.reverse());
     test2('sameItems()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameItems(other));
-    test2('sameOrderedItems()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
     test('skip()', array.zeroToTen, seq => seq.skip(1));
     test('skipFirst()', array.zeroToTen, seq => seq.skipFirst());
     test('skipLast()', array.zeroToTen, seq => seq.skipLast());

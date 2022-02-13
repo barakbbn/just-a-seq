@@ -83,7 +83,7 @@ export abstract class SeqBase_Deferred_Tests {
         const sut = this.createSut<number>();
         const actual = sut.as<number>();
 
-        assert.equal(actual, sut);
+        assert.strictEqual(actual, sut);
       });
     });
 
@@ -124,7 +124,7 @@ export abstract class SeqBase_Deferred_Tests {
             //Asset inner can be re-consumed
             assert.sameOrderedMembers([...innerActual], innerExpected);
           }
-          assert.equal(actualChunksCount, expected.length);
+          assert.strictEqual(actualChunksCount, expected.length);
         }
       };
 
@@ -655,7 +655,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(source[0], source.slice(1));
         let sut = this.createSut(input);
         let actual = sut.firstAndRest();
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -664,7 +664,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(source[0], source.slice(1));
         let sut = this.createSut(input);
         let actual = sut.firstAndRest();
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameDeepOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -672,7 +672,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(1, []);
         let sut = this.createSut(input);
         let actual = sut.firstAndRest();
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -681,7 +681,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(source[0], []);
         let sut = this.createSut(input);
         let actual = sut.firstAndRest();
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameDeepOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -689,7 +689,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(undefined, []);
         let sut = this.createSut(input);
         let actual = sut.firstAndRest();
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -698,7 +698,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(defaultValue, []);
         let sut = this.createSut<number>(input);
         let actual = sut.firstAndRest(defaultValue);
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameOrderedMembers([...actual[1]], expected[1]);
       });
 
@@ -707,7 +707,7 @@ export abstract class SeqBase_Deferred_Tests {
         const expected = tuple(defaultValue, []);
         let sut = this.createSut<{ name: string; grade: number; }>(input);
         let actual = sut.firstAndRest(defaultValue);
-        assert.equal(actual[0], expected[0]);
+        assert.strictEqual(actual[0], expected[0]);
         assert.sameDeepOrderedMembers([...actual[1]], expected[1]);
       });
     });
@@ -1008,7 +1008,7 @@ export abstract class SeqBase_Deferred_Tests {
         let actual = iterator.next().value;
         assert.isTrue(factoryExecuted);
         assert.isTrue(iterator.next().done);
-        assert.equal(actual, expected);
+        assert.strictEqual(actual, expected);
       });
 
       this.it1('should return a default sequence if source sequence is empty', [], (input: Iterable<number>) => {

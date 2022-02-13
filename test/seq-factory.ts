@@ -95,7 +95,7 @@ export class SeqFactory_Tests {
 
     describe('empty()', () => {
       it('should return same singleton instance', () => {
-        assert.equal(this.empty<number>(), this.empty<any>());
+        assert.strictEqual(this.empty<number>(), this.empty<any>());
       });
 
       it('should use anonymous object as generic type parameter', () => {

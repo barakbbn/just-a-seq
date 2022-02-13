@@ -507,7 +507,7 @@ export abstract class SeqBase_Grouping_Tests {
           const expected = this.createSut(array.oneToTen).groupBy(n => n % 3).cache();
           const actual = expected.cache();
 
-          assert.equal(actual, expected);
+          assert.strictEqual(actual, expected);
         });
 
         it('should save cached results in array property', () => {

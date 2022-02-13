@@ -69,9 +69,9 @@ export class SortedSeqImpl_Tests {
         const sut2 = this.createReverseSut(generator.from(input));
         expected.forEach((exp, index) => {
           let actual = sut.at(index);
-          assert.equal(actual, exp);
+          assert.strictEqual(actual, exp);
           actual = sut2.at(index);
-          assert.equal(actual, exp);
+          assert.strictEqual(actual, exp);
         });
       });
 
@@ -82,12 +82,12 @@ export class SortedSeqImpl_Tests {
         const outOfRangeIndex = input.length + 2;
         let actual = sut.at(outOfRangeIndex, expectedValueNotInSequence);
 
-        assert.equal(actual, expectedValueNotInSequence);
+        assert.strictEqual(actual, expectedValueNotInSequence);
 
         const negativeIndex = -outOfRangeIndex;
         actual = sut.at(negativeIndex, expectedValueNotInSequence);
 
-        assert.equal(actual, expectedValueNotInSequence);
+        assert.strictEqual(actual, expectedValueNotInSequence);
       });
 
       it("Return undefined at non-existing index when no default value specified", () => {
@@ -119,8 +119,8 @@ export class SortedSeqImpl_Tests {
           const negativeIndex = -expected.length + index;
           const actual = sut.at(negativeIndex);
           const actual2 = sut2.at(negativeIndex);
-          assert.equal(actual, exp);
-          assert.equal(actual2, exp);
+          assert.strictEqual(actual, exp);
+          assert.strictEqual(actual2, exp);
         });
       });
     });
