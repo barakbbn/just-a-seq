@@ -420,7 +420,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
           if (isIterable(subChildren, true)) {
             yield* recursiveFlatMap(subChildren, level + 1, parents);
           } else {
-            if (subChildren !== undefined) parents.push(subChildren);
+            if (subChildren !== undefined) parents.unshift(subChildren);
             parents.push(entry.index);
             yield parents;
           }
@@ -735,15 +735,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     const {start, separator, end} = (separatorOrOpts === undefined) ?
       {start: '', separator: ',', end: ''} :
-      typeof separatorOrOpts === 'string' || separatorOrOpts === null ?
-        {start: '', separator: separatorOrOpts, end: ''} :
-        typeof separatorOrOpts === 'object' ?
-          {
-            start: safe(separatorOrOpts.start, ''),
-            separator: safe(separatorOrOpts.separator, ','),
-            end: safe(separatorOrOpts.end, '')
-          } :
-          {start: '', separator: separatorOrOpts, end: ''};
+      (separatorOrOpts && typeof separatorOrOpts === 'object') ?
+        {
+          start: safe(separatorOrOpts.start, ''),
+          separator: safe(separatorOrOpts.separator, ','),
+          end: safe(separatorOrOpts.end, '')
+        } :
+        {start: '', separator: separatorOrOpts, end: ''};
 
     return this.joinInternal(start, separator, end);
   }
@@ -753,7 +751,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   last(fallback: T): T;
 
   last(fallback?: T): T | undefined {
-    if (SeqTags.optimize(this) && SeqTags.empty(this)) return fallback;
+    if (this.isEmpty()) return fallback;
     let lastItem = fallback;
     for (const item of this) lastItem = item;
     return lastItem;
@@ -1034,6 +1032,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       if (!same) return false;
       next = secondIterator.next();
     }
+    secondIterator.return?.(); // Close the iterator
 
     return next.done ?? false;
   }
@@ -1167,6 +1166,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       if (!same) return false;
       secondNext = secondIterator.next();
     }
+
+    secondIterator.return?.(); // Close iterator
 
     return secondNext.done ?? false;
   }

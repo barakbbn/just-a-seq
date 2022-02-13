@@ -141,6 +141,9 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('repeat()', array.zeroToTen, seq => seq.repeat(1));
     test('reverse()', array.zeroToTen, seq => seq.reverse());
     test2('sameItems()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameItems(other));
+    test2('sameOrderedItems() => true', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
+    test2('sameOrderedItems() => first is longer', array.zeroToTen, array.zeroToNine, (seq, other) => seq.sameOrderedItems(other));
+    test2('sameOrderedItems() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
     test('skip()', array.zeroToTen, seq => seq.skip(1));
     test('skipFirst()', array.zeroToTen, seq => seq.skipFirst());
     test('skipLast()', array.zeroToTen, seq => seq.skipLast());
@@ -151,6 +154,8 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('sorted()', array.zeroToTen, seq => seq.sorted());
     test('split()', array.zeroToTen, seq => seq.split(4).reduce((a, b) => [...a, ...b], [1]));
     test2('startsWith()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.startsWith(other));
+    test2('startsWith() => first is longer', array.zeroToTen, array.zeroToNine, (seq, other) => seq.startsWith(other));
+    test2('startsWith() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test('sum()', array.zeroToTen, seq => seq.sum());
     test('take()', array.zeroToTen, seq => seq.take(10));
     test('takeLast()', array.zeroToTen, seq => seq.takeLast(10));

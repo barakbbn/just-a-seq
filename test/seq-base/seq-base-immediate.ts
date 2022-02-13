@@ -3069,11 +3069,17 @@ export abstract class SeqBase_Immediate_Tests {
 
         });
 
-        it('should return undefined on empty sequence', () => {
-          const sut = this.createSut<{ age: number; }>();
+        this.it1('should return undefined on empty sequence', <{ age: number; }[]>[], input => {
+          const sut = this.createSut(input);
           const actual = sut.maxItem({comparer: (a, b) => a.age - b.age});
           assert.isUndefined(actual);
         });
+
+      });
+
+      this.it1('should throws is selector parameter is not a function or has comparer function', <{ age: number; }[]>[], input => {
+        const sut = this.createSut(input);
+        assert.throw(() => sut.maxItem(undefined as unknown as Selector<{ age: number; }, any>));
       });
     });
 
@@ -3165,6 +3171,11 @@ export abstract class SeqBase_Immediate_Tests {
           const actual = sut.minItem({comparer: (a, b) => a.age - b.age});
           assert.isUndefined(actual);
         });
+      });
+
+      this.it1('should throws is selector parameter is not a function or has comparer function', <{ age: number; }[]>[], input => {
+        const sut = this.createSut(input);
+        assert.throw(() => sut.minItem(undefined as unknown as Selector<{ age: number; }, any>));
       });
     });
 

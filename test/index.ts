@@ -5,6 +5,7 @@ import {SeqFactory_Tests} from './seq-factory';
 import {GroupedSeqImpl_Tests} from "./grouped-seq-impl";
 import {Seq} from "../lib";
 import {FilterMapSeqImpl_Tests} from "./filter-map-seq-impl";
+import {DerivedSeq_Tests} from "./derive-from-base-seq";
 
 describe('just-a-seq', () => {
   new SeqImpl_Tests(Seq.enableOptimization).run();
@@ -13,6 +14,7 @@ describe('just-a-seq', () => {
   new SortedSeqImpl_Tests(Seq.enableOptimization).run();
   new GroupedSeqImpl_Tests(Seq.enableOptimization).run();
   new FilterMapSeqImpl_Tests(Seq.enableOptimization).run();
+  new DerivedSeq_Tests(Seq.enableOptimization).run();
 });
 
 describe('just-a-seq/optimized', () => {
@@ -23,4 +25,5 @@ describe('just-a-seq/optimized', () => {
   new SortedSeqImpl_Tests(Seq.enableOptimization).run();
   new GroupedSeqImpl_Tests(Seq.enableOptimization).run();
   new FilterMapSeqImpl_Tests(Seq.enableOptimization).run();
+  new DerivedSeq_Tests(Seq.enableOptimization).run();
 });

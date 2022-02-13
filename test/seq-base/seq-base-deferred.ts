@@ -806,6 +806,13 @@ export abstract class SeqBase_Deferred_Tests {
           let actual = [...sut.flatMap(f => f.subFolders)];
           assert.sameDeepOrderedMembers(actual, expected);
         });
+
+        this.it1('should not flatten if no child items - string', array.strings, (input) => {
+          const expected = [...input].map(x => `[${x}]`);
+          let sut = this.createSut(input);
+          let actual = [...sut.flatMap(x => x, x => `[${x}]`)];
+          assert.deepEqual(actual, expected);
+        });
       });
     });
 
@@ -959,6 +966,55 @@ export abstract class SeqBase_Deferred_Tests {
         for (const item of flattened) {
         }
         assert.sameDeepOrderedMembers(actualSelectorsParameters, expectedSelectorsParameters);
+      });
+
+      this.it1('should flattened items from a sequence of items having child items expect chilrden of type string (sequence of chars)', array.folders, (input) => {
+        let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        [...input].forEach(v0 => safeChildren(v0)
+          .forEach(v1 => safeChildren(v1)
+            .forEach(v2 => safeChildren(v2)
+              .forEach(v3 => safeChildren(v3)
+                .forEach(v4 => safeChildren(v4)
+                  .forEach(v5 => safeChildren(v5)
+                    .forEach(v6 => safeChildren(v6)
+                      .forEach(v7 => expected.push({
+                        v0: `${v0.name} - 0`,
+                        v1: `${v1.name} - 1`,
+                        v2: `${v2.name} - 2`,
+                        v3: `${v3.name} - 3`,
+                        v4: `${v4.name} - 4`,
+                        v5: `${v5.name} - 5`,
+                        v6: `${v6.name} - 6`,
+                        v7: `${v7.name} - 7`,
+                        v8: `${v7.name} - 8` // NOT A MISTAKE: flatHierarchy() is expected to return as v8 the value of v7 since v7 doesn't have children
+                      })))))))));
+
+        let sut = this.createSut(input);
+        const flattened = sut.flatHierarchy(
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => safeChildren(f),
+          f => f.name,
+          (v8, v7, v6, v5, v4, v3, v2, v1, v0, index) =>
+            ({
+              v0: `${v0.name} - 0`,
+              v1: `${v1.name} - 1`,
+              v2: `${v2.name} - 2`,
+              v3: `${v3.name} - 3`,
+              v4: `${v4.name} - 4`,
+              v5: `${v5.name} - 5`,
+              v6: `${v6.name} - 6`,
+              v7: `${v7.name} - 7`,
+              v8: `${v8} - 8`
+            }));
+
+        let actual = [...flattened];
+        assert.sameDeepOrderedMembers(actual, expected);
       });
     });
 
