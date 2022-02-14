@@ -474,9 +474,21 @@ export abstract class SeqBase_Immediate_Tests {
 
         this.it1('should return undefined if from-index is out of range', array.oneToTen, (input) => {
           const fromIndex = [...input].length;
-          let sut = this.createSut(input);
-          let actual = sut.find(fromIndex, () => true);
+          const sut = this.createSut(input);
+          const actual = sut.find(fromIndex, () => true);
           assert.isUndefined(actual);
+        });
+
+        this.it1('should return first item (at start 0) if provided start index is negative', array.grades, input => {
+          let actualFirstIteratedIndex = 0;
+          const negativeIndex = -2;
+          const sut = this.createSut(input);
+          let actual = sut.find(negativeIndex, (item, i) => {
+            actualFirstIteratedIndex = i;
+            return true;
+          });
+
+          assert.strictEqual(actualFirstIteratedIndex, 0);
         });
       });
 

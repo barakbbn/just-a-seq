@@ -244,7 +244,7 @@ export interface Seq<T> extends Iterable<T> {
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
-  matchBy<S extends T, U = T>(typeGuard: (item: T, index: number) => item is S, unmatchedSelector?: Selector<Exclude<T, S>, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> };
+  matchBy<S extends T, U = T>(typeGuard: (item: T, index: number) => item is S, unmatchedSelector?: Selector<T, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U>; };
 
   matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
 
@@ -322,7 +322,7 @@ export interface Seq<T> extends Iterable<T> {
   some(condition?: Condition<T>): boolean;
 
   // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
-  // So try to avoid it. prefer using sorted() or orderBy()
+  // So try to avoid it. prefer using sorted() or sortBy()
   sort(comparer?: Comparer<T>): Seq<T>;
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;

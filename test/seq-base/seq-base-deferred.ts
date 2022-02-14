@@ -7,10 +7,10 @@ export abstract class SeqBase_Deferred_Tests {
   constructor(protected optimized: boolean) {
   }
 
-  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
-    it(title + ' - array source', () => testFn(input));
-    it(title + ' - generator source', () => testFn(generator.from(input)));
-    it(title + ' - sequence source', () => testFn(this.createSut(input)));
+  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: T[]) => void) {
+    it(title + ' - array source', () => testFn(input, input));
+    it(title + ' - generator source', () => testFn(generator.from(input), input));
+    it(title + ' - sequence source', () => testFn(this.createSut(input), input));
   }
 
   // its1<T>(title: string, input: T[][], testFn: (input: Iterable<Iterable<T>>) => void) {
@@ -1585,6 +1585,7 @@ export abstract class SeqBase_Deferred_Tests {
           assert.sameOrderedMembers(actual, expectedEmpty);
         });
       });
+
       describe("unmatched sequence", () => {
         this.it1('should return only items that do not meet the condition - numbers', array.oneToTen, (input) => {
           const expectedOdds = [...input].filter(x => x % 2 == 1);

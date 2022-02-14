@@ -9,7 +9,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   protected readonly comparer?: (a: any, b: any) => number;
   protected tapCallbacks: Selector<any, void>[] = [];
 
-  constructor(protected readonly source: Iterable<T> = EMPTY_ARRAY,
+  constructor(protected readonly source: Iterable<T>,
               comparer?: (a: K, b: K) => number) {
     super();
     this.comparer = comparer;
@@ -24,7 +24,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return !this.tapCallbacks.length;
   }
 
-  static create<T, K = T>(items: Iterable<T> = [],
+  static create<T, K = T>(items: Iterable<T>,
                           keySelector?: (x: T) => K,
                           comparer?: Comparer<K>,
                           descending: boolean = false): SortedSeqImpl<T, K> {
@@ -33,9 +33,9 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return new SortedSeqImpl(items, finalComparer)
   }
 
-  private static createComparer<T, K = T>(keySelector?: (x: T) => K,
-                                          comparer?: Comparer<K>,
-                                          descending: boolean = false): ((a: any, b: any) => number) | undefined {
+  private static createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
+                                          comparer: Comparer<K> | undefined,
+                                          descending: boolean): ((a: any, b: any) => number) | undefined {
     if (comparer === LEGACY_COMPARER) return undefined;
     if (comparer === DONT_COMPARE) return comparer;
 
@@ -254,7 +254,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.transferOptimizeTag(factories.SortedSeq(this.source, undefined, undefined, reverse));
   }
 
-  private thenByInternal<K>(keySelector: (x: T) => K, comparer?: Comparer<K>, descending: boolean = false): SortedSeq<T> {
+  private thenByInternal<K>(keySelector: (x: T) => K, comparer: Comparer<K> | undefined, descending: boolean ): SortedSeq<T> {
     let nextComparer = SortedSeqImpl.createComparer(keySelector, comparer, descending)!;
     const baseComparer = this.comparer;
     let finalComparer = baseComparer ?

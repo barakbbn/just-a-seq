@@ -31,9 +31,18 @@ const graphB = [
 ];
 
 const averageDiff = asSeq(graphA)
-  .innerJoin(graphB, a => a.x, b => b.x, (a, b) => ({a, b}))
-  .map(({a, b}) => Math.abs(a.y - b.y))
-  .average();
+  // Match points with same x value, return object with matching points from graphA and graphB {a,b}
+  .innerJoin(graphB, a => a.x, b => b.x, (a, b) => ({a, b})) 
+              // -> {a: {x: 0, y: 0 }, b: {x: 0, y: 0}},
+              //    {a: {x: 1, y: 2 }, b: {x: 1, y: 1}},
+              //    {a: {x: 2, y: 4 }, b: {x: 2, y: 4}},
+              //    {a: {x: 3, y: 6 }, b: {x: 3, y: 7}},
+              //    {a: {x: 4, y: 8 }, b: {x: 4, y: 6}},
+              //    {a: {x: 5, y: 10}, b: {x: 5, y: 8}}
+  // Map each matching item to the absolute difference between y value of points {a,b}
+  .map(({a, b}) => Math.abs(a.y - b.y)) // -> 0, 1, 0, 1, 2, 2
+  // Calculate average on all the values
+  .average(); // -> 1
 
 console.log('Average difference', averageDiff);
 // Output: Average difference 1
@@ -63,10 +72,34 @@ const permissions = [
 ];
 
 const usersPermissions = asSeq(users)
-  .innerJoin(permissions, o => o.group, i => i.group, ({user}, {perm}) => ({user, perm}))
+  // Match users with permissions having the same group, return object with username and permission name {user, perm}
+  .innerJoin(permissions, user => user.group, perm => perm.group, (outer, inner) => ({user: outer.user, perm: inner.perm})) // results could be also mapped like this: ({user}, {perm}) => ({user, perm})
+            // -> {user: 'sa', perm: 'read'}},
+            //    {user: 'sa', perm: 'write'}},
+            //    {user: 'sa', perm: 'exec'}},
+            //    {user: 'guest', perm: 'read'}},
+            //    {user: 'any', perm: 'read'}},
+            //    {user: 'me', perm: 'read'}},
+            //    {user: 'me', perm: 'write'}},
+            //    {user: 'me', perm: 'exec'}}
+  // Group by user and select/map only the permission name
   .groupBy(x => x.user, undefined, x => x.perm)
-  .map(x => ({user: x.key, permissions: x.sorted().toArray()}))
+          // -> {key: 'sa',    __group__: [ 'read', 'write', 'exec' ]},
+          //    {key: 'guest', __group__: [ 'read' ]},
+          //    {key: 'any',   __group__: [ 'read' ]},
+          //    {key: 'me' ,   __group__: [ 'read', 'write', 'exec' ]}
+  // Map items into object with username and sorted array of permissions
+  .map(group => ({user: group.key, permissions: group.sorted().toArray()}))
+      // -> {user: 'sa',    permissions: [ 'read', 'write', 'exec' ]},
+      //    {user: 'guest', permissions: [ 'read' ]},
+      //    {user: 'any',   permissions: [ 'read' ]},
+      //    {user: 'me' ,   permissions: [ 'read', 'write', 'exec' ]}
+  // Sort by username
   .sortBy(x => x.user)
+        // -> {user: 'any',   permissions: [ 'read' ]},
+        //    {user: 'guest', permissions: [ 'read' ]},
+        //    {user: 'me' ,   permissions: [ 'read', 'write', 'exec' ]}
+        //    {user: 'sa',    permissions: [ 'read', 'write', 'exec' ]},
   .toArray();
 
 console.log('Users Permissions:', usersPermissions);

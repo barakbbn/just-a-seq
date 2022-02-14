@@ -789,7 +789,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
 
-  matchBy<S extends T, U = T>(condition: (item: T, index: number) => item is S, unmatchedSelector?: Selector<Exclude<T, S>, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> } {
+  matchBy<S extends T, U = T>(condition: (item: T, index: number) => item is S, unmatchedSelector?: Selector<T, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U>; } {
     const matched: S[] = [];
     const unmatched: U[] = [];
 
@@ -1195,8 +1195,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.any(condition);
   }
 
-  sort(comparer?: Comparer<T>): SortedSeq<T> {
-    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, comparer || LEGACY_COMPARER);
+  sort(comparer?: Comparer<T>): Seq<T> {
+    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, comparer ?? LEGACY_COMPARER);
   }
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
@@ -1647,7 +1647,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.hasAtLeastInternal(count);
   }
 
-  protected includesOptimized(source: Iterable<any>, itemToFind: T, fromIndex: number = 0): boolean {
+  protected includesOptimized(source: Iterable<any>, itemToFind: T, fromIndex: number): boolean {
     if (SeqTags.optimize(this) && SeqTags.notAffectingNumberOfItems(this) && SeqTags.notMappingItems(this)) {
       if (Array.isArray(source)) return source.length ? source.includes(itemToFind, fromIndex) : false;
       if (SeqTags.isSeq(source)) return source.includes(itemToFind, fromIndex);
@@ -1838,7 +1838,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findLastByConditionInternal(tillIndex, condition, fallback);
   }
 
-  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = x => x as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean = false): Seq<T> {
+  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = x => x as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean): Seq<T> {
     return this.generate(function* remove(self) {
       const keys = new Map<K, number>();
       for (const second of items) {
@@ -1850,7 +1850,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       for (const item of self) {
         const key = firstKeySelector(item);
         if (keys.has(key)) {
-          const occurrencesCount = keys.get(key) ?? 0;
+          const occurrencesCount = keys.get(key)!;
           if (!all) {
             if (occurrencesCount < 2) keys.delete(key);
             else keys.set(key, occurrencesCount - 1);

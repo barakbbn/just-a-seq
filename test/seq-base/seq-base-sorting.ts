@@ -203,44 +203,6 @@ export abstract class SeqBase_Sorting_Tests {
 
     describe('Chaining', () => {
       describe('Sorting chain', () => {
-        // it('orderBy().thenBy...', () => {
-        //   const unordered = array.samples;
-        //
-        //   const expectedByAscDescAscDesc = unordered.slice().sort((x, y) => {
-        //     return x.type.localeCompare(y.type) /* asc */ ||
-        //       y.period - x.period /* desc */ ||
-        //       x.score - y.score  /* asc */ ||
-        //       +y.ok - +x.ok  /* desc */;
-        //   });
-        //
-        //   const sut = this.createSut(unordered)
-        //     .orderBy(x => x.type)
-        //     .thenByDescending(x => x.period)
-        //     .thenBy(x => x.score)
-        //     .thenByDescending(x => x.ok);
-        //
-        //   const actualByAscDescAscDesc = [...sut];
-        //   assert.sameDeepOrderedMembers(actualByAscDescAscDesc, expectedByAscDescAscDesc);
-        // });
-
-        // it('orderByDescending().thenBy...', () => {
-        //   const unordered = array.samples;
-        //
-        //   const expectedByDescDescAscAsc = unordered.slice().sort((x, y) => {
-        //     return y.type.localeCompare(x.type) /* desc */ ||
-        //       y.period - x.period /* desc */ ||
-        //       x.score - y.score  /* asc */ ||
-        //       +x.ok - +y.ok  /* asc */;
-        //   });
-        //   const sut = this.createSut(unordered)
-        //     .orderByDescending(x => x.type)
-        //     .thenByDescending(x => x.period)
-        //     .thenBy(x => x.score)
-        //     .thenBy(x => x.ok);
-        //   const actualByDescDescAscAsc = [...sut];
-        //   assert.sameDeepOrderedMembers(actualByDescDescAscAsc, expectedByDescDescAscAsc);
-        // });
-
         it('sortBy().thenBy...', () => {
           const unordered = array.samples;
 
@@ -279,28 +241,6 @@ export abstract class SeqBase_Sorting_Tests {
           assert.sameDeepOrderedMembers(actualByDescDescAscAsc, expectedByDescDescAscAsc);
         });
       });
-
-      // it('Ordering chain - immutability', () => {
-      //   const unordered = array.samples;
-      //
-      //   const expectedByTypeThenByPeriod = unordered.slice().sort((a, b) => a.type.localeCompare(b.type) || (a.period - b.period));
-      //   const expectedByTypeThenByScoreDescending = unordered.slice().sort((a, b) => a.type.localeCompare(b.type) || (b.score - a.score));
-      //
-      //   const sut = this.createSut(unordered).orderBy(x => x.type);
-      //   const actualByTypeThenByPeriod = [...sut.thenBy(x => x.period)];
-      //   const actualByTypeThenByScoreDescending = [...sut.thenByDescending(x => x.score)];
-      //
-      //   assert.sameDeepOrderedMembers(actualByTypeThenByPeriod, expectedByTypeThenByPeriod);
-      //   assert.sameDeepOrderedMembers(actualByTypeThenByScoreDescending, expectedByTypeThenByScoreDescending);
-      //
-      //   // Change order of execution
-      //   const sut2 = this.createSut(unordered).orderBy(x => x.type);
-      //   const actualByTypeThenByScoreDescending2 = [...sut2.thenByDescending(x => x.score)];
-      //   const actualByTypeThenByPeriod2 = [...sut2.thenBy(x => x.period)];
-      //
-      //   assert.sameOrderedMembers(actualByTypeThenByScoreDescending2, expectedByTypeThenByScoreDescending);
-      //   assert.sameOrderedMembers(actualByTypeThenByPeriod2, expectedByTypeThenByPeriod);
-      // });
 
       it('Sorting chain - immutability', () => {
         const unordered = array.samples;

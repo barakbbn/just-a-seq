@@ -294,6 +294,19 @@ export class SortedSeqImpl_Tests {
         assert.sameOrderedMembers(actual, expected);
       }));
     });
+
+    describe('thenSortBy()', () => {
+      it('should sort only by thenSortBy(comparer) when no comparer provided on creation', () => {
+        const input = [1, 11, 2, 22, 3, 333, 4, 4444];
+        const expected = [...input].sort((a, b) => b - a); // descending using comparer
+        const sut = this
+          .createSut(input, undefined)
+          .thenSortBy(x => -x); // descending using selector
+
+        const actual = [...sut];
+        assert.sameOrderedMembers(actual, expected);
+      });
+    });
   });
 
   protected createSut<T>(items: Iterable<T> = [], comparer?: (a: T, b: T) => number) {
