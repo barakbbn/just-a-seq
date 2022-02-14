@@ -178,7 +178,7 @@ console.log(asSeq(layers)
 |ifEmpty|innerJoin|insert|insertAfter|insertBefore|
 |intersect|intersperse|
 |join|
-|map|
+|map|**matchBy**|
 |ofType|
 |prepend|push|
 |reduce|reduceRight|remove|removeAll|removeFalsy|
