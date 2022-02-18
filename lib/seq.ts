@@ -176,7 +176,9 @@ export interface Seq<T> extends Iterable<T> {
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: undefined, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
+
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: ToComparableKey<K>, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I>;
 
@@ -343,8 +345,10 @@ export interface Seq<T> extends Iterable<T> {
 
   takeLast(count: number): Seq<T>
 
-  takeOnly(items: Iterable<T>, keySelector?: (item: T ) => unknown): Seq<T>;
+  takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+
   takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
+
   takeOnly<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
   takeWhile(condition: Condition<T>): Seq<T>;
@@ -362,6 +366,7 @@ export interface Seq<T> extends Iterable<T> {
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
 
   union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
+
   unionRight(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
@@ -397,7 +402,10 @@ export interface IHaveKey<K> {
   readonly key: K;
 }
 
-export interface GroupedSeq<K, T> extends Seq<T>, IHaveKey<K> {
+export interface KeyedSeq<K, T> extends IHaveKey<K>, Seq<T> {
+}
+
+export interface GroupedSeq<K, T> extends KeyedSeq<K, T> {
 
   tap(callback: Selector<T, void>): GroupedSeq<K, T>;
 
@@ -407,7 +415,7 @@ export interface GroupedSeq<K, T> extends Seq<T>, IHaveKey<K> {
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   tap(callback: Selector<GroupedSeq<K, T>, void>): this;
 
-  mapInGroup<U>(mapFn: Selector<T, U>): SeqOfGroups<K, U>;
+  mapInGroup<U>(mapFn: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[K, K2], T>;
 
@@ -422,14 +430,14 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   toObject(arrayed: true): ObjectHierarchy<[K], T[]>;
 }
 
-export interface MultiGroupedSeq<Ks extends any[], T> extends Seq<SubGroupedSeq<Ks, T>> {
+export interface MultiGroupedSeq<Ks extends any[], T> extends KeyedSeq<Ks[0], SubGroupedSeq<Ks, T>> {
   readonly key: Ks[0];
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
   tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>): this;
 
-  mapInGroup<U>(mapFn: Selector<T, U>): SeqOfMultiGroups<Ks, U>;
+  mapInGroup<U>(mapFn: (item: T, index: number, ...keys: Ks) => U): SeqOfMultiGroups<Ks, U>;
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], T>;
 
@@ -449,7 +457,9 @@ export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2,
   : GroupedSeq<Ks[1], T>;
 
 export type SeqOfGroupsWithoutLast<Ks extends any[], T> = Ks extends [...infer KRest, infer KLast]
-  ? SeqOfMultiGroups<[...KRest], T>
+  ? KRest extends [infer K1, infer K2, ...infer Rest] ?
+    SeqOfMultiGroups<[...KRest], T> :
+    SeqOfGroups<Ks[0], T>
   : SeqOfGroups<Ks[0], T>;
 
 export interface SeqFactory {
@@ -478,7 +488,7 @@ export interface SeqOfGroupsFactory {
   <K, T = K, U = T>(source: Iterable<T>,
                     keySelector?: Selector<T, K>,
                     toComparableKey?: ToComparableKey<K>,
-                    valueSelector?: Selector<T, U>): SeqOfGroups<K, U>
+                    valueSelector?: (x: T, index: number, key: K) => U): SeqOfGroups<K, U>
 }
 
 export interface FilterMapSeqFactory {

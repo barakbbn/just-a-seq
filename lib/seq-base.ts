@@ -440,9 +440,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: undefined, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
-  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: ToComparableKey<K>, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
+
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: (item: T, index: number, key: K) => U): SeqOfGroups<K, U> {
     return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
   }
 
@@ -1947,7 +1949,6 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 
   at(index: number): T | undefined {
-    if (index >= this.bufferSize) return undefined;
     index = (this.start + index) % this.bufferSize;
     return this.buffer[index];
   }

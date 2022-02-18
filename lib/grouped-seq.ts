@@ -6,7 +6,8 @@ import {
   MapHierarchy,
   MultiGroupedSeq,
   ObjectHierarchy,
-  Selector, SeqOfGroupsWithoutLast,
+  Selector,
+  SeqOfGroupsWithoutLast,
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
@@ -40,10 +41,10 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
 class GroupingSelector {
   constructor(public readonly key?: Selector<any, any>,
               public readonly toComparable?: ToComparableKey<any>,
-              public readonly values?: ReadonlyArray<Selector<any, any>>) {
+              public readonly values?: ReadonlyArray<(x: unknown, index: number, ...keys: any[]) => unknown>) {
   }
 
-  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: Selector<any, any>): GroupingSelector {
+  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: (x: unknown, index: number, ...keys: any[]) => unknown): GroupingSelector {
     return new GroupingSelector(keySelector, toComparableKey, valueSelector ? [valueSelector] : undefined);
   }
 
@@ -53,14 +54,14 @@ class GroupingSelector {
     return {key, comparable};
   }
 
-  selectValue(value: any, index: number): any {
+  selectValue(value: any, index: number, keys: readonly unknown[]): any {
     return this.values?.reduce((v, selector) => {
       if (v === IGNORED_ITEM) return value;
-      return selector(v, index);
+      return selector(v, index, ...keys);
     }, value) ?? value;
   }
 
-  concatValueSelector(valueSelector: Selector<any, any>): GroupingSelector {
+  concatValueSelector<Ks extends any[]>(valueSelector: (item: any, index: number, ...keys: readonly any[]) => unknown): GroupingSelector {
     const values = (this.values ?? []).concat(valueSelector);
     return new GroupingSelector(this.key, this.toComparable, values);
   }
@@ -72,22 +73,44 @@ class GroupingSelector {
 }
 
 class Container {
-  readonly array: any[] | Container[] = [];
-  private readonly map: Map<any, any>;
+  private _array: any[] = [];
+  private readonly map: Map<unknown, Container>;
+  private isRoot = false;
 
-  constructor(public readonly isLast: boolean, public readonly key?: any, public readonly comparable?: any) {
+  constructor(public readonly isLast: boolean,
+              public readonly key?: unknown,
+              public readonly comparable?: any,
+              public ancestorKeys: readonly unknown[] = []) {
     if (!isLast) this.map = new Map<any, any>();
   }
 
-  getOrAddChild(isLast: boolean, key: any, comparable: any): Container {
+  get array(): readonly any[] {
+    return this._array;
+  };
+
+  static createRootContainer(): Container {
+    const container = new Container(false);
+    container.isRoot = true;
+    return container;
+  }
+
+  getOrAddChild(isLast: boolean, key: any, comparable: any, ancestorKeys: readonly unknown[]): Container {
     if (!this.map) throw Error('Cannot call getOrAddChild on leaf container');
     let container = this.map.get(comparable);
     if (!container) {
-      container = new Container(isLast, key, comparable);
+      container = new Container(isLast, key, comparable, ancestorKeys);
       this.map.set(comparable, container);
-      this.array.push(container);
+      this._array.push(container);
     }
     return container;
+  }
+
+  addItem(item: any): void {
+    this._array.push(item)
+  }
+
+  getAllKeys(): readonly unknown[] {
+    return this.isRoot ? [] : [this.key, ...this.ancestorKeys];
   }
 }
 
@@ -96,7 +119,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>> {
 
   key: any;
-
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
 
@@ -120,8 +142,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   static create<K, TIn = K, TOut = TIn>(source: Iterable<TIn>,
                                         keySelector?: Selector<TIn, K>,
                                         toComparableKey?: ToComparableKey<K>,
-                                        valueSelector?: Selector<TIn, TOut>) {
-    const selector = GroupingSelector.from(keySelector, toComparableKey, valueSelector);
+                                        valueSelector?: (item: TIn, index: number, key: K) => TOut) {
+    const selector = GroupingSelector.from(keySelector, toComparableKey, valueSelector as any);
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
@@ -143,9 +165,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return instance;
   }
 
-  mapInGroup<U>(mapFn: Selector<TOut, U>): any {
+  mapInGroup<U>(mapFn: (item: TOut, index: number, ...keys: Ks) => U): any {
     const lastSelector = this.selectors.slice(-1)[0];
-    const newLastSelector = lastSelector.concatValueSelector(mapFn);
+    const newLastSelector = lastSelector.concatValueSelector(mapFn as unknown as (item: any, index: number, ...keys: readonly any[]) => unknown);
     const selectors = this.selectors.slice(0, this.selectors.length - 1).concat(newLastSelector);
     const instance = new SeqOfMultiGroupsImpl(this.source, selectors);
     instance.key = this.key;
@@ -229,10 +251,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       }
     );
   }
-
-  // ungroupLast<U>(mapFn:(group: GroupedSeq<any, any>)=>U): SeqOfGroupsWithoutLast<Ks, U> {
-  //   return undefined as unknown as any
-  // }
 
   * [Symbol.iterator](): any {
     const self = this;
@@ -355,7 +373,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   }
 
   private* coreIterator(): Generator<{ entry: { index: number; value: any }; containers: Container[]; rootContainer: Container }> {
-    const rootContainer = new Container(false);
+    const rootContainer = Container.createRootContainer();
 
     for (const entry of entries(this.source)) {
 
@@ -366,12 +384,13 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       for (const {value: selector, index} of entries(this.selectors)) {
         const isLast = (this.selectors.length - 1) === index;
         const {key, comparable} = selector.selectKeyAndComparable(item, entry.index);
-        item = selector.selectValue(item, entry.index);
+        const ancestorKeys = currentContainer.getAllKeys();
+        item = selector.selectValue(item, entry.index, [key, ...ancestorKeys]);
 
-        currentContainer = currentContainer.getOrAddChild(isLast, key, comparable);
+        currentContainer = currentContainer.getOrAddChild(isLast, key, comparable, ancestorKeys);
         containers.push(currentContainer);
 
-        if (isLast && item != IGNORED_ITEM) currentContainer.array.push(item);
+        if (isLast && item !== IGNORED_ITEM) currentContainer.addItem(item);
       }
 
       yield {rootContainer, containers, entry: {value: item, index: entry.index}};
@@ -388,12 +407,16 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     const rootContainer = createContainer();
 
     for (const entry of entries(this.source)) {
+      let item = entry.value;
       let currentMap = map;
       let currentContainer = rootContainer;
-
+      const keys: unknown[] = [];
       for (const {value: selector, index} of entries(this.selectors)) {
         const isLast = (this.selectors.length - 1) === index;
-        const {key, comparable} = selector.selectKeyAndComparable(entry.value, entry.index);
+        const {key, comparable} = selector.selectKeyAndComparable(item, entry.index);
+        keys.unshift(key);
+        item = selector.selectValue(item, entry.index, keys);
+
         let group = currentMap.get(comparable);
 
         if (!group) {
@@ -403,8 +426,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
         }
 
         if (isLast) {
-          const value = selector.selectValue(entry.value, entry.index);
-          group.value = setValue(currentContainer, key, group.value, value);
+          group.value = setValue(currentContainer, key, group.value, item);
         } else {
           currentMap = group.subMap!;
           currentContainer = group.container!;

@@ -1,4 +1,4 @@
-import {Seq, SeqOfGroups} from "../../lib";
+import {KeyedSeq, Seq, SeqOfGroups} from "../../lib";
 import {describe, it} from "mocha";
 import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
@@ -21,15 +21,15 @@ export abstract class SeqBase_Grouping_Tests {
     it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
   }
 
-  it<T, U = T>(title: string, input: T[], testFn: (input: Iterable<T>) => void) {
-    it(title + ' - array', () => testFn(input));
-    it(title + ' - generator', () => testFn(generator.from(input)));
-    it(title + ' - sequence', () => testFn(this.createSut(input)));
+  it<T, U = T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: T[]) => void): void {
+    it(title + ' - array', () => testFn(input, input));
+    it(title + ' - generator', () => testFn(generator.from(input), input));
+    it(title + ' - sequence', () => testFn(this.createSut(input), input));
   }
 
   readonly run = () => describe("SeqBase - Grouping", () => {
     describe('groupBy()', () => {
-      this.it('should return sequence of groups by key-selector of primitive (comparable) key', array.oneToTen, (input) => {
+      this.it('should return sequence of groups by key-selector of primitive (comparable) key - numbers', array.oneToTen, (input) => {
         const expectedMap = new Map<number, number[]>();
         [...input].forEach(n => expectedMap.set(n % 3, [...(expectedMap.get(n % 3) || []), n]));
         const expected = [...expectedMap.entries()];
@@ -39,17 +39,18 @@ export abstract class SeqBase_Grouping_Tests {
         const actual = actualGrouped.map(group => [group.key, [...group]]);
 
         assert.deepEqual(actual, expected);
+      });
 
-        const input2 = array.samples;
-        const expectedMap2 = new Map<string, any>();
-        input2.forEach(s => expectedMap2.set(s.type, [...(expectedMap2.get(s.type) || []), s]));
-        const expected2 = [...expectedMap2.entries()];
+      this.it('should return sequence of groups by key-selector of primitive (comparable) key - objects', array.samples, (input, inputArray) => {
+        const expectedMap = new Map<string, any>();
+        inputArray.forEach(s => expectedMap.set(s.type, [...(expectedMap.get(s.type) || []), s]));
+        const expected = [...expectedMap.entries()];
 
-        const sut2 = this.createSut(input2).groupBy(g => g.type);
-        const actualGrouped2 = [...sut2];
-        const actual2 = actualGrouped2.map(group => [group.key, [...group]]);
+        const sut = this.createSut(input).groupBy(g => g.type);
+        const actualGrouped = [...sut];
+        const actual = actualGrouped.map(group => [group.key, [...group]]);
 
-        assert.deepEqual(actual2, expected2);
+        assert.deepEqual(actual, expected);
       });
 
       this.it('should return sequence of groups by key-selector of some object and to-comparable-key selector', array.samples, (input) => {
@@ -165,7 +166,34 @@ export abstract class SeqBase_Grouping_Tests {
         assert.lengthOf(actual, 0);
       });
 
+      this.it('should map items in group by provided selector', array.oneToTen, (input, inputArray) => {
+        const expectedMap = new Map<number, number[]>();
+        inputArray.forEach(n => expectedMap.set(n % 3, [...(expectedMap.get(n % 3) || []), n * 2]));
+        const expected = [...expectedMap.entries()];
+        const expectedKeys = inputArray.map(n => n % 3);
+        const expectedIndexes = inputArray.map((n, i) => i);
+
+        const actualIndexes: number[] = [];
+        const actualKeys: number[] = [];
+        const sut = this.createSut(input).groupBy(
+          n => n % 3,
+          undefined,
+          (n, index, key) => {
+            actualIndexes.push(index);
+            actualKeys.push(key);
+            return n * 2;
+          });
+        const actualGrouped = [...sut];
+        const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+        assert.deepEqual(actual, expected);
+        assert.deepEqual(actualKeys, expectedKeys);
+        assert.deepEqual(actualIndexes, expectedIndexes);
+      });
+
       describe('thenGroupBy()', () => {
+        type ScoreLevel = 'low' | 'middle' | 'high';
+
         function expectedSamplesHierarchy() {
           const input = array.samples;
 
@@ -197,7 +225,7 @@ export abstract class SeqBase_Grouping_Tests {
 
           const level1 = {
             cache: new Map<string, { ok: boolean; type: string; }>(),
-            comparableKey: (key: { ok: boolean; type: string; }) => key.type + key.ok ? '+' : '-',
+            comparableKey: (key: { ok: boolean; type: string; }) => key.type + (key.ok ? '+' : '-'),
             key: (s: Sample) => ({ok: s.ok, type: s.type}),
             cachedKey(s: Sample) {
               const [key, comparable] = [this.key(s), this.comparableKey(s)];
@@ -216,7 +244,7 @@ export abstract class SeqBase_Grouping_Tests {
           const level3 = {
             cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
             comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod ? '+' : '-'),
-            key: (s: Sample) => ({period: s.period, scoreAbovePeriod: s.period + s.score > s.period}),
+            key: (s: Sample) => ({period: s.period, scoreAbovePeriod: s.score > s.period}),
             cachedKey(s: Sample) {
               const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
@@ -247,7 +275,130 @@ export abstract class SeqBase_Grouping_Tests {
           };
         }
 
-        it('should group items into hierarchy by several grouped key', () => {
+        function expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors() {
+          const input = array.samples;
+          const expected = new  Map<{ok: boolean, type: string}, Map<{scoreLevel: string}, Map<{period: number, scoreAbovePeriod: boolean}, {scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string}[]>>>();
+
+          const level1 = {
+            cache: new Map<string, { ok: boolean; type: string; }>(),
+            comparableKey: (key: { ok: boolean; type: string; }) => key.type + (key.ok ? '+' : '-'),
+            key: (s: Sample) => ({ok: s.ok, type: s.type}),
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample, index: number, key: { ok: boolean; type: string; }) => {
+              addKeyParametersIntoThisArray.push(key);
+              return ({...s, diff: s.score - s.period});
+            },
+            cachedKey(s: Sample) {
+              const [key, comparable] = [this.key(s), this.comparableKey(s)];
+              return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+            }
+          };
+          const level2 = {
+            cache: new Map<string, { scoreLevel: string; }>(),
+            comparableKey: (key: { scoreLevel: string; }) => key.scoreLevel,
+            key: (s: Sample & { diff: number; }) => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}),
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, ...keys: any[]) => {
+              addKeyParametersIntoThisArray.push(keys);
+              return ({
+                ...s,
+                scoreLevel: (s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle') as ScoreLevel
+              });
+            },
+            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, ...keys: any[]) => {
+              addKeyParametersIntoThisArray.push(keys);
+              return ({
+                diff: s.diff,
+                scoreLevel: s.scoreLevel,
+                period: s.period,
+                score: s.score,
+                TYPE: s.type.toLowerCase()
+              });
+            },
+            cachedKey(s: Sample & { diff: number; }) {
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+              return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+            }
+          };
+          const level3 = {
+            cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
+            comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod ? '+' : '-'),
+            key: (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
+              period: s.period,
+              scoreAbovePeriod: s.score > s.period
+            }),
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, ...keys: any[]) => {
+              addKeyParametersIntoThisArray.push(keys);
+              return ({
+                ...s,
+                scoreAbovePeriod: s.score > s.period
+              });
+            },
+            cachedKey(s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) {
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+              return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+            }
+          };
+
+          // Level 1
+          const expectedLevel1MapValueKeys: { ok: boolean; type: string; }[] = [];
+          input.forEach((s, i) => expected.set(
+            level1.cachedKey(s),
+            [...(expected.get(level1.cachedKey(s)) || []),
+              level1.mapValueFactory(expectedLevel1MapValueKeys)(s, i, level1.key(s))] as any));
+
+          // Level 2
+          const expectedLevel2MapValue1Keys: { ok: boolean; type: string; }[] = [];
+          const expectedLevel2MapValue2Keys: { ok: boolean; type: string; }[] = [];
+          expected.forEach((items, key) => {
+            const map = new Map<any, any[]>();
+            (items as unknown as (Sample & { diff: number; })[]).forEach((s, i) => map.set(level2.cachedKey(s),
+              [...(map.get(level2.cachedKey(s)) || []),
+                level2.mapValue2Factory(expectedLevel2MapValue2Keys)(
+                  level2.mapValueFactory(expectedLevel2MapValue1Keys)(s, i, level2.key(s), level1.key(s)), i, level2.key(s), level1.key(s)
+                )]));
+            expected.set(key, map as any);
+          });
+
+          // Level 3
+          const expectedLevel3MapValueKeys: { ok: boolean; type: string; }[] = [];
+          expected.forEach((mapByType, key1) =>
+            mapByType.forEach((items, key2) => {
+            const map = new Map<any, any[]>();
+            (items as unknown as ({period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
+              .forEach((s, i) => map.set(level3.cachedKey(s), [
+                  ...(map.get(level3.cachedKey(s)) || []),
+                  level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, level3.key(s), key2, key1)]
+                )
+              );
+            mapByType.set(key2, map as any);
+          }));
+
+          return {
+            expected,
+            input,
+            level1: {
+              key: level1.key,
+              comparableKey: level1.comparableKey,
+              mapValueFactory: level1.mapValueFactory,
+              expectedLevel1MapValueKeys
+            },
+            level2: {
+              key: level2.key,
+              comparableKey: level2.comparableKey,
+              mapValueFactory: level2.mapValueFactory,
+              mapValueFactory2: level2.mapValue2Factory,
+              expectedLevel2MapValue1Keys,
+              expectedLevel2MapValue2Keys
+            },
+            level3: {
+              key: level3.key,
+              comparableKey: level3.comparableKey,
+              mapValueFactory: level3.mapValueFactory,
+              expectedLevel3MapValueKeys
+            }
+          };
+        }
+
+        it('should group items into hierarchy by several grouped primitive-key', () => {
           const {expected, input} = expectedSamplesHierarchy();
           const sut = this.createSut(input)
             .groupBy(s => s.ok)
@@ -271,17 +422,17 @@ export abstract class SeqBase_Grouping_Tests {
             .thenGroupBy(s => level2.key(s), level2.comparableKey)
             .thenGroupBy(s => level3.key(s), level3.comparableKey);
 
-          const actual = new Map([...sut].map(groupedByOk =>
-            [groupedByOk.key, new Map([...groupedByOk].map(groupedByType =>
-              [groupedByType.key, new Map([...groupedByType].map(groupedByPeriod =>
-                [groupedByPeriod.key, [...groupedByPeriod]]))]
+          const actual = new Map([...sut].map(level1 =>
+            [level1.key, new Map([...level1].map(level2 =>
+              [level2.key, new Map([...level2].map(level3 =>
+                [level3.key, [...level3]]))]
             ))]));
 
           assert.deepEqual(actual, expected);
         });
 
         it('should group items into hierarchy when iterating each group and before moving to the next group', () => {
-
+          // TODO:
         });
 
         describe('toMap()', () => {
@@ -306,14 +457,178 @@ export abstract class SeqBase_Grouping_Tests {
 
             assert.deepEqual(sut.toMap(), expected);
           });
+
+          it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors and multiple value-selectors', () => {
+            const {
+              expected,
+              input,
+              level1,
+              level2,
+              level3
+            } = expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors();
+
+            const actualLevel1MapValueKeys: any[] = [];
+            const actualLevel2MapValue1Keys: any[] = [];
+            const actualLevel2MapValue2Keys: any[] = [];
+            const actualLevel3MapValueKeys: any[] = [];
+
+            const sut = this.createSut(input)
+              .groupBy(s => level1.key(s), level1.comparableKey, level1.mapValueFactory(actualLevel1MapValueKeys))
+              .thenGroupBy(s => level2.key(s), level2.comparableKey)
+              .mapInGroup(level2.mapValueFactory(actualLevel2MapValue1Keys))
+              .mapInGroup(level2.mapValueFactory2(actualLevel2MapValue2Keys))
+              .thenGroupBy(s => level3.key(s), level3.comparableKey)
+              .mapInGroup(level3.mapValueFactory(actualLevel3MapValueKeys));
+
+            const actual = sut.toMap();
+
+            assert.deepEqual(actual, expected);
+            assert.sameDeepMembers(actualLevel1MapValueKeys, level1.expectedLevel1MapValueKeys);
+            assert.sameDeepMembers(actualLevel2MapValue1Keys, level2.expectedLevel2MapValue1Keys);
+            assert.sameDeepMembers(actualLevel2MapValue2Keys, level2.expectedLevel2MapValue2Keys);
+            assert.sameDeepMembers(actualLevel3MapValueKeys, level3.expectedLevel3MapValueKeys);
+
+          });
+
+        });
+
+        describe('mapInGroup()', () => {
+          it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors and multiple value-selectors', () => {
+            const {
+              expected,
+              input,
+              level1,
+              level2,
+              level3
+            } = expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors();
+
+            const actualLevel1MapValueKeys: any[] = [];
+            const actualLevel2MapValue1Keys: any[] = [];
+            const actualLevel2MapValue2Keys: any[] = [];
+            const actualLevel3MapValueKeys: any[] = [];
+
+            const sut = this.createSut(input)
+              .groupBy(s => level1.key(s), level1.comparableKey, level1.mapValueFactory(actualLevel1MapValueKeys))
+              .thenGroupBy(s => level2.key(s), level2.comparableKey)
+              .mapInGroup(level2.mapValueFactory(actualLevel2MapValue1Keys))
+              .mapInGroup(level2.mapValueFactory2(actualLevel2MapValue2Keys))
+              .thenGroupBy(s => level3.key(s), level3.comparableKey)
+              .mapInGroup(level3.mapValueFactory(actualLevel3MapValueKeys));
+
+            const actual = new Map([...sut].map(level1 =>
+              [level1.key, new Map([...level1].map(level2 =>
+                [level2.key, new Map([...level2].map(level3 =>
+                  [level3.key, [...level3]]))]
+              ))]));
+
+            assert.deepEqual(actual, expected);
+            assert.sameDeepMembers(actualLevel1MapValueKeys, level1.expectedLevel1MapValueKeys);
+            assert.sameDeepMembers(actualLevel2MapValue1Keys, level2.expectedLevel2MapValue1Keys);
+            assert.sameDeepMembers(actualLevel2MapValue2Keys, level2.expectedLevel2MapValue2Keys);
+            assert.sameDeepMembers(actualLevel3MapValueKeys, level3.expectedLevel3MapValueKeys);
+
+          });
+
+          it('should produce same results when traversed in breadth-first (level) manner and in depth-first manner', () => {
+            const createNewSut = () => this.createSut(array.samples)
+              .groupBy(s => ({ok: s.ok, type: s.type}), key => key.type + (key.ok ? '+' : '-'), s => ({
+                ...s,
+                diff: s.score - s.period
+              }))
+              .thenGroupBy(s => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}), key => key.scoreLevel)
+              .mapInGroup(s => ({
+                ...s,
+                scoreLevel: (s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle') as ScoreLevel
+              }))
+              .mapInGroup(s => ({
+                diff: s.diff,
+                scoreLevel: s.scoreLevel,
+                period: s.period,
+                score: s.score,
+                TYPE: s.type.toLowerCase()
+              }))
+              .thenGroupBy(s => ({
+                period: s.period,
+                scoreAbovePeriod: s.score > s.period
+              }), key => key.period + (key.scoreAbovePeriod ? '+' : '-'))
+              .mapInGroup(s => ({
+                ...s,
+                scoreAbovePeriod: s.score > s.period
+              }));
+
+            function traverseBreadthFirst(seq: ReturnType<typeof createNewSut>): Map<any, any> {
+              const breadthFirstResults = new Map<any, any>();
+              const levelsCache: any[] = [[], [], []];
+              const seqToMap = new Map<KeyedSeq<any, any>, Map<any, any>>();
+              // Traverse 1st level
+              for (const level1 of seq) {
+                const map = new Map<any, any>();
+                breadthFirstResults.set(level1.key, map);
+                seqToMap.set(level1, map);
+                levelsCache[0].push(level1);
+              }
+
+              // Traverse 2nd level
+              for (const level1 of levelsCache[0]) {
+                for (const level2 of level1) {
+                  const level1Map = seqToMap.get(level1)!;
+                  const level2Map = new Map<any, any>();
+                  level1Map.set(level2.key, level2Map);
+                  seqToMap.set(level2, level2Map);
+                  levelsCache[1].push(level2);
+                }
+              }
+
+              // Traverse 3rd level
+              for (const level2 of levelsCache[1]) {
+                for (const level3 of level2) {
+                  const level3Map = seqToMap.get(level2)!;
+                  level3Map.set(level3.key, []);
+                  seqToMap.set(level3, level3Map);
+                  levelsCache[2].push(level3);
+                }
+              }
+
+              // Traverse 4th level
+              for (const level3 of levelsCache[2]) {
+                const level3Map = seqToMap.get(level3)!;
+                for (const level4 of level3) {
+                  const array = level3Map.get(level3.key);
+                  array.push(level4);
+                }
+              }
+
+              return breadthFirstResults;
+            }
+
+            function traverseDepthFirst(seq: ReturnType<typeof createNewSut>): Map<any, any> {
+              const depthFirstResults = new Map<any, any>();
+
+              for (const level1 of seq) {
+                const level1Map = depthFirstResults.set(level1.key, depthFirstResults.get(level1.key) ?? new Map<any, any>()).get(level1.key);
+                for (const level2 of level1) {
+                  const level2Map = level1Map.set(level2.key, level1Map.get(level2.key) ?? new Map<any, any>()).get(level2.key);
+                  for (const level3 of level2) {
+                    level2Map.set(level3.key, [...level3]);
+                  }
+                }
+              }
+
+              return depthFirstResults;
+            }
+
+            const breadthFirstResults = traverseBreadthFirst(createNewSut());
+            const depthFirstResults = traverseDepthFirst(createNewSut());
+
+            assert.deepEqual(breadthFirstResults, depthFirstResults);
+          });
         });
       });
 
       describe('mapInGroup()', () => {
-        it('should return sequence of groups by key-selector of primitive (comparable) key', () => {
-          const input = array.range(1, 10);
+        this.it('should return sequence of groups by key-selector of primitive (comparable) key - numbers', array.oneToTen, (input, inputArray) => {
           const expectedMap = new Map<number, number[]>();
-          input.forEach(n => expectedMap.set(n % 3, [...(expectedMap.get(n % 3) || []), -n]));
+          inputArray.forEach(n => expectedMap.set(n % 3, [...(expectedMap.get(n % 3) || []), -n]));
           const expected = [...expectedMap.entries()];
 
           const sut = this.createSut(input)
@@ -323,22 +638,81 @@ export abstract class SeqBase_Grouping_Tests {
           const actual = actualGrouped.map(group => [group.key, [...group]]);
 
           assert.deepEqual(actual, expected);
+        });
+        this.it('should return sequence of groups by key-selector of primitive (comparable) key - strings', array.strings, (input, inputArray) => {
+          const expectedMap = new Map<string, string[]>();
+          inputArray.forEach(s => expectedMap.set(s.trim()[0] ?? '', [...(expectedMap.get(s.trim()[0] ?? '') || []), s.toUpperCase()]));
+          const expected = [...expectedMap.entries()];
 
-          const input2 = array.samples;
-          const expectedMap2 = new Map<string, any>();
-          input2.forEach(s => expectedMap2.set(s.type, [...(expectedMap2.get(s.type) || []), {
+          const sut = this.createSut(input)
+            .groupBy(s => s.trim()[0] ?? '')
+            .mapInGroup(s => s.toUpperCase());
+          const actualGrouped = [...sut];
+          const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+          assert.deepEqual(actual, expected);
+        });
+        this.it('should return sequence of groups by key-selector of primitive (comparable) key - objects', array.samples, (input, inputArray) => {
+          const expectedMap = new Map<string, any>();
+          inputArray.forEach(s => expectedMap.set(s.type, [...(expectedMap.get(s.type) || []), {
             period: s.period,
             diff: s.score - s.period
           }]));
-          const expected2 = [...expectedMap2.entries()];
+          const expected = [...expectedMap.entries()];
 
-          const sut2 = this.createSut(input2)
+          const sut = this.createSut(input)
             .groupBy(g => g.type)
             .mapInGroup(s => ({period: s.period, diff: s.score - s.period}));
-          const actualGrouped2 = [...sut2];
-          const actual2 = actualGrouped2.map(group => [group.key, [...group]]);
+          const actualGrouped = [...sut];
+          const actual = actualGrouped.map(group => [group.key, [...group]]);
 
-          assert.deepEqual(actual2, expected2);
+          assert.deepEqual(actual, expected);
+        });
+
+        describe('with initial value-selector', () => {
+          this.it('should return sequence of groups by key-selector of primitive (comparable) key - numbers', array.oneToTen, (input, inputArray) => {
+            const expectedMap = new Map<number, number[]>();
+            inputArray.forEach(n => expectedMap.set(n % 3, [...(expectedMap.get(n % 3) || []), -(n ** 2)]));
+            const expected = [...expectedMap.entries()];
+
+            const sut = this.createSut(input)
+              .groupBy(n => n % 3, undefined, n => n ** 2)
+              .mapInGroup(n => -n);
+            const actualGrouped = [...sut];
+            const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+            assert.deepEqual(actual, expected);
+          });
+          this.it('should return sequence of groups by key-selector of primitive (comparable) key - strings', array.strings, (input, inputArray) => {
+            const expectedMap = new Map<string, string[]>();
+            inputArray.forEach(s => expectedMap.set(s.trim()[0] ?? '', [...(expectedMap.get(s.trim()[0] ?? '') || []), `(${s.toUpperCase()})`]));
+            const expected = [...expectedMap.entries()];
+
+            const sut = this.createSut(input)
+              .groupBy(s => s.trim()[0] ?? '', undefined, s => s.toUpperCase())
+              .mapInGroup(s => `(${s})`);
+            const actualGrouped = [...sut];
+            const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+            assert.deepEqual(actual, expected);
+          });
+          this.it('should return sequence of groups by key-selector of primitive (comparable) key - objects', array.samples, (input, inputArray) => {
+            const expectedMap = new Map<string, any>();
+            inputArray.forEach(s => expectedMap.set(s.type, [...(expectedMap.get(s.type) || []), {
+              period: s.period,
+              diff: s.score - s.period,
+              overflow: s.score - s.period > 50
+            }]));
+            const expected = [...expectedMap.entries()];
+
+            const sut = this.createSut(input)
+              .groupBy(g => g.type, undefined, s => ({period: s.period, diff: s.score - s.period}))
+              .mapInGroup(s => ({...s, overflow: s.diff > 50}));
+            const actualGrouped = [...sut];
+            const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+            assert.deepEqual(actual, expected);
+          });
         });
       });
 
