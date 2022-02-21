@@ -178,9 +178,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
-  split(atIndex: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(condition: Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
   split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
     let result: any = [];
