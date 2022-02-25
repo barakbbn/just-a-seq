@@ -360,11 +360,15 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     // noinspection LoopStatementThatDoesntLoopJS
     for (const _ of this) break;
   }
-
 }
 
 class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
   constructor(private readonly source: Iterable<TIn>, private readonly selectors: GroupingSelector[]) {
+  }
+
+  private static isValidPropertyKey(key: any): boolean {
+    const expectedTypes: readonly string[] = ['number', 'string', 'symbol', "bigint", 'boolean'] as const;
+    return key == null || expectedTypes.lastIndexOf(typeof key) > -1;
   }
 
   toMap<K, V>(): Map<any, any> {
@@ -390,14 +394,14 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
       (parentContainer?: any, key?: any, comparableKey?: ComparableType) => {
         const container = {};
         if (parentContainer) {
-          const validKey = HierarchyTransformer.isPropertyKey(key) ? key : (comparableKey ?? '').toString();
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
           parentContainer[validKey] = container;
         }
         return container;
       },
       (container: any, key: any, comparableKey: ComparableType, perv, value): TOut => {
         if (value !== IGNORED_ITEM) {
-          const validKey = HierarchyTransformer.isPropertyKey(key) ? key : `${comparableKey}`;
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
           container[validKey] = value as TOut;
         }
         return value as TOut;
@@ -410,14 +414,14 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
       (parentContainer?: any, key?: any, comparableKey?: ComparableType) => {
         const container = {};
         if (parentContainer) {
-          const validKey = HierarchyTransformer.isPropertyKey(key) ? key : (comparableKey ?? '').toString();
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
           parentContainer[validKey] = container;
         }
         return container;
       },
       (container: any, key: any, comparableKey: ComparableType, prev, value) => {
         if (prev === undefined) {
-          const validKey = HierarchyTransformer.isPropertyKey(key) ? key : `${comparableKey}`;
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
           prev = [];
           container[validKey] = prev;
         }
@@ -425,38 +429,6 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
         return prev;
       }
     );
-  }
-
-  // toObjectAutoArrayOrSingle(): ObjectHierarchy<Ks, TOut[]> {
-  //   return this.materializeHierarchy<any, TOut | TOut[]>(
-  //     (parentContainer?: any, key?: any, comparableKey?: ComparableType) => {
-  //       const container = {};
-  //       if (parentContainer) {
-  //         const validKey = this.isPropertyKey(key) ? key : (comparableKey ?? '').toString();
-  //         parentContainer[validKey] = container;
-  //       }
-  //       return container;
-  //     },
-  //     (container: any, key: any, comparableKey: ComparableType, prev, value) => {
-  //       if (value === IGNORED_ITEM) return prev as TOut;
-  //       const validKey = this.isPropertyKey(key) ? key : (comparableKey ?? '').toString();
-  //       if (prev === undefined) {
-  //         container[validKey] = value as TOut;
-  //       }else {
-  //         prev = [];
-  //         container[validKey] = prev;
-  //       }
-  //       if (value !== IGNORED_ITEM) {
-  //         prev.push(value as TOut)
-  //       }
-  //       return prev;
-  //     }
-  //   );
-  // }
-
-  private static isPropertyKey(key: any): key is PropertyKey {
-    const expectedTypes: readonly PropertyKey[] = ['number', 'string', 'symbol', "bigint"] as const;
-    return expectedTypes.lastIndexOf(typeof key) > -1;
   }
 
   private materializeHierarchy<TContainer extends object, V>(
@@ -495,6 +467,5 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     }
     return rootContainer;
   }
-
 }
 

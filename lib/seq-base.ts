@@ -1740,13 +1740,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return seq;
   }
 
-  protected toJsonOverride(): any {
+  protected toJsonOverride(key: any): any {
     const source = this.getSourceForNewSequence();
     return isArray(source) ? source : [...source];
   }
 
-  private toJSON(): any {
-    return this.toJsonOverride();
+  private toJSON(key: any): any {
+    return this.toJsonOverride(key);
   }
 
   private unionInternal(second: Iterable<T>, keySelector: ((value: T) => unknown) | undefined, rightToLeft: boolean): Seq<T> {

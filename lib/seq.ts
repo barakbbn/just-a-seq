@@ -412,6 +412,9 @@ export interface GroupedSeq<K, T> extends KeyedSeq<K, T> {
   map<U>(mapFn: Selector<T, U>): GroupedSeq<K, U>;
 }
 
+export interface MultiGroupedSeq<Ks extends any[], T> extends KeyedSeq<Ks[0], SubGroupedSeq<Ks, T>> {
+}
+
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   tap(callback: Selector<GroupedSeq<K, T>, void>): this;
 
@@ -430,9 +433,6 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   toObject(arrayed: true): ObjectHierarchy<[K], T[]>;
 }
 
-export interface MultiGroupedSeq<Ks extends any[], T> extends KeyedSeq<Ks[0], SubGroupedSeq<Ks, T>> {
-  readonly key: Ks[0];
-}
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
   tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>): this;
