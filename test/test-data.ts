@@ -142,7 +142,7 @@ export const array = new class {
     return [...generator.repeat(value, count)];
   };
 
-  repeatConcat<T>(value: T[], count: number) {
+  repeatConcat<T>(value: T[], count: number): T[] {
     return new Array<T>().concat(...generator.repeat(value, count));
   };
 };

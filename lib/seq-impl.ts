@@ -87,7 +87,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
       for (let skip = 0; skip < source.length; skip += size) {
-        yield self.createDefaultSeq<T>(source).slice(skip, skip + size);
+        yield self.slice(skip, skip + size);
       }
     });
   }
