@@ -132,7 +132,7 @@ export class SeqTags {
   static readonly $maxCount: unique symbol = Symbol('maxCount');
   static readonly $notMappingItems: unique symbol = Symbol('notMappingItems');
 
-  static getTag<Tag extends keyof TaggedSeq>(seq: Iterable<any>, tag: Tag): TaggedSeq[Tag] {
+  static getTag<Tag extends keyof TaggedSeq>(seq: object, tag: Tag): TaggedSeq[Tag] {
     const guard = (seq: any): seq is TaggedSeq => seq;
     return guard(seq) ? seq[tag] : undefined;
   }
@@ -142,8 +142,9 @@ export class SeqTags {
     return !isNot;
   }
 
-  static isSeq<T>(seq: Iterable<T>): seq is Seq<T> {
-    const isNot = !this.getTag(seq, this.$seq);
+  static isSeq<T>(seq: Iterable<T>): seq is Seq<T>;
+  static isSeq<T>(value: any): value is Seq<T> {
+    const isNot = !this.getTag(value, this.$seq);
     return !isNot;
   }
 
@@ -198,4 +199,3 @@ export interface TaggedSeq {
   [SeqTags.$maxCount]?: number;
   [SeqTags.$notMappingItems]?: boolean;
 }
-

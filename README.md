@@ -1,17 +1,18 @@
 # just-a-seq
 
-This is just a **sequence** that wraps an array or other Iterable object, Generator function.  
-It provides query functionalities and helpers over the items.
+This is just a **sequence** that provides LINQ functionalities (and more)</br> 
+But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
+It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3])` , `asSeq(map.values())`)
 ___
 
 ### Features
-
 * Typescript type definitions
+* Fluent API - chain functions calls to simplify the code:  `seq.filter().map().sorted().toArray()`  
 * Lazy/Deferred functionalities, similar to .NET LINQ.
-
-  The actions are only being recorded, and executed when the sequence is iterated or when performing a consuming action.
+  
+  Instead of immediately producing a new Array from methods such as `map`, `filter`, it iterates the items only once when being consumed (i.e. `toArray()`, `foreach()`, `length` ).
 * Immutable - actions on the sequence won't change it, but return a new sequence with the changes
-* Fluent API - chain functions calls to simplify the code
+
 * API that more resemble to JavaScript Array  
   (Since most existing libraries already mimics .Net IEnumerable).
 * Additional useful functionalities that can make you more productive.

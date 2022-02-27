@@ -2,7 +2,7 @@ import {describe, it} from "mocha";
 import {assert} from "chai";
 import {array, generator, Sample} from "../test-data"
 import {SeqBase} from "../../lib/seq-base";
-import {empty, Selector} from "../../lib";
+import {Seq, Selector} from "../../lib";
 
 export abstract class SeqBase_Immediate_Tests {
   constructor(protected optimized: boolean) {
@@ -483,11 +483,10 @@ export abstract class SeqBase_Immediate_Tests {
           let actualFirstIteratedIndex = 0;
           const negativeIndex = -2;
           const sut = this.createSut(input);
-          let actual = sut.find(negativeIndex, (item, i) => {
+          sut.find(negativeIndex, (item, i) => {
             actualFirstIteratedIndex = i;
             return true;
           });
-
           assert.strictEqual(actualFirstIteratedIndex, 0);
         });
       });
@@ -751,14 +750,14 @@ export abstract class SeqBase_Immediate_Tests {
       });
 
       describe("starting till index", () => {
-        this.it1('should return -1 if non of the items from the specified till-index, meet the condition - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), (input, uinputArray) => {
+        this.it1('should return -1 if non of the items from the specified till-index, meet the condition - numbers', array.oneToTen.concat(array.zeroToNine.reverse()), input => {
           const fromIndex = array.oneToTen.length;
           const expected = -1;
           let sut = this.createSut(input);
           let actual = sut.findLastIndex(fromIndex, () => false);
           assert.strictEqual(actual, expected);
         });
-        this.it1('should return -1 if non of the items from the specified till-index, meet the condition - objects', array.grades.concat(array.grades.reverse()), (input, uinputArray) => {
+        this.it1('should return -1 if non of the items from the specified till-index, meet the condition - objects', array.grades.concat(array.grades.reverse()), input => {
           const expected = -1;
           const fromIndex2 = array.grades.length;
           let sut = this.createSut(input);
@@ -2553,7 +2552,7 @@ export abstract class SeqBase_Immediate_Tests {
       });
 
       it("should return true if sequence source is a Seq tagged as empty", () => {
-        const emptySeq = empty();
+        const emptySeq = Seq.empty();
         let sut = this.createSut(emptySeq);
         let actual = sut.isEmpty();
         assert.isTrue(actual);

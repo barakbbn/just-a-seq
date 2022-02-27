@@ -1,9 +1,9 @@
+import {Seq} from "../lib";
 import {SeqImpl_Tests} from './seq-impl';
 import {CachedSeqImpl_Tests} from './cached-seq-impl';
 import {SortedSeqImpl_Tests} from './sorted-seq-impl';
 import {SeqFactory_Tests} from './seq-factory';
 import {GroupedSeqImpl_Tests} from "./grouped-seq-impl";
-import {Seq} from "../lib";
 import {FilterMapSeqImpl_Tests} from "./filter-map-seq-impl";
 import {DerivedSeq_Tests} from "./derive-from-base-seq";
 

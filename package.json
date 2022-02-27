@@ -1,7 +1,7 @@
 {
   "name": "@barakbbn/just-a-seq",
-  "version": "0.2.3",
-  "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resemble JavaScript Array.",
+  "version": "0.2.4",
+  "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resembles JavaScript Array.",
   "scripts": {
     "build": "tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",

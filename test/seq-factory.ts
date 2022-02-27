@@ -1,6 +1,6 @@
 import {assert} from "chai";
 import {array} from "./test-data";
-import {asSeq, empty, indexes, Optimized, random, range, repeat} from "../lib";
+import {asSeq, Seq, Optimized} from "../lib";
 import {createSeq} from "../lib/seq-impl";
 import {describe} from "mocha";
 
@@ -13,23 +13,23 @@ export class SeqFactory_Tests {
   }
 
   get empty() {
-    return this.optimized ? Optimized.empty : empty;
+    return this.optimized ? Optimized.empty : Seq.empty;
   }
 
   get indexes() {
-    return this.optimized ? Optimized.indexes : indexes;
+    return this.optimized ? Optimized.indexes : Seq.indexes;
   }
 
   get random() {
-    return this.optimized ? Optimized.random : random;
+    return this.optimized ? Optimized.random : Seq.random;
   }
 
   get range() {
-    return this.optimized ? Optimized.range : range;
+    return this.optimized ? Optimized.range : Seq.range;
   }
 
   get repeat() {
-    return this.optimized ? Optimized.repeat : repeat;
+    return this.optimized ? Optimized.repeat : Seq.repeat;
   }
 
   readonly run = () => describe('Seq Factories', () => {

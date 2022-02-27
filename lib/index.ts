@@ -8,5 +8,5 @@ if (!factories.SeqOfGroups) factories.SeqOfGroups = require('./grouped-seq').Seq
 if (!factories.FilterMapSeq) factories.FilterMapSeq = require('./filter-map-seq').FilterMapSeqImpl.create;
 
 export * from './seq';
-export * from './seq-factory';
-export * as Optimized from './optimized'
+export {Seq, asSeq} from './seq-factory';
+export {Seq as Optimized} from './optimized'

@@ -1,3 +1,4 @@
+import {internalEmpty} from "./internal";
 import {
   CachedSeq,
   Comparer,
@@ -26,7 +27,6 @@ import {
   TaggedSeq,
   tapIterable
 } from "./common";
-import {empty} from "./seq-factory";
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
@@ -89,7 +89,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   chunk(size: number): Seq<Seq<T>> {
-    if (size < 1) return empty<Seq<T>>();
+    if (size < 1) return internalEmpty<Seq<T>>();
     const self = this;
     const optimize = SeqTags.optimize(this);
     return this.generate(function* chunk(items, iterationContext) {
@@ -1156,7 +1156,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   slice(start: number, end: number): Seq<T> {
-    if (end === 0 || end - start === 0) return empty<T>();
+    if (end === 0 || end - start === 0) return internalEmpty<T>();
 
     // Both non negative
     if (start >= 0 && end > 0) return this.generate(function* slice(self) {
@@ -1276,7 +1276,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   takeLast(count: number): Seq<T> {
-    if (count <= 0) return empty<T>();
+    if (count <= 0) return internalEmpty<T>();
     return this.generate(function* takeLast(items) {
       if (Array.isArray(items)) {
         let index = items.length - count;
@@ -1583,7 +1583,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected takeInternal(count: number): Seq<T> {
-    if (count <= 0) return empty<T>();
+    if (count <= 0) return internalEmpty<T>();
 
     return this.generate(function* take(items) {
       for (const {value, index} of entries(items)) {

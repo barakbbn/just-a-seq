@@ -1,8 +1,8 @@
+import {internalEmpty} from "./internal";
 import {CloseableIterator, EMPTY_ARRAY, IterationContext, SeqTags, TaggedSeq} from './common'
 
 import {Condition, Seq} from './seq'
-import {SeqBase} from "./seq-base";
-import {empty} from "./seq-factory";
+import {SeqBase} from './seq-base';
 
 export function createSeq<TSource = any, T = TSource>(
   source: Iterable<TSource> = EMPTY_ARRAY as unknown as TSource[],
@@ -83,7 +83,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   chunk(size: number): Seq<Seq<T>> {
-    if (size < 1) return empty<Seq<T>>();
+    if (size < 1) return internalEmpty<Seq<T>>();
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
       for (let skip = 0; skip < source.length; skip += size) {
@@ -163,7 +163,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     if (end < 0) end = 0;
     else if (end > this.source.length) end = this.source.length;
 
-    if (end === 0 || end - start <= 0) return empty<T>();
+    if (end === 0 || end - start <= 0) return internalEmpty<T>();
 
     return this.generateForSource(this.source, function* slice(source: T[]) {
       for (let i = start; i < end; i++) yield source[i];
@@ -186,7 +186,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     let result: any = [];
     if (typeof atIndexOrCondition !== 'number') result = super.split(atIndexOrCondition);
     else if (atIndexOrCondition > 0) result = [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)];
-    else result.push(empty<T>(), this);
+    else result.push(internalEmpty<T>(), this);
 
     result.first = result[0];
     result.second = result[1];
