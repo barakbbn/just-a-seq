@@ -6,7 +6,8 @@ import {
   MapHierarchy,
   MultiGroupedSeq,
   ObjectHierarchy,
-  Selector, SeqOfGroupsWithoutLast,
+  Selector,
+  SeqOfGroupsWithoutLast,
   SeqOfMultiGroups,
   ToComparableKey
 } from "./seq";
@@ -40,10 +41,10 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
 class GroupingSelector {
   constructor(public readonly key?: Selector<any, any>,
               public readonly toComparable?: ToComparableKey<any>,
-              public readonly values?: ReadonlyArray<Selector<any, any>>) {
+              public readonly values?: ReadonlyArray<(x: unknown, index: number, ...keys: any[]) => unknown>) {
   }
 
-  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: Selector<any, any>): GroupingSelector {
+  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: (x: unknown, index: number, ...keys: any[]) => unknown): GroupingSelector {
     return new GroupingSelector(keySelector, toComparableKey, valueSelector ? [valueSelector] : undefined);
   }
 
@@ -53,14 +54,14 @@ class GroupingSelector {
     return {key, comparable};
   }
 
-  selectValue(value: any, index: number): any {
+  selectValue(value: any, index: number, keys: readonly unknown[]): any {
     return this.values?.reduce((v, selector) => {
       if (v === IGNORED_ITEM) return value;
-      return selector(v, index);
+      return selector(v, index, ...keys);
     }, value) ?? value;
   }
 
-  concatValueSelector(valueSelector: Selector<any, any>): GroupingSelector {
+  concatValueSelector<Ks extends any[]>(valueSelector: (item: any, index: number, ...keys: readonly any[]) => unknown): GroupingSelector {
     const values = (this.values ?? []).concat(valueSelector);
     return new GroupingSelector(this.key, this.toComparable, values);
   }
@@ -72,22 +73,44 @@ class GroupingSelector {
 }
 
 class Container {
-  readonly array: any[] | Container[] = [];
-  private readonly map: Map<any, any>;
+  private _array: any[] = [];
+  private readonly map: Map<unknown, Container>;
+  private isRoot = false;
 
-  constructor(public readonly isLast: boolean, public readonly key?: any, public readonly comparable?: any) {
+  constructor(public readonly isLast: boolean,
+              public readonly key?: unknown,
+              public readonly comparable?: any,
+              public ancestorKeys: readonly unknown[] = []) {
     if (!isLast) this.map = new Map<any, any>();
   }
 
-  getOrAddChild(isLast: boolean, key: any, comparable: any): Container {
+  get array(): readonly any[] {
+    return this._array;
+  };
+
+  static createRootContainer(): Container {
+    const container = new Container(false);
+    container.isRoot = true;
+    return container;
+  }
+
+  getOrAddChild(isLast: boolean, key: any, comparable: any, ancestorKeys: readonly unknown[]): Container {
     if (!this.map) throw Error('Cannot call getOrAddChild on leaf container');
     let container = this.map.get(comparable);
     if (!container) {
-      container = new Container(isLast, key, comparable);
+      container = new Container(isLast, key, comparable, ancestorKeys);
       this.map.set(comparable, container);
-      this.array.push(container);
+      this._array.push(container);
     }
     return container;
+  }
+
+  addItem(item: any): void {
+    this._array.push(item)
+  }
+
+  getAllKeys(): readonly unknown[] {
+    return this.isRoot ? [] : [this.key, ...this.ancestorKeys];
   }
 }
 
@@ -96,7 +119,6 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   implements SeqOfMultiGroups<Ks, TOut>, CachedSeq<MultiGroupedSeq<Ks, TOut>> {
 
   key: any;
-
   private tapCallbacks: Selector<any, void>[] = [];
   private _cache: MultiGroupedSeq<Ks, TOut>[];
 
@@ -120,8 +142,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   static create<K, TIn = K, TOut = TIn>(source: Iterable<TIn>,
                                         keySelector?: Selector<TIn, K>,
                                         toComparableKey?: ToComparableKey<K>,
-                                        valueSelector?: Selector<TIn, TOut>) {
-    const selector = GroupingSelector.from(keySelector, toComparableKey, valueSelector);
+                                        valueSelector?: (item: TIn, index: number, key: K) => TOut) {
+    const selector = GroupingSelector.from(keySelector, toComparableKey, valueSelector as any);
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
@@ -143,9 +165,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return instance;
   }
 
-  mapInGroup<U>(mapFn: Selector<TOut, U>): any {
+  mapInGroup<U>(mapFn: (item: TOut, index: number, ...keys: Ks) => U): any {
     const lastSelector = this.selectors.slice(-1)[0];
-    const newLastSelector = lastSelector.concatValueSelector(mapFn);
+    const newLastSelector = lastSelector.concatValueSelector(mapFn as unknown as (item: any, index: number, ...keys: readonly any[]) => unknown);
     const selectors = this.selectors.slice(0, this.selectors.length - 1).concat(newLastSelector);
     const instance = new SeqOfMultiGroupsImpl(this.source, selectors);
     instance.key = this.key;
@@ -175,64 +197,15 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
 
   toMap<K, V>(keySelector?: Selector<MultiGroupedSeq<Ks, TOut>, K>, valueSelector?: Selector<MultiGroupedSeq<Ks, TOut>, V>, toComparableKey?: ToComparableKey<K>): any {
     if (keySelector) return super.toMap(keySelector, valueSelector, toComparableKey);
-    return this.materializeHierarchy<Map<any, Map<ComparableType, any>>, V[]>(
-      (parentContainer?: Map<any, Map<ComparableType, any>>, key?: any) => {
-        const container = new Map();
-        if (parentContainer) parentContainer.set(key, container);
-        return container;
-      },
-      (container: Map<any, Map<ComparableType, any>>, key: any, prev, value): V[] => {
-        if (prev === undefined) {
-          prev = [];
-          container.set(key, prev as unknown as any);
-        }
-        if (value !== IGNORED_ITEM) prev.push(value as V);
-        return prev;
-      }
-    );
+    return new HierarchyTransformer(this.source, this.selectors).toMap();
   }
 
   toObject(): ObjectHierarchy<Ks, TOut>;
   toObject(arrayed: true): ObjectHierarchy<Ks, TOut[]>;
   toObject(arrayed?: boolean): ObjectHierarchy<Ks, TOut | TOut[]> {
-    return arrayed ? this.toObjectArray() : this.toObjectSingle();
+    const hierarchyTransformer = new HierarchyTransformer(this.source, this.selectors);
+    return arrayed ? hierarchyTransformer.toObjectArray() : hierarchyTransformer.toObjectSingle();
   }
-
-  toObjectSingle(): ObjectHierarchy<Ks, TOut> {
-    return this.materializeHierarchy<any, TOut>(
-      (parentContainer?: any, key?: any) => {
-        const container = {};
-        if (parentContainer) parentContainer[key] = container;
-        return container;
-      },
-      (container: any, key: any, perv, value): TOut => {
-        if (value !== IGNORED_ITEM) container[key] = value as TOut;
-        return value as TOut;
-      }
-    );
-  }
-
-  toObjectArray(): ObjectHierarchy<Ks, TOut[]> {
-    return this.materializeHierarchy<any, TOut[]>(
-      (parentContainer?: any, key?: any) => {
-        const container = {};
-        if (parentContainer) parentContainer[key] = container;
-        return container;
-      },
-      (container: any, key: any, prev, value) => {
-        if (prev === undefined) {
-          prev = [];
-          container[key] = prev;
-        }
-        if (value !== IGNORED_ITEM) prev.push(value as TOut)
-        return prev;
-      }
-    );
-  }
-
-  // ungroupLast<U>(mapFn:(group: GroupedSeq<any, any>)=>U): SeqOfGroupsWithoutLast<Ks, U> {
-  //   return undefined as unknown as any
-  // }
 
   * [Symbol.iterator](): any {
     const self = this;
@@ -273,6 +246,10 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   //     }
   //   }
   // }
+
+  protected toJsonOverride(): any {
+    return new HierarchyTransformer(this.source, this.selectors).toObjectArray();
+  }
 
   private* sessionIterator(iterationContext: IterationContext) {
     if (this._cache) {
@@ -355,7 +332,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   }
 
   private* coreIterator(): Generator<{ entry: { index: number; value: any }; containers: Container[]; rootContainer: Container }> {
-    const rootContainer = new Container(false);
+    const rootContainer = Container.createRootContainer();
 
     for (const entry of entries(this.source)) {
 
@@ -366,12 +343,13 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       for (const {value: selector, index} of entries(this.selectors)) {
         const isLast = (this.selectors.length - 1) === index;
         const {key, comparable} = selector.selectKeyAndComparable(item, entry.index);
-        item = selector.selectValue(item, entry.index);
+        const ancestorKeys = currentContainer.getAllKeys();
+        item = selector.selectValue(item, entry.index, [key, ...ancestorKeys]);
 
-        currentContainer = currentContainer.getOrAddChild(isLast, key, comparable);
+        currentContainer = currentContainer.getOrAddChild(isLast, key, comparable, ancestorKeys);
         containers.push(currentContainer);
 
-        if (isLast && item != IGNORED_ITEM) currentContainer.array.push(item);
+        if (isLast && item !== IGNORED_ITEM) currentContainer.addItem(item);
       }
 
       yield {rootContainer, containers, entry: {value: item, index: entry.index}};
@@ -382,29 +360,105 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     // noinspection LoopStatementThatDoesntLoopJS
     for (const _ of this) break;
   }
+}
 
-  private materializeHierarchy<TContainer extends object, V>(createContainer: (parentContainer?: TContainer, key?: unknown) => TContainer, setValue: (container: TContainer, key: unknown, prev: V | undefined, value: unknown) => V): TContainer {
+class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
+  constructor(private readonly source: Iterable<TIn>, private readonly selectors: GroupingSelector[]) {
+  }
+
+  private static isValidPropertyKey(key: any): boolean {
+    const expectedTypes: readonly string[] = ['number', 'string', 'symbol', "bigint", 'boolean'] as const;
+    return key == null || expectedTypes.lastIndexOf(typeof key) > -1;
+  }
+
+  toMap<K, V>(): Map<any, any> {
+    return this.materializeHierarchy<Map<any, Map<ComparableType, any>>, V[]>(
+      (parentContainer?: Map<any, Map<ComparableType, any>>, key?: any) => {
+        const container = new Map();
+        if (parentContainer) parentContainer.set(key, container);
+        return container;
+      },
+      (container: Map<any, Map<ComparableType, any>>, key: any, comparableKey: ComparableType, prev, value): V[] => {
+        if (prev === undefined) {
+          prev = [];
+          container.set(key, prev as unknown as any);
+        }
+        if (value !== IGNORED_ITEM) prev.push(value as V);
+        return prev;
+      }
+    );
+  }
+
+  toObjectSingle(): ObjectHierarchy<Ks, TOut> {
+    return this.materializeHierarchy<any, TOut>(
+      (parentContainer?: any, key?: any, comparableKey?: ComparableType) => {
+        const container = {};
+        if (parentContainer) {
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
+          parentContainer[validKey] = container;
+        }
+        return container;
+      },
+      (container: any, key: any, comparableKey: ComparableType, perv, value): TOut => {
+        if (value !== IGNORED_ITEM) {
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
+          container[validKey] = value as TOut;
+        }
+        return value as TOut;
+      }
+    );
+  }
+
+  toObjectArray(): ObjectHierarchy<Ks, TOut[]> {
+    return this.materializeHierarchy<any, TOut[]>(
+      (parentContainer?: any, key?: any, comparableKey?: ComparableType) => {
+        const container = {};
+        if (parentContainer) {
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
+          parentContainer[validKey] = container;
+        }
+        return container;
+      },
+      (container: any, key: any, comparableKey: ComparableType, prev, value) => {
+        if (prev === undefined) {
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(key) ? key : comparableKey}`;
+          prev = [];
+          container[validKey] = prev;
+        }
+        if (value !== IGNORED_ITEM) prev.push(value as TOut)
+        return prev;
+      }
+    );
+  }
+
+  private materializeHierarchy<TContainer extends object, V>(
+    createContainer: (parentContainer?: TContainer, key?: unknown, comparableKey?: ComparableType) => TContainer,
+    setValue: (container: TContainer, key: unknown, comparableKey: ComparableType, prev: V | undefined, value: unknown) => V): TContainer {
+
     const map = new Map<ComparableType, { key: any; value?: V; subMap?: Map<ComparableType, any>; container?: TContainer; }>();
     const rootContainer = createContainer();
 
     for (const entry of entries(this.source)) {
+      let item = entry.value;
       let currentMap = map;
       let currentContainer = rootContainer;
-
+      const keys: unknown[] = [];
       for (const {value: selector, index} of entries(this.selectors)) {
         const isLast = (this.selectors.length - 1) === index;
-        const {key, comparable} = selector.selectKeyAndComparable(entry.value, entry.index);
+        const {key, comparable} = selector.selectKeyAndComparable(item, entry.index);
+        keys.unshift(key);
+        item = selector.selectValue(item, entry.index, keys);
+
         let group = currentMap.get(comparable);
 
         if (!group) {
           group = {key, subMap: isLast ? undefined : new Map()};
           currentMap.set(comparable, group);
-          if (!isLast) group.container = createContainer(currentContainer, key);
+          if (!isLast) group.container = createContainer(currentContainer, key, comparable);
         }
 
         if (isLast) {
-          const value = selector.selectValue(entry.value, entry.index);
-          group.value = setValue(currentContainer, key, group.value, value);
+          group.value = setValue(currentContainer, key, comparable, group.value, item);
         } else {
           currentMap = group.subMap!;
           currentContainer = group.container!;
@@ -414,6 +468,4 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return rootContainer;
   }
 }
-
-
 

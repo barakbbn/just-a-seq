@@ -1,3 +1,4 @@
+import {internalEmpty} from "./internal";
 import {
   CachedSeq,
   Comparer,
@@ -17,6 +18,7 @@ import {
   Gen,
   getIterator,
   IGNORED_ITEM,
+  isArray,
   isIterable,
   IterationContext,
   LEGACY_COMPARER,
@@ -25,12 +27,10 @@ import {
   TaggedSeq,
   tapIterable
 } from "./common";
-import {empty} from "./seq-factory";
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   readonly [SeqTags.$seq] = true;
-
   readonly length = this.count;
 
   all(condition: Condition<T>): boolean {
@@ -89,7 +89,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   chunk(size: number): Seq<Seq<T>> {
-    if (size < 1) return empty<Seq<T>>();
+    if (size < 1) return internalEmpty<Seq<T>>();
     const self = this;
     const optimize = SeqTags.optimize(this);
     return this.generate(function* chunk(items, iterationContext) {
@@ -215,7 +215,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
   endsWith<U, K>(items: Iterable<U>, firstKeySelector?: (item: T) => K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     const first = firstKeySelector ?
       Array.from(this, (item: T, index: number) => firstKeySelector(item /*, index, false */)) :
@@ -257,6 +259,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   find<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
   find<S extends T>(fromIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
 
   find(condition: Condition<T>, fallback?: T | undefined): T | undefined;
@@ -268,8 +271,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   findLast<S extends T>(typeGuard: (item: T, index: number) => item is S): S | undefined;
+
   findLast<S extends T>(tillIndex: number, typeGuard: (item: T, index: number) => item is S, fallback?: S | undefined): S | undefined;
+
   findLast(condition: Condition<T>, fallback?: T): T | undefined; // Overload
+
   findLast(tillIndex: number, condition: Condition<T>, fallback?: T | undefined): T | undefined;
 
   findLast(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): T | undefined {
@@ -440,9 +446,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   groupBy<K>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>): SeqOfGroups<K, T>;
 
-  groupBy<K, U>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U>;
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: undefined, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
-  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: Selector<T, U>): SeqOfGroups<K, U> {
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: ToComparableKey<K>, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
+
+  groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: (item: T, index: number, key: K) => U): SeqOfGroups<K, U> {
     return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
   }
 
@@ -496,7 +504,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   includesAll<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean; // Overload
+
   includesAll<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
   includesAll<U, K>(items: Iterable<U>,
                     firstKeySelector: (item: T) => K = t => t as unknown as K,
                     secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
@@ -516,7 +526,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   includesAny<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean; // Overload
+
   includesAny<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
   includesAny<U, K>(items: Iterable<U>,
                     firstKeySelector: (item: T) => K = t => t as unknown as K,
                     secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
@@ -538,9 +550,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   includesSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+
   includesSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): boolean;
+
   includesSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): boolean; // Overload
+
   includesSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): boolean; // Overload
+
   includesSubSequence<U>(subSequence: Iterable<U>,
                          param2?: number | ((item: T) => unknown) | { equals(a: T, b: U): unknown },
                          param3?: ((item: T) => unknown) | { equals(a: T, b: U): unknown }): boolean {
@@ -570,9 +586,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
+
   indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
+
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
+
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): number; // Overload
+
   indexOfSubSequence<U>(subSequence: Iterable<U>,
                         param2?: number | ((item: T) => unknown) | { equals(a: T, b: U): unknown },
                         param3?: ((item: T) => unknown) | { equals(a: T, b: U): unknown }): number {
@@ -582,7 +602,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return this.findSubSequence(subSequence, fromIndex, equals)[0];
   }
-
 
   innerJoin<I, K, R = { outer: T; inner: I }>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>, resultSelector?: (outer: T, inner: I) => R): Seq<R> {
     return this.generate(function* innerJoin(self) {
@@ -872,7 +891,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
   maxItem({comparer, findLast}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+
   maxItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
     if (typeof selector === 'function') return this.maxItemBySelector(selector, options?.findLast)?.[0];
 
@@ -891,7 +912,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
   minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+
   minItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
     if (typeof selector === 'function') return this.minItemBySelector(selector, options?.findLast)?.[0];
 
@@ -970,14 +993,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
 
   reduce<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
-
-  // orderBy<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-  //   return factories.OrderedSeq(this, keySelector, comparer);
-  // }
-  //
-  // orderByDescending<K = T>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T> {
-  //   return factories.OrderedSeq(this, keySelector, comparer, true);
-  // }
 
   reduce<U = T>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): U {
     const iter = this.getIterator();
@@ -1078,14 +1093,12 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   sameItems<U, K>(second: Iterable<U>,
                   firstKeySelector: (item: T | U) => K = t => t as unknown as K,
                   secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    let secondIndex = 0;
     let secondKeys = new Map<K, number>();
     for (const item of second) {
       const key = secondKeySelector(item /*, secondIndex++ */);
       const count = secondKeys.get(key) ?? 0;
       secondKeys.set(key, count + 1);
     }
-    let firstIndex = 0;
     for (const item of this) {
       const key = firstKeySelector(item /*, firstIndex++ */);
       const secondCounter = secondKeys.get(key);
@@ -1143,7 +1156,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   slice(start: number, end: number): Seq<T> {
-    if (end === 0 || end - start === 0) return empty<T>();
+    if (end === 0 || end - start === 0) return internalEmpty<T>();
 
     // Both non negative
     if (start >= 0 && end > 0) return this.generate(function* slice(self) {
@@ -1207,11 +1220,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return factories.SortedSeq(this.getSourceForNewSequence(), undefined, undefined, reverse);
   }
 
-  split(atIndex: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(condition: Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(condition: Condition<T>): [irst: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+  split(atIndexOrCondition: number | Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
     const result: any = (typeof atIndexOrCondition === 'number') ?
       this.splitAtIndex(atIndexOrCondition) :
       this.splitByCondition(atIndexOrCondition);
@@ -1263,7 +1276,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   takeLast(count: number): Seq<T> {
-    if (count <= 0) return empty<T>();
+    if (count <= 0) return internalEmpty<T>();
     return this.generate(function* takeLast(items) {
       if (Array.isArray(items)) {
         let index = items.length - count;
@@ -1280,7 +1293,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;
+
   takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
@@ -1568,7 +1583,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected takeInternal(count: number): Seq<T> {
-    if (count <= 0) return empty<T>();
+    if (count <= 0) return internalEmpty<T>();
 
     return this.generate(function* take(items) {
       for (const {value, index} of entries(items)) {
@@ -1723,6 +1738,15 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
     if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;
+  }
+
+  protected toJsonOverride(key: any): any {
+    const source = this.getSourceForNewSequence();
+    return isArray(source) ? source : [...source];
+  }
+
+  private toJSON(key: any): any {
+    return this.toJsonOverride(key);
   }
 
   private unionInternal(second: Iterable<T>, keySelector: ((value: T) => unknown) | undefined, rightToLeft: boolean): Seq<T> {
@@ -1947,7 +1971,6 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 
   at(index: number): T | undefined {
-    if (index >= this.bufferSize) return undefined;
     index = (this.start + index) % this.bufferSize;
     return this.buffer[index];
   }

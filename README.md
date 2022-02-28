@@ -1,17 +1,18 @@
 # just-a-seq
 
-This is just a **sequence** that wraps an array or other Iterable object, Generator function.  
-It provides query functionalities and helpers over the items.
+This is just a **sequence** that provides LINQ functionalities (and more)</br> 
+But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
+It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3])` , `asSeq(map.values())`)
 ___
 
 ### Features
-
 * Typescript type definitions
+* Fluent API - chain functions calls to simplify the code:  `seq.filter().map().sorted().toArray()`  
 * Lazy/Deferred functionalities, similar to .NET LINQ.
-
-  The actions are only being recorded, and executed when the sequence is iterated or when performing a consuming action.
+  
+  Instead of immediately producing a new Array from methods such as `map`, `filter`, it iterates the items only once when being consumed (i.e. `toArray()`, `foreach()`, `count()` ).
 * Immutable - actions on the sequence won't change it, but return a new sequence with the changes
-* Fluent API - chain functions calls to simplify the code
+
 * API that more resemble to JavaScript Array  
   (Since most existing libraries already mimics .Net IEnumerable).
 * Additional useful functionalities that can make you more productive.
@@ -148,55 +149,55 @@ console.log(asSeq(layers)
 
 #### Immediate actions
 
-|   |   |   |   |   |
-|---|---|---|---|---|
-|all|any|at|average|
-|consume|count|
-|endsWith|every|
-|find|findIndex|findLast|findLastIndex|first|
-|forEach|
-|hasAtLeast|
-|includes|includesAll|includesAny|includesSubSequence|
-|indexOf|indexOfSubSequence|isEmpty|
-|last|lastIndexOf|length|
-|max|min|
-|reduce|reduceRight|
-|sameItems|sameOrderedItems|some|startsWith|sum|
-|toArray|toMap|toSet|toString|
+|            |                    |             |                     |       |
+|------------|--------------------|-------------|---------------------|-------|
+| all        | any                | at          | average             |
+| consume    | count              |
+| endsWith   | every              |
+| find       | findIndex          | findLast    | findLastIndex       | first |
+| forEach    |
+| hasAtLeast |
+| includes   | includesAll        | includesAny | includesSubSequence |
+| indexOf    | indexOfSubSequence | isEmpty     |
+| last       | lastIndexOf        | length      |
+| max        | min                |
+| reduce     | reduceRight        |
+| sameItems  | sameOrderedItems   | some        | startsWith          | sum   |
+| toArray    | toMap              | toSet       | toString            |
 
 #### Deferred actions
 
-|   |   |   |   |   |
-|---|---|---|---|---|
-|append|
-|cache|chunk|concat|
-|diff|diffDistinct|distinct|
-|entries|
-|filter|
-|firstAndRest|flat|flatMap|**flatHierarchy**
-|groupBy|groupJoin|groupJoinRight|**thenGroupBy**|
-|ifEmpty|innerJoin|insert|insertAfter|insertBefore|
-|intersect|intersperse|
-|join|
-|map|**matchBy**|
-|ofType|
-|prepend|push|
-|reduce|reduceRight|remove|removeAll|removeFalsy|
-|removeNulls|repeat|reverse|
-|skip|skipFirst|skipLast|
-|skipWhile|slice|sort|sortBy|**thenSortBy**|
-|sorted|split|
-|take|takeLast|takeOnly|takeWhile|**tap**|
-|transform|
-|union|unshift|
-|zip|zipAll|zipWithIndex|
+|              |              |                |                   |                |
+|--------------|--------------|----------------|-------------------|----------------|
+| append       |              |                |                   |                |
+| cache        | chunk        | concat         |                   |                |
+| diff         | diffDistinct | distinct       |                   |                |
+| entries      |              |                |                   |                |
+| filter       |              |                |                   |                |
+| firstAndRest | flat         | flatMap        | **flatHierarchy** |                |
+| groupBy      | groupJoin    | groupJoinRight | **thenGroupBy**   |                |
+| ifEmpty      | innerJoin    | insert         | insertAfter       | insertBefore   |
+| intersect    | intersperse  |                |                   |                |
+| join         |              |                |                   |                |
+| map          | **matchBy**  |                |                   |                |
+| ofType       |              |                |                   |                |
+| prepend      | push         |                |                   |                |
+| reduce       | reduceRight  | remove         | removeAll         | removeFalsy    |
+| removeNulls  | repeat       | reverse        |                   |                |
+| skip         | skipFirst    | skipLast       |                   |                |
+| skipWhile    | slice        | sort           | sortBy            | **thenSortBy** |
+| sorted       | split        |                |                   |                |
+| take         | takeLast     | takeOnly       | takeWhile         | **tap**        |
+| transform    |              |                |                   |                |
+| union        | unshift      |                |                   |                |
+| zip          | zipAll       | zipWithIndex   |                   |                |
 
 #### Factories
 
-|   |   |   |
-|---|---|---|
-| asSeq |indexes| empty |
-| random| range | repeat|
+|        |         |        |
+|--------|---------|--------|
+| asSeq  | indexes | empty  |
+| random | range   | repeat |
 
 ### Optimized Mode
 

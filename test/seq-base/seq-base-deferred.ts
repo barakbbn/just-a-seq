@@ -93,8 +93,7 @@ export abstract class SeqBase_Deferred_Tests {
         const actual = sut.asSeq();
         assert.notEqual(actual, sut);
       });
-      it('should produce same results as before', () => {
-        const input = array.oneToTen;
+      this.it1('should produce same results as before', array.oneToTen, input => {
         const sut = this.createSut(input);
         const seq = sut.asSeq();
         const expected = [...sut];
@@ -187,26 +186,18 @@ export abstract class SeqBase_Deferred_Tests {
         assert.sameOrderedMembers(actual, expected);
       });
 
-      it('should concat sequence to itself', () => {
-        let sut = this.createSut([1, 2]);
+      this.it1('should concat sequence to itself', [1, 2], input => {
+        let sut = this.createSut(input);
         const expected = [1, 2].concat([1, 2]);
 
         let actual = [...sut.concat$(sut)];
         assert.sameOrderedMembers(actual, expected);
-
-        sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat$(sut)];
-        assert.sameOrderedMembers(actual, expected);
       });
 
-      it('should have no effect when concatenating empty sequences', () => {
-        let sut = this.createSut([1, 2]);
-        const expected = [1, 2];
+      this.it1('should have no effect when concatenating empty sequences', [1, 2], input => {
+        const sut = this.createSut(input);
+        const expected = [...input];
         let actual = [...sut.concat$([], [], [])];
-        assert.sameOrderedMembers(actual, expected);
-
-        sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat$(this.createSut(), this.createSut(), this.createSut())];
         assert.sameOrderedMembers(actual, expected);
       });
 
@@ -237,25 +228,23 @@ export abstract class SeqBase_Deferred_Tests {
         assert.sameOrderedMembers(actual, expected);
       });
 
-      it('should concat sequence to itself', () => {
-        let sut = this.createSut([1, 2]);
-        const expected = [1, 2].concat([1, 2]);
+      this.it1('should concat sequence to itself', [1, 2], (input, inputArray) => {
+        let sut = this.createSut(input);
+        const expected = inputArray.concat(inputArray);
 
         let actual = [...sut.concat$(sut)];
         assert.sameOrderedMembers(actual, expected);
-
-        sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat$(sut)];
-        assert.sameOrderedMembers(actual, expected);
       });
 
-      it('should have no effect when concatenating empty sequences', () => {
-        let sut = this.createSut([1, 2]);
-        const expected = [1, 2];
+      this.it1('should have no effect when concatenating empty sequences', [1, 2], (input, inputArray) => {
+        let sut = this.createSut(input);
+        const expected = inputArray;
         let actual = [...sut.concat$([], [], [])];
         assert.sameOrderedMembers(actual, expected);
 
-        sut = this.createSut(generator.from([1, 2]));
+        actual = [...sut.concat$(generator.from([]), generator.from([]), generator.from([]))];
+        assert.sameOrderedMembers(actual, expected);
+
         actual = [...sut.concat$(this.createSut(), this.createSut(), this.createSut())];
         assert.sameOrderedMembers(actual, expected);
       });
@@ -263,106 +252,73 @@ export abstract class SeqBase_Deferred_Tests {
 
     describe("diff()", () => {
       describe("without keySelector", () => {
-        it("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence", () => {
-          const first = array.oneToTen.concat(array.oneToTen);
-          const second = array.zeroToNine.concat(array.zeroToNine);
-          const expected = [0, 0, 10, 10];
+        this.it2("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence",
+          array.oneToTen.concat(array.oneToTen),
+          array.zeroToNine.concat(array.zeroToNine),
+          (first, second) => {
+            const expected = [0, 0, 10, 10];
 
-          const sut = this.createSut(first);
-          const actual = sut.diff(second);
-          assert.sameMembers([...actual], expected);
+            const sut = this.createSut(first);
+            const actual = sut.diff(second);
+            assert.sameMembers([...actual], expected);
+          });
 
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = sut2.diff(generator.from(second));
-          assert.sameMembers([...actual2], expected);
-        });
+        this.it2('should return empty sequence if all items in first sequence exist in second sequence and vise versa',
+          array.oneToTen.concat(array.oneToTen),
+          array.oneToTen,
+          (first, second) => {
+            const expected: number[] = [];
 
-        it('should return empty sequence if all items in first sequence exist in second sequence and vise versa', () => {
-          const first = array.oneToTen.concat(array.oneToTen);
-          const second = array.oneToTen;
-          const expected: number[] = [];
+            const sut = this.createSut(first);
+            const actual = [...sut.diff(second)];
+            assert.sameMembers(actual, expected);
+          });
 
-          const sut = this.createSut(first);
+        this.it1('when second sequence is empty, should return the first sequence', array.oneToTen, (input, inputArray) => {
+          const second: number[] = [];
+          const expected = inputArray;
+
+          const sut = this.createSut(input);
           const actual = [...sut.diff(second)];
           assert.sameMembers(actual, expected);
-
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = [...sut2.diff(generator.from(second))];
-          assert.sameMembers(actual2, expected);
         });
 
-        it('when second sequence is empty, should return the first sequence', () => {
-          const first = array.oneToTen
-            .concat(array.oneToTen)
-            .concat(array.oneToTen.filter(x => x > 5))
-            .concat(array.oneToTen.reverse());
+        this.it2('when first sequence is empty, should return the second sequence',
+          <number[]>[],
+          array.oneToTen,
+          (first, second) => {
+            const expected = [...second];
 
-          const second: number[] = [];
-          const expected = first.slice();
+            const sut = this.createSut(first);
+            const actual = sut.diff(second);
+            assert.sameMembers([...actual], expected);
+          });
 
-          const sut = this.createSut(first);
-          const actual = [...sut.diff(second)];
-          assert.sameMembers(actual, expected);
+        this.it2('should return empty sequence when first and second sequences are empty',
+          <number[]>[],
+          <number[]>[],
+          (first, second) => {
+            const expected: number[] = [];
 
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = sut2.diff(generator.from(second));
-          assert.sameMembers([...actual2], expected);
-        });
-
-        it('when first sequence is empty, should return the second sequence', () => {
-          const second = array.oneToTen
-            .concat(array.oneToTen)
-            .concat(array.oneToTen.filter(x => x > 5))
-            .concat(array.oneToTen.reverse());
-
-          const first: number[] = [];
-          const expected = second.slice();
-
-          const sut = this.createSut(first);
-          const actual = sut.diff(second);
-          assert.sameMembers([...actual], expected);
-
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = sut2.diff(generator.from(second));
-          assert.sameMembers([...actual2], expected);
-        });
-
-        it('should return empty sequence when first and second sequences are empty', () => {
-          const first: number[] = [];
-          const second: number[] = [];
-          const expected: number[] = [];
-
-          const sut = this.createSut(first);
-          const actual = sut.diff(second);
-          assert.sameMembers([...actual], expected);
-
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = sut2.diff(generator.from(second));
-          assert.sameMembers([...actual2], expected);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.diff(second);
+            assert.sameMembers([...actual], expected);
+          });
       });
 
       describe("with keySelector", () => {
-        it("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence", () => {
-          let first = array.grades.slice(0, -1);
-          first = first.concat(first.reverse());
+        const nonExistingGrade = {name: "not exists", grade: -1};
+        this.it2("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence",
+          array.grades.slice(0, -1),
+          array.grades.slice(1).concat(nonExistingGrade),
+          (first, second) => {
 
-          const nonExistingGrade = {name: "not exists", grade: -1};
-          let second = array.grades.slice(1);
-          second.push(nonExistingGrade);
-          second = second.concat(second.reverse());
+            let expected = [array.grades[0], array.grades[array.grades.length - 1], nonExistingGrade];
 
-          let expected = [array.grades[0], array.grades[array.grades.length - 1], nonExistingGrade];
-          expected = expected.concat(expected);
-
-          const sut = this.createSut(first);
-          const actual = sut.diff(second, x => x.grade);
-          assert.sameDeepMembers([...actual], expected);
-
-          const sut2 = this.createSut(generator.from(first));
-          const actual2 = sut2.diff(generator.from(second), x => x.grade);
-          assert.sameDeepMembers([...actual2], expected);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.diff(second, x => x.grade);
+            assert.sameDeepMembers([...actual], expected);
+          });
 
         it('should return empty sequence if all items in first sequence exist in second sequence and vise versa', () => {
           const first = array.grades.concat(array.grades);
