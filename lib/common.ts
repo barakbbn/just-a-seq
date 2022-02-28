@@ -100,7 +100,7 @@ export function tapIterable<T>(items: Iterable<T>, callback: (item: T, index: nu
 }
 
 export function isIterable<R>(item: any, ignoreIfString = false): item is Iterable<R> {
-  return item && typeof item[Symbol.iterator] === "function" && (!ignoreIfString || typeof item !== 'string');
+  return item && typeof item[Symbol.iterator] === 'function' && (!ignoreIfString || typeof item !== 'string');
 }
 
 export function* entries<T>(items: Iterable<T>): Generator<{ value: T; index: number; }> {
