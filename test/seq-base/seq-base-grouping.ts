@@ -277,7 +277,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         function expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors() {
           const input = array.samples;
-          const expected = new  Map<{ok: boolean, type: string}, Map<{scoreLevel: string}, Map<{period: number, scoreAbovePeriod: boolean}, {scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string}[]>>>();
+          const expected = new Map<{ ok: boolean, type: string }, Map<{ scoreLevel: string }, Map<{ period: number, scoreAbovePeriod: boolean }, { scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string }[]>>>();
 
           const level1 = {
             cache: new Map<string, { ok: boolean; type: string; }>(),
@@ -321,18 +321,18 @@ export abstract class SeqBase_Grouping_Tests {
           const level3 = {
             cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
             comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod ? '+' : '-'),
-            key: (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
+            key: (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
               period: s.period,
               scoreAbovePeriod: s.score > s.period
             }),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, ...keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, ...keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
                 scoreAbovePeriod: s.score > s.period
               });
             },
-            cachedKey(s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) {
+            cachedKey(s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) {
               const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
@@ -362,15 +362,15 @@ export abstract class SeqBase_Grouping_Tests {
           const expectedLevel3MapValueKeys: { ok: boolean; type: string; }[] = [];
           expected.forEach((mapByType, key1) =>
             mapByType.forEach((items, key2) => {
-            const map = new Map<any, any[]>();
-            (items as unknown as ({period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
-              .forEach((s, i) => map.set(level3.cachedKey(s), [
-                  ...(map.get(level3.cachedKey(s)) || []),
-                  level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, level3.key(s), key2, key1)]
-                )
-              );
-            mapByType.set(key2, map as any);
-          }));
+              const map = new Map<any, any[]>();
+              (items as unknown as ({ period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
+                .forEach((s, i) => map.set(level3.cachedKey(s), [
+                    ...(map.get(level3.cachedKey(s)) || []),
+                    level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, level3.key(s), key2, key1)]
+                  )
+                );
+              mapByType.set(key2, map as any);
+            }));
 
           return {
             expected,
@@ -760,6 +760,36 @@ export abstract class SeqBase_Grouping_Tests {
 
           assert.deepEqual(actual, expected);
         });
+
+        // it('should call tap callback for each top level group after performing mapInGroup()', () => {
+        //   const input = array.samples;
+        //   const maps: Map<any, number>[] = [new Map(), new Map(), new Map()];
+        //   array.samples.forEach(sample => {
+        //     maps[0].set(sample.type, (maps[0].get(sample.type) ?? 0) + sample.score);
+        //     maps[1].set(sample.type, (maps[1].get(sample.type) ?? 0) + sample.period);
+        //     maps[1].set(sample.type, (maps[1].get(sample.type) ?? 0) + sample.score);
+        //   });
+        //
+        //   const expected = maps.map(map => [...map.entries()].map(([key, value]) => ({key, value})));
+        //
+        //   const actual: { key: string; value: number; }[][] = [[], [], []];
+        //
+        //   const sut = this.createSut(input)
+        //     .groupBy(sample => sample.type, undefined, sample => ({
+        //       period: sample.period,
+        //       result: {value: sample.score}
+        //     }))
+        //     .tap(group => actual[0].push({key: group.key, value: group.sum(s => s.result.value)}))
+        //     .mapInGroup(sample => ({point: {x: sample.period, y: sample.result.value}}))
+        //     .tap(group => actual[1].push({key: group.key, value: group.sum(s => s.point.x)}))
+        //     .thenGroupBy(point => point.point.x)
+        //     .tap(group => actual[2].push({key: group.key, value: group.sum(s => s.sum(ss => ss.point.y))}));
+        //
+        //   for (const x of sut) {
+        //   }
+        //
+        //   assert.deepEqual(actual, expected);
+        // });
 
         describe('on each grouped sequence', () => {
           it('should produce same results before and after tap', () => {

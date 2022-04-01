@@ -11,31 +11,14 @@ import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {SeqBase} from "../lib/seq-base";
 import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
 import {EMPTY_ARRAY, SeqTags} from "../lib/common";
-import {array, TestableArray} from "./test-data";
+import {array, TestableDerivedSeq} from "./test-data";
 
-class DerivedSeq<T> extends SeqBase<T> {
-  constructor(
-    protected readonly source: Iterable<T> = EMPTY_ARRAY,
-    tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
 
-    super();
-
-    SeqTags.setTagsIfMissing(this, tags);
-  }
-
-  * [Symbol.iterator](): Iterator<T> {
-    yield* this.source;
-  }
-
-  protected getSourceForNewSequence(): Iterable<T> {
-    return this.source;
-  }
-}
 
 function createSut<T>(optimized: boolean) {
   return <T>(input: Iterable<T>, ...tags: [tag: symbol, value: any][]): SeqBase<T> => {
     if (optimized) tags.push([SeqTags.$optimize, true]);
-    return new DerivedSeq(input, tags);
+    return new TestableDerivedSeq(input, tags);
   }
 }
 
@@ -108,12 +91,12 @@ export class DerivedSeq_Tests {
         const source = new Proxy(array.oneToTen, {
           get(target: number[], p: string, receiver: any): any {
             const asInt = Number.parseInt(p);
-            if(Number.isInteger(asInt)) iteratedIndexes.push(asInt);
+            if (Number.isInteger(asInt)) iteratedIndexes.push(asInt);
             return Reflect.get(target, p, receiver);
           }
         });
         const count = 2;
-        const expected = new Array<number>(count).fill(0).map((_, i)=>source.length - count + i);
+        const expected = new Array<number>(count).fill(0).map((_, i) => source.length - count + i);
         const sut = this.createSut(source);
         for (let _ of sut.takeLast(2)) {
         }

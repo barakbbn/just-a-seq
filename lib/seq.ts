@@ -385,10 +385,6 @@ export namespace Seq {
 export interface SortedSeq<T> extends Seq<T> {
   tap(callback: Selector<T, void>): SortedSeq<T>;
 
-  // thenBy<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
-  // thenByDescending<K>(keySelector: (x: T) => K, comparer?: Comparer<K>): OrderedSeq<T>;
-
   thenSortBy<U>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
 }
 
@@ -416,13 +412,11 @@ export interface MultiGroupedSeq<Ks extends any[], T> extends KeyedSeq<Ks[0], Su
 }
 
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
-  tap(callback: Selector<GroupedSeq<K, T>, void>): this;
-
   mapInGroup<U>(mapFn: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[K, K2], T>;
 
-  toMap<K, V>(keySelector: Selector<GroupedSeq<K, T>, K>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
+  toMap<K2, V>(keySelector: Selector<GroupedSeq<K, T>, K2>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K2>): Map<K2, V>;
 
   toMap(): MapHierarchy<[key: K], T>;
 
@@ -433,10 +427,7 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   toObject(arrayed: true): ObjectHierarchy<[K], T[]>;
 }
 
-
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  tap(callback: Selector<MultiGroupedSeq<Ks, T>, void>): this;
-
   mapInGroup<U>(mapFn: (item: T, index: number, ...keys: Ks) => U): SeqOfMultiGroups<Ks, U>;
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], T>;
@@ -450,6 +441,8 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
   toObject(): ObjectHierarchy<Ks, T>;
 
   toObject(arrayed: true): ObjectHierarchy<Ks, T[]>;
+
+  ungroup<U>(mapFn: (group: GroupedSeq<Last<Ks>, T>, ...ancestors: ExcludeLast<Ks>) => U): SeqOfGroupsWithoutLast<Ks, U>;
 }
 
 export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
@@ -461,6 +454,14 @@ export type SeqOfGroupsWithoutLast<Ks extends any[], T> = Ks extends [...infer K
     SeqOfMultiGroups<[...KRest], T> :
     SeqOfGroups<Ks[0], T>
   : SeqOfGroups<Ks[0], T>;
+
+export type Last<Ts extends any[]> = Ts extends [...infer Rest, infer Last]
+  ? Last
+  : Ts[0];
+
+export type ExcludeLast<Ts extends any[]> = Ts extends [...infer Rest, infer Tail]
+  ? Rest
+  : Ts;
 
 export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
@@ -500,10 +501,10 @@ export interface FilterMapSeqFactory {
 }
 
 export const factories: {
-  Seq: SeqFactory;
-  CachedSeq: CachedSeqFactory;
-  SortedSeq: SortedSeqFactory;
-  GroupedSeq: GroupedSeqFactory;
-  SeqOfGroups: SeqOfGroupsFactory;
-  FilterMapSeq: FilterMapSeqFactory;
+  readonly Seq: SeqFactory;
+  readonly CachedSeq: CachedSeqFactory;
+  readonly SortedSeq: SortedSeqFactory;
+  readonly GroupedSeq: GroupedSeqFactory;
+  readonly SeqOfGroups: SeqOfGroupsFactory;
+  readonly FilterMapSeq: FilterMapSeqFactory;
 } = <any>{};
