@@ -1013,6 +1013,10 @@ export abstract class SeqBase_Grouping_Tests {
           });
         });
       });
+
+      describe('ungroup()', () => {
+        
+      });
     });
 
     describe('groupJoin()', () => {

@@ -104,6 +104,8 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test('flatHierarchy()', array.folders, seq => seq.flatHierarchy(f => f.subFolders, f => f.subFolders, f => f.name));
     test('forEach()', array.oneToTen, seq => seq.forEach(n => n));
     test('groupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3));
+    test('groupBy().thenGroupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2));
+    test('groupBy().thenGroupBy().ungroup()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroup(g => g.first()));
     test2('groupJoin()', array.oneToTen, array.tenOnes, (seq, other) => seq.groupJoin(other, n => n, n => n));
     test2('groupJoinRight()', array.oneToTen, array.tenOnes, (seq, other) => seq.groupJoinRight(other, n => n, n => n));
     test('hasAtLeast()', array.oneToTen, seq => seq.hasAtLeast(9));

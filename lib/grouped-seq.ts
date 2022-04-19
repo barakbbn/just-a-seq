@@ -43,7 +43,7 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
 class GroupingSelector {
   constructor(public readonly key?: Selector<any, any>,
               private readonly comparableKeySelector?: ToComparableKey<any>,
-              public readonly values?: ReadonlyArray<(x: unknown, index: number, ...keys: any[]) => unknown>,
+              private readonly values?: ReadonlyArray<(x: unknown, index: number, ...keys: any[]) => unknown>,
               public readonly aggregator?: (group: GroupedSeq<any, any>, ...keys: any[]) => any) {
   }
 

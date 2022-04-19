@@ -442,7 +442,7 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
 
   toObject(arrayed: true): ObjectHierarchy<Ks, T[]>;
 
-  ungroup<U>(mapFn: (group: GroupedSeq<Last<Ks>, T>, ...ancestors: ExcludeLast<Ks>) => U): SeqOfGroupsWithoutLast<Ks, U>;
+  ungroup<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, ...ancestors: ExcludeLast<Ks>) => U): SeqOfGroupsWithoutLast<Ks, U>;
 }
 
 export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
