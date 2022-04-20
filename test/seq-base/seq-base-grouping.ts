@@ -2,6 +2,7 @@ import {KeyedSeq, Seq, SeqOfGroups} from "../../lib";
 import {describe, it} from "mocha";
 import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
+import {SeqTags} from "../../lib/common";
 
 export abstract class SeqBase_Grouping_Tests {
   constructor(protected optimized: boolean) {
@@ -1015,7 +1016,87 @@ export abstract class SeqBase_Grouping_Tests {
       });
 
       describe('ungroup()', () => {
-        
+        const sum = (items: Iterable<number>): number => [...items].reduce((prev, curr) => prev + curr, 0);
+
+        this.it('should remove the most inner group', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const sut = grouped.ungroup(group => sum(group));
+
+          function countDepth(seq: Seq<any>): number {
+            // noinspection LoopStatementThatDoesntLoopJS
+            for (const group of seq) {
+              return 1 + ((SeqTags.isSeq(group) && 'key' in group) ? countDepth(group) : 0);
+            }
+            return 0;
+          }
+
+          const depthBeforeUngroup = countDepth(grouped);
+          const depthAfterUngroup = countDepth(sut);
+
+          assert.equal(depthBeforeUngroup, 3);
+          assert.equal(depthAfterUngroup, 2);
+        });
+
+        this.it('should map items in new inner group according to aggregator function', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const sut = grouped.ungroup(group => sum(group));
+
+          const expected = [
+            [0, [
+              sum([0, 6]),
+              sum([3, 9])
+            ]],
+            [1, [
+              sum([1, 7]),
+              sum([4, 10])
+            ]],
+            [2, [
+              sum([2, 8]),
+              sum([5])
+            ]]
+          ];
+
+          const actual = sut.toArray().map(g => [g.key, g.toArray()]);
+
+          assert.deepEqual(actual, expected);
+        });
+
+        this.it('should not affect the sequence before the ungroup', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const expectedBeforeUngroup = grouped.toMap();
+          grouped.ungroup(group => sum(group)).toMap();
+          const actualAfterUngroup = grouped.toMap();
+
+          assert.deepEqual(actualAfterUngroup, expectedBeforeUngroup);
+        });
+
+        this.it('should provide correct list of keys parameters to aggregator function', array.zeroToTen, input => {
+          const expectedKeysToValues = [
+            'false,0,0 -> [0]',
+            'true,0,0 -> [6]',
+            'false,1,0 -> [4]',
+            'true,1,0 -> [10]',
+            'false,2,0 -> [2]',
+            'true,2,0 -> [8]',
+            'false,0,1 -> [3]',
+            'true,0,1 -> [9]',
+            'false,1,1 -> [1]',
+            'true,1,1 -> [7]',
+            'false,2,1 -> [5]'
+          ];
+          const actualKeysToValues: string[] = [];
+          this.createSut(input)
+            .groupBy(n => n % 2)
+            .thenGroupBy(n => n % 3)
+            .thenGroupBy(n => n > 5)
+            .ungroup((group, key1, key2) => {
+              actualKeysToValues.push(`${group.key},${key1},${key2} -> ${group.toString()}`);
+              return sum(group);
+            })
+            .toMap();
+
+          assert.sameMembers(actualKeysToValues, expectedKeysToValues);
+        });
       });
     });
 
