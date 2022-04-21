@@ -204,9 +204,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  distinct<K>(keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
+  distinct(keySelector: Selector<T, unknown> = x => x): Seq<T> {
     return this.generate(function* distinct(self) {
-      const keys = new Set<K>();
+      const keys = new Set<unknown>();
       let index = 0;
       for (const item of self) {
         const key = keySelector(item, index++);
@@ -218,23 +218,33 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+  endsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
 
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
-  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: (item: T) => K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    const first = firstKeySelector ?
+  endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
+
+  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+    if (this === items) return true;
+
+    function isEqualsFunc(param?: any): param is { equals(t: T, u: U): unknown; } {
+      return typeof param?.equals === 'function';
+    }
+
+    let equals: (t: T, u: U) => unknown = isEqualsFunc(firstKeySelector) ? firstKeySelector.equals : sameValueZero;
+
+    const first = firstKeySelector && !isEqualsFunc(firstKeySelector) ?
       Array.from(this, (item: T, index: number) => firstKeySelector(item /*, index, false */)) :
       Array.from(this) as unknown as K[];
 
-    const second = (!secondKeySelector && Array.isArray(items)) ? items as K[] : secondKeySelector ?
+    const second = (!secondKeySelector && Array.isArray(items)) ? items as K[] : secondKeySelector && !isEqualsFunc(firstKeySelector) ?
       Array.from(items, (item: U, index: number) => secondKeySelector(item /*, index, true */)) :
       Array.from(items) as unknown as K[];
 
     let offset = first.length - second.length;
     if (offset < 0) return false;
     for (const item of second) {
-      if (!sameValueZero(first[offset++], item)) return false;
+      if (!equals(first[offset++] as unknown as T, item as unknown as U)) return false;
     }
     return true;
   }
@@ -1239,22 +1249,37 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
   }
 
+
   startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
 
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
+
   startsWith<U, K>(items: Iterable<U>,
-                   firstKeySelector: (item: T) => K = x => x as unknown as K,
+                   firstKeySelector: ((item: T) => K) | { equals(t: T, u: U): unknown; } = ((x: T) => x) as unknown as (item: T) => K,
                    secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+    if (this === items) return true;
     if (Array.isArray(items) && items.length === 0) return true;
+
+    function isEqualsFunc(param?: any): param is { equals(t: T, u: U): unknown; } {
+      return typeof param?.equals === 'function';
+    }
+
+    let equals: (t: T, u: U) => unknown = sameValueZero;
+    if (isEqualsFunc(firstKeySelector)) {
+      equals = firstKeySelector.equals;
+      secondKeySelector = firstKeySelector = (x: any) => x as any;
+    }
+
 
     const secondIterator = getIterator(items);
     let secondNext = secondIterator.next();
     for (const {value: first, index: firstIndex} of entries(this)) {
       if (secondNext.done) return true;
-      const firstKey = firstKeySelector(first /* , firstIndex, false */);
+      const firstKey = firstKeySelector?.(first /* , firstIndex, false */);
       const secondKey = secondKeySelector(secondNext.value);
-      const same = sameValueZero(firstKey, secondKey);
+      const same = equals(firstKey as unknown as T, secondKey as unknown as U);
       if (!same) return false;
       secondNext = secondIterator.next();
     }

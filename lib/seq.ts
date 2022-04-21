@@ -59,16 +59,20 @@ export interface Seq<T> extends Iterable<T> {
   count(condition?: Condition<T>): number;
 
   diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+
   diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
+
   diff<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T | U>;
 
   diffDistinct(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
-  distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
+  distinct(keySelector?: Selector<T, unknown>): Seq<T>;
 
-  endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+  endsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
 
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
+  endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   entries(): Seq<[index: number, value: T]>;
 
@@ -336,9 +340,12 @@ export interface Seq<T> extends Iterable<T> {
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
+
   startsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
 
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => unknown, secondKeySelector: (item: U) => K): boolean;
+
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   sum(): T extends number ? number : never; // Overload
   sum(selector: Selector<T, number>): number;

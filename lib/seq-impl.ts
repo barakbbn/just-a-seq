@@ -193,12 +193,18 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
   }
 
-  startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
+  startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
+
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
+
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     if (Array.isArray(items)) {
       if (items.length === 0) return true;
       if (this.source.length < items.length) return false;
     }
-    return super.startsWith(items, keySelector);
+    return super.startsWith(items, firstKeySelector as any, secondKeySelector);
   }
 
   take(count: number): Seq<T> {

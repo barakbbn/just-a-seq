@@ -8,13 +8,13 @@ export abstract class SeqBase_Immediate_Tests {
   constructor(protected optimized: boolean) {
   }
 
-  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: T[]) => void) {
+  it1<T>(title: string, input: readonly T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void) {
     it(title + ' - array source', () => testFn(input, input));
     it(title + ' - generator source', () => testFn(generator.from(input), input));
     it(title + ' - sequence source', () => testFn(this.createSut(input), input));
   }
 
-  it2<T, U = T>(title: string, first: T[], second: U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
+  it2<T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
     it(title + ' - first array, second array', () => testFn(first, second));
     it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
     it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
@@ -342,7 +342,56 @@ export abstract class SeqBase_Immediate_Tests {
           assert.isTrue(actual);
         });
 
-        // TODO: second sequence of different type
+        describe('second is partial type of first', () => {
+          const FIRST: readonly { id: number; name: string; }[] = [
+            {id: 0, name: '0'}, {id: 1, name: '1'}, {id: 2, name: '2'}, {id: 3, name: '3'},
+            {id: 4, name: '4'}, {id: 5, name: '5'}, {id: 6, name: '6'}, {id: 7, name: '7'}
+          ];
+          const SECOND: readonly { id: number; }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
+
+          this.it2("should return false if sequence doesn't end with all the specified items",
+            FIRST.map((x, i) => FIRST[FIRST.length - i - 1]),
+            SECOND,
+            (first, second) => {
+              let sut = this.createSut(first);
+              let actual = sut.endsWith(second, x => x.id);
+              assert.isFalse(actual);
+            });
+
+          this.it2('should return true if sequence ends with the specified items in same order',
+            FIRST,
+            SECOND.slice(4),
+            (first, second) => {
+              let sut = this.createSut(first);
+              let actual = sut.endsWith(second, x => x.id);
+              assert.isTrue(actual);
+            });
+
+          this.it2('should return false if sequence ends with the specified items but NOT in same order',
+            FIRST,
+            SECOND.slice(-4).reverse(),
+            (first, second) => {
+              let sut = this.createSut(first);
+              let actual = sut.endsWith(second, x => x.id);
+              assert.isFalse(actual);
+            });
+
+          this.it2('should return true if source sequence not empty and items to check for is an empty sequence',
+            FIRST,
+            [] as { id: number; }[],
+            (first, second) => {
+              const sut = this.createSut(first);
+              let actual = sut.endsWith(second, x => x.id);
+              assert.isTrue(actual);
+            });
+
+          this.it2('should return false if source sequence is empty and checked if ends with non empty iterable',
+            [] as { id: number; name: string; }[], SECOND, (first, second) => {
+              const sut = this.createSut(first);
+              let actual = sut.endsWith(second, x => x.id);
+              assert.isFalse(actual);
+            });
+        });
       });
 
       describe("with second key selector", () => {
@@ -401,6 +450,66 @@ export abstract class SeqBase_Immediate_Tests {
           let actual = sut.endsWith(sut, first => first.score, second => second.grade);
           assert.isTrue(actual);
         });
+      });
+
+      describe("with equality comparer", () => {
+        this.it2("should return false if sequence doesn't end with all the specified items",
+          array.gradesFiftyAndAbove.reverse(),
+          array.gradesFiftyAndBelow.map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.grade === s.score});
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return true if sequence ends with the specified items in same order',
+          array.grades.map(x => ({name: x.name, score: x.grade})),
+          array.gradesFiftyAndAbove,
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.score === s.grade});
+            assert.isTrue(actual);
+          });
+
+        this.it2('should return false if sequence ends with the specified items but NOT in same order',
+          array.grades.map(x => ({name: x.name, score: x.grade})),
+          array.gradesFiftyAndAbove.reverse(),
+          (first, second) => {
+            let sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.score === s.grade});
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return true if source sequence not empty and items to check for is an empty sequence',
+          array.samples.map(x => ({...x, phase: x.period})),
+          [] as Sample[],
+          (first, second: Iterable<Sample>) => {
+            const sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.phase === s.period});
+            assert.isTrue(actual);
+          });
+
+        this.it2('should return true if source sequence is empty and items to check for is an empty sequence',
+          [] as Sample[], [] as Sample[], (first, second) => {
+            const sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.period === s.period});
+            assert.isTrue(actual);
+          });
+
+        this.it2('should return false if source sequence is empty and checked if ends with non empty iterable',
+          [] as Sample[], array.samples, (first, second) => {
+            const sut = this.createSut(first);
+            let actual = sut.endsWith(second, {equals: (f, s) => f.period === s.period});
+            assert.isFalse(actual);
+          });
+
+        this.it1('should return true if sequence is checked with itself',
+          array.grades.map(x => ({...x, score: x.grade})),
+          (input) => {
+            const sut = this.createSut(input);
+            let actual = sut.endsWith(sut, {equals: (f, s) => f.grade === s.score});
+            assert.isTrue(actual);
+          });
       });
     });
 
@@ -3855,121 +3964,251 @@ export abstract class SeqBase_Immediate_Tests {
       });
 
       describe('with key selector', () => {
-        it('should return true if sequence contains second sequence from the beginning with exact same items and same order', () => {
-          const input = array.grades;
-          const sutArray = this.createSut(array.grades);
-          const sutGenerator = this.createSut(generator.from(input));
+        this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
+          array.grades,
+          (input, inputArray) => {
 
-          for (let take = 1; take < input.length; take++) {
-            const second = input.slice(0, take);
-            let actual = sutArray.startsWith(second, x => x.grade);
-            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
-            actual = sutGenerator.startsWith(second, x => x.grade);
-            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
-          }
-        });
+            const sut = this.createSut(input);
 
-        it("should return false if sequence doesn't start with second sequence", () => {
-          const input = array.grades;
-          let second = array.grades;
-          second[second.length - 1] = second[second.length - 2];
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isFalse(sutArray.startsWith(second, x => x.grade));
-          assert.isFalse(sutGenerator.startsWith(second, x => x.grade));
-        });
+            for (let take = 1; take < inputArray.length; take++) {
+              const second = inputArray.slice(0, take);
+              let actual = sut.startsWith(second, x => x.grade);
 
-        it('should return false if second sequence has more items', () => {
-          const input = array.gradesFiftyAndAbove;
-          const second = array.grades;
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isFalse(sutArray.startsWith(second, x => x.grade));
-          assert.isFalse(sutGenerator.startsWith(second, x => x.grade));
-
-
-          it('should return false second sequence starts with first sequence', () => {
-            const input = array.grades.slice(0, -1);
-            const second = array.grades;
-            const sutArray = this.createSut(input);
-            const sutGenerator = this.createSut(generator.from(input));
-            assert.isFalse(sutArray.startsWith(second, x => x.grade));
-            assert.isFalse(sutGenerator.startsWith(second, x => x.grade));
+              assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+            }
           });
+
+        this.it2("should return false if sequence doesn't start with second sequence",
+          array.grades.concat(array.grades[0]),
+          array.grades.concat(array.grades[1]),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, x => x.grade));
+          });
+
+        this.it2('should return false if second sequence has more items',
+          array.gradesFiftyAndAbove,
+          array.grades,
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, x => x.grade));
+          });
+
+        this.it2('should return false if second sequence starts with first sequence',
+          array.grades.slice(0, -1),
+          array.grades,
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, x => x.grade));
+          });
+
+        this.it2('should return true if second sequence is empty',
+          array.grades,
+          [] as { name: string; grade: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, x => x.grade));
+          });
+
+        this.it2('should return true if both sequences are empty',
+          [] as { name: string; grade: number; }[],
+          [] as { name: string; grade: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, x => x.grade));
+          });
+
+        describe('second is partial type of first', () => {
+          const FIRST: readonly { id: number; name: string; }[] = [
+            {id: 0, name: '0'}, {id: 1, name: '1'}, {id: 2, name: '2'}, {id: 3, name: '3'},
+            {id: 4, name: '4'}, {id: 5, name: '5'}, {id: 6, name: '6'}, {id: 7, name: '7'}
+          ];
+          const SECOND: readonly { id: number; }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
+
+          this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
+            FIRST,
+            (input, inputArray) => {
+
+              const sut = this.createSut(input);
+
+              for (let take = 1; take < inputArray.length; take++) {
+                const second = inputArray.slice(0, take).map(x => ({id: x.id}));
+                let actual = sut.startsWith(second, x => x.id);
+
+                assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+              }
+            });
+
+          this.it2("should return false if sequence doesn't start with second sequence",
+            FIRST.concat(FIRST[0]),
+            SECOND.concat(SECOND[1]),
+            (first, second) => {
+
+              const sut = this.createSut(first);
+              assert.isFalse(sut.startsWith(second, x => x.id));
+            });
+
+          this.it2('should return false if second sequence has more items',
+            FIRST,
+            SECOND.concat(SECOND),
+            (first, second) => {
+
+              const sut = this.createSut(first);
+              assert.isFalse(sut.startsWith(second, x => x.id));
+            });
+
+          this.it2('should return false if second sequence starts with first sequence',
+            FIRST.slice(0, -1),
+            SECOND,
+            (first, second) => {
+
+              const sut = this.createSut(first);
+              assert.isFalse(sut.startsWith(second, x => x.id));
+            });
+
+          this.it2('should return true if second sequence is empty',
+            FIRST,
+            [] as { id: number; }[],
+            (first, second) => {
+
+              const sut = this.createSut(first);
+              assert.isTrue(sut.startsWith(second, x => x.id));
+            });
+
+          this.it2('should return true if both sequences are empty',
+            [] as { id: number; name: string; }[],
+            [] as { id: number; }[],
+            (first, second) => {
+
+              const sut = this.createSut(first);
+              assert.isTrue(sut.startsWith(second, x => x.id));
+            });
         });
-
-        it('should return true if second sequence is empty', () => {
-          let input = array.grades;
-          const second: { name: string; grade: number; }[] = [];
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isTrue(sutArray.startsWith(second, x => x.grade));
-          assert.isTrue(sutGenerator.startsWith(second, x => x.grade));
-
-          // Also with empty source sequence
-          assert.isTrue(this.createSut<{ name: string; grade: number; }>([]).startsWith(second, x => x.grade));
-          assert.isTrue(this.createSut<{ name: string; grade: number; }>().startsWith(second, x => x.grade));
-        });
-
-        // TODO: second sequence of different type
       });
 
       describe('with second key selector', () => {
-        it('should return true if sequence contains second sequence from the beginning with exact same items and same order', () => {
-          const input = array.grades;
-          const sutArray = this.createSut(array.grades);
-          const sutGenerator = this.createSut(generator.from(input));
+        this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
+          array.grades,
+          (input, inputArray) => {
 
-          for (let take = 1; take < input.length; take++) {
-            const second = input.slice(0, take).map(x => ({...x, score: x.grade}));
-            let actual = sutArray.startsWith(second, first => first.grade, second => second.score);
-            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
-            actual = sutGenerator.startsWith(second, first => first.grade, second => second.score);
-            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
-          }
-        });
+            const sut = this.createSut(array.grades);
 
-        it("should return false if sequence doesn't start with second sequence", () => {
-          const input = array.grades;
-          let second = array.grades.map(x => ({...x, score: x.grade}));
-          second[second.length - 1] = second[second.length - 2];
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
-          assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
-        });
-
-        it('should return false if second sequence has more items', () => {
-          const input = array.gradesFiftyAndAbove;
-          const second = array.grades.map(x => ({...x, score: x.grade}));
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
-          assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
-
-
-          it('should return false second sequence starts with first sequence', () => {
-            const input = array.grades.slice(0, -1);
-            const second = array.grades.map(x => ({...x, score: x.grade}));
-            const sutArray = this.createSut(input);
-            const sutGenerator = this.createSut(generator.from(input));
-            assert.isFalse(sutArray.startsWith(second, first => first.grade, second => second.score));
-            assert.isFalse(sutGenerator.startsWith(second, first => first.grade, second => second.score));
+            for (let take = 1; take < inputArray.length; take++) {
+              const second = inputArray.slice(0, take).map(x => ({name: x.name, score: x.grade}));
+              let actual = sut.startsWith(second, first => first.grade, second => second.score);
+              assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+            }
           });
-        });
 
-        it('should return true if second sequence is empty', () => {
-          let input = array.grades;
-          const second: { name: string; grade: number; score: number; }[] = [];
-          const sutArray = this.createSut(input);
-          const sutGenerator = this.createSut(generator.from(input));
-          assert.isTrue(sutArray.startsWith(second, first => first.grade, second => second.score));
-          assert.isTrue(sutGenerator.startsWith(second, first => first.grade, second => second.score));
+        this.it2("should return false if sequence doesn't start with second sequence",
+          array.grades.concat(array.grades[0]),
+          array.grades.concat(array.grades[1]).map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
 
-          // Also with empty source sequence
-          assert.isTrue(this.createSut<{ name: string; grade: number; }>([]).startsWith(second, x => x.grade));
-          assert.isTrue(this.createSut<{ name: string; grade: number; }>().startsWith(second, x => x.grade));
-        });
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, first => first.grade, second => second.score));
+          });
+
+        this.it2('should return false if second sequence has more items',
+          array.gradesFiftyAndAbove,
+          array.grades.map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, first => first.grade, second => second.score));
+          });
+
+        this.it2('should return false second sequence starts with first sequence',
+          array.grades.slice(0, -1),
+          array.grades.map(x => ({...x, score: x.grade})),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, first => first.grade, second => second.score));
+          });
+
+        this.it2('should return true if second sequence is empty',
+          array.grades,
+          [] as { name: string; score: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, first => first.grade, second => second.score));
+          });
+
+        this.it2('should return true if both sequences are empty',
+          [] as { name: string; grade: number; }[],
+          [] as { name: string; score: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, first => first.grade, second => second.score));
+          });
+      });
+
+      describe('with equality comparer', () => {
+        this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
+          array.grades,
+          (input, inputArray) => {
+
+            const sut = this.createSut(array.grades);
+
+            for (let take = 1; take < inputArray.length; take++) {
+              const second = inputArray.slice(0, take).map(x => ({name: x.name, score: x.grade}));
+              let actual = sut.startsWith(second, {equals: (f, s) => f.grade === s.score});
+              assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+            }
+          });
+
+        this.it2("should return false if sequence doesn't start with second sequence",
+          array.grades.concat(array.grades[0]),
+          array.grades.concat(array.grades[1]).map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
+
+        this.it2('should return false if second sequence has more items',
+          array.gradesFiftyAndAbove,
+          array.grades.map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
+
+        this.it2('should return false if second sequence starts with first sequence',
+          array.grades.slice(0, -1),
+          array.grades.map(x => ({name: x.name, score: x.grade})),
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
+
+        this.it2('should return true if second sequence is empty',
+          array.grades,
+          [] as { name: string; score: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
+
+        this.it2('should return true if both sequences are empty',
+          [] as { name: string; grade: number; }[],
+          [] as { name: string; score: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            assert.isTrue(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
       });
     });
 
