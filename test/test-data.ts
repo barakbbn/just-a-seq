@@ -198,7 +198,7 @@ export const generator = new class {
     })
   };
 
-  from<T>(array: T[]): Iterable<T>
+  from<T>(array:readonly T[]): Iterable<T>
   from(string: string): Iterable<string>
   from<T>(arrayOrString: Iterable<T>): Iterable<T> {
     return new ReusableGenerator<T>(function* from() {

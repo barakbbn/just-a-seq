@@ -137,33 +137,38 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.countInternal(condition);
   }
 
-  diff<K = T>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
+  diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+  diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
+  diff<U, K>(
+    items: Iterable<U>,
+    firstKeySelector: (item: T) => K = x => x as unknown as K,
+    secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): Seq<T | U> {
+
     return this.generate(function* diff(self) {
-      const firstKeys = new Set<K>();
-      const second: [T, K][] = Array.isArray(items) ? new Array<[T, K]>(items.length) : [];
 
-      let index = 0;
-      for (const item of items) second[index++] = [item, keySelector(item)];
+      const second: [U, K][] = Array.from(items, item => [item, secondKeySelector(item)]);
 
-      if (index === 0) {
+      if (!second.length) {
         yield* self;
         return;
       }
 
       const secondKeys = new Set<K>(second.map(([_, key]) => key));
+      const firstKeys = new Set<K>();
 
       for (const item of self) {
-        const key = keySelector(item);
+        const key = firstKeySelector(item);
         if (!secondKeys.has(key)) yield item;
         firstKeys.add(key);
       }
+      secondKeys.clear();
 
       for (const [value, key] of second) {
         if (!firstKeys.has(key)) yield value;
       }
 
-      secondKeys.clear();
       firstKeys.clear();
+      second.length = 0;
     });
   }
 
@@ -587,7 +592,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
 
-  indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
 

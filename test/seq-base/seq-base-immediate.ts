@@ -341,6 +341,8 @@ export abstract class SeqBase_Immediate_Tests {
           let actual = sut.endsWith(sut, x => x.grade);
           assert.isTrue(actual);
         });
+
+        // TODO: second sequence of different type
       });
 
       describe("with second key selector", () => {
@@ -1192,6 +1194,8 @@ export abstract class SeqBase_Immediate_Tests {
           actual = sut.includesAll(generator.from(second), x => x.grade);
           assert.isTrue(actual);
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with second key-selector', () => {
@@ -1408,6 +1412,8 @@ export abstract class SeqBase_Immediate_Tests {
           actual = sut.includesAny(generator.from(second), x => x.grade);
           assert.isFalse(actual);
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with second key-selector', () => {
@@ -1868,6 +1874,8 @@ export abstract class SeqBase_Immediate_Tests {
             assert.isTrue(actual);
           });
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with equality function', () => {
@@ -2482,6 +2490,8 @@ export abstract class SeqBase_Immediate_Tests {
             assert.strictEqual(actual, 0);
           });
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with equality function', () => {
@@ -3438,6 +3448,8 @@ export abstract class SeqBase_Immediate_Tests {
           actual = sut.sameItems(generator.from(second));
           assert.isFalse(actual);
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with second key-selector', () => {
@@ -3898,6 +3910,8 @@ export abstract class SeqBase_Immediate_Tests {
           assert.isTrue(this.createSut<{ name: string; grade: number; }>([]).startsWith(second, x => x.grade));
           assert.isTrue(this.createSut<{ name: string; grade: number; }>().startsWith(second, x => x.grade));
         });
+
+        // TODO: second sequence of different type
       });
 
       describe('with second key selector', () => {

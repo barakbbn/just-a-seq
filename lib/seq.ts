@@ -58,7 +58,9 @@ export interface Seq<T> extends Iterable<T> {
 
   count(condition?: Condition<T>): number;
 
-  diff<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
+  diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+  diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
+  diff<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T | U>;
 
   diffDistinct<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
 
@@ -209,7 +211,7 @@ export interface Seq<T> extends Iterable<T> {
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
 
-  indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): number; // Overload
