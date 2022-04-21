@@ -172,26 +172,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  diffDistinct<K>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
+  diffDistinct(items: Iterable<T>, keySelector: (item: T) => unknown = x => x): Seq<T> {
     const self = this;
     return this.generate(function* diff() {
-      const firstKeys = new Set<K>();
-      const second: [T, K][] = Array.isArray(items) ? new Array<[T, K]>(items.length) : [];
-      let index = 0;
-      for (const item of items) second[index++] = [item, keySelector(item)];
+      const second: [T, unknown][] = Array.from(items, item => [item, keySelector(item)]);
 
-      if (index === 0) {
+      if (!second.length) {
         yield* self.distinct(keySelector);
         return;
       }
 
-      const secondKeys = new Set<K>(second.map(([_, key]) => key));
+      const secondKeys = new Set<unknown>(second.map(([_, key]) => key));
+      const firstKeys = new Set<unknown>();
 
       for (const item of self) {
         const key = keySelector(item);
         if (!secondKeys.has(key) && !firstKeys.has(key)) yield item;
         firstKeys.add(key);
       }
+      secondKeys.clear();
 
       for (const [value, key] of second) {
         if (!firstKeys.has(key)) {
@@ -200,8 +199,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         }
       }
 
-      secondKeys.clear();
       firstKeys.clear();
+      second.length = 0;
     });
   }
 

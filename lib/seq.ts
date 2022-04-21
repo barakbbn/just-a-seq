@@ -62,7 +62,7 @@ export interface Seq<T> extends Iterable<T> {
   diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
   diff<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T | U>;
 
-  diffDistinct<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
+  diffDistinct(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
 
