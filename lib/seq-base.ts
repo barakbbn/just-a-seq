@@ -113,6 +113,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   concat(...items: Iterable<T>[]): Seq<T> {
+    if (!items.length) return this;
     return this.generate(function* concat(self: Iterable<T>) {
       yield* self;
       for (const part of items) yield* part;

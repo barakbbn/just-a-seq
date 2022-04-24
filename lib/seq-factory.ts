@@ -3,9 +3,9 @@ import {factories, Seq as ISeq} from "./seq";
 import {asSeqInternal, internalEmpty, randomInternal} from "./internal";
 
 
-export function asSeq<T>(items: Iterable<T>): ISeq<T>;
+export function asSeq<T>(...items: Iterable<T>[]): ISeq<T>;
 export function asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
-export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): ISeq<T> {
+export function asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]): ISeq<T> {
   return asSeqInternal(itemsProvider);
 }
 
@@ -60,9 +60,8 @@ export namespace Seq {
 export declare namespace Seq {
   export let enableOptimization: boolean;
 
-  export function asSeq<T>(items: Iterable<T>): ISeq<T>;
+  export function asSeq<T>(items: Iterable<T>, ...moreItems: Iterable<T>[]): ISeq<T>;
   export function asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
-  export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): ISeq<T>;
 }
 Seq.asSeq = asSeq as any;
 

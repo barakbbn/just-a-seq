@@ -68,6 +68,20 @@ export abstract class SeqBase_Deferred_Tests {
     it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
   }
 
+  itx<T, U = T>(title: string, input: readonly T[], others: readonly U[][], testFn: (input: Iterable<T>, others: readonly Iterable<U>[]) => void) {
+    it(title + ' - input array, others array', () => testFn(input, others));
+    it(title + ' - input array, others generator', () => testFn(input, others.map(x => generator.from(x))));
+    it(title + ' - input array, others sequence', () => testFn(input, others.map(x => this.createSut(x))));
+
+    it(title + ' - input generator, others array', () => testFn(generator.from(input), others));
+    it(title + ' - input generator, others generator', () => testFn(generator.from(input), others.map(x => generator.from(x))));
+    it(title + ' - input generator, others sequence', () => testFn(generator.from(input), others.map(x => this.createSut(x))));
+
+    it(title + ' - input sequence, others array', () => testFn(this.createSut(input), others));
+    it(title + ' - input sequence, others generator', () => testFn(this.createSut(input), others.map(x => generator.from(x))));
+    it(title + ' - input sequence, others sequence', () => testFn(this.createSut(input), others.map(x => this.createSut(x))));
+  }
+
   readonly run = () => describe('SeqBase - Deferred Execution', () => {
     describe("append()", () => {
       this.it1('should add an item at the end of the sequence', array.zeroToNine, (input) => {
@@ -175,16 +189,15 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe("concat$()", () => {
-      it('should append one or more sequences at the end of the target sequence', () => {
-        let sut = this.createSut([1, 2]);
-        const expected = array.oneToTen;
-        let actual = [...sut.concat$([3, 4], [5, 6], [7, 8, 9, 10])];
-        assert.sameOrderedMembers(actual, expected);
-
-        sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat$(generator.from([3, 4]), generator.from([5, 6]), generator.from([7, 8, 9, 10]))];
-        assert.sameOrderedMembers(actual, expected);
-      });
+      this.itx('should append one or more sequences at the end of the target sequence',
+        [1, 2],
+        [[3, 4], [5, 6], [7, 8, 9, 10]],
+        (input, others) => {
+          let sut = this.createSut(input);
+          const expected = array.oneToTen;
+          let actual = [...sut.concat$(...others)];
+          assert.sameOrderedMembers(actual, expected);
+        });
 
       this.it1('should concat sequence to itself', [1, 2], input => {
         let sut = this.createSut(input);
@@ -214,21 +227,27 @@ export abstract class SeqBase_Deferred_Tests {
         const actual = [...sut.concat$(0, 0, 0, ...input, 0, 0, 0)];
         assert.deepEqual(actual, expected);
       });
+
+      this.it1('should return new sequence with same items, when no parameter is provided', [1, 2], input => {
+        const sut = this.createSut(input);
+        const actual = sut.concat$();
+        assert.notEqual(actual, sut);
+        assert.sameDeepMembers([...actual], [...sut]);
+      });
     });
 
     describe("concat()", () => {
-      it('should append one or more sequences at the end of the target sequence', () => {
-        let sut = this.createSut([1, 2]);
-        const expected = array.oneToTen;
-        let actual = [...sut.concat$([3, 4], [5, 6], [7, 8, 9, 10])];
-        assert.sameOrderedMembers(actual, expected);
+      this.itx('should append one or more sequences at the end of the target sequence',
+        [1, 2],
+        [[3, 4], [5, 6], [7, 8, 9, 10]],
+        (input, others) => {
+          let sut = this.createSut(input);
+          const expected = array.oneToTen;
+          let actual = [...sut.concat(...others)];
+          assert.sameOrderedMembers(actual, expected);
+        });
 
-        sut = this.createSut(generator.from([1, 2]));
-        actual = [...sut.concat$(generator.from([3, 4]), generator.from([5, 6]), generator.from([7, 8, 9, 10]))];
-        assert.sameOrderedMembers(actual, expected);
-      });
-
-      this.it1('should concat sequence to itself', [1, 2], (input, inputArray) => {
+      this.it1('should concat sequence with itself', [1, 2], (input, inputArray) => {
         let sut = this.createSut(input);
         const expected = inputArray.concat(inputArray);
 
@@ -239,14 +258,14 @@ export abstract class SeqBase_Deferred_Tests {
       this.it1('should have no effect when concatenating empty sequences', [1, 2], (input, inputArray) => {
         let sut = this.createSut(input);
         const expected = inputArray;
-        let actual = [...sut.concat$([], [], [])];
+        let actual = [...sut.concat([], [], [])];
         assert.sameOrderedMembers(actual, expected);
+      });
 
-        actual = [...sut.concat$(generator.from([]), generator.from([]), generator.from([]))];
-        assert.sameOrderedMembers(actual, expected);
-
-        actual = [...sut.concat$(this.createSut(), this.createSut(), this.createSut())];
-        assert.sameOrderedMembers(actual, expected);
+      this.it1('should return itself when no parameter is provided', [1, 2], input => {
+        const sut = this.createSut(input);
+        const actual = sut.concat();
+        assert.equal(actual, sut);
       });
     });
 
@@ -567,60 +586,60 @@ export abstract class SeqBase_Deferred_Tests {
           array.repeatConcat(array.grades.slice(1, -1).concat(nonExistingGrade), 2),
           (first, second) => {
 
-          const expected = [array.grades[0], array.grades[array.grades.length - 1], nonExistingGrade];
+            const expected = [array.grades[0], array.grades[array.grades.length - 1], nonExistingGrade];
 
-          const sut = this.createSut(first);
-          const actual = [...sut.diffDistinct(second, x => x.grade)];
-          assert.sameDeepMembers(actual, expected);
-        });
+            const sut = this.createSut(first);
+            const actual = [...sut.diffDistinct(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
 
         this.it2('should return empty sequence if all items in first sequence exist in second sequence and vise versa',
           array.grades.concat(array.grades),
           array.grades,
           (first, second) => {
 
-          const expected: { name: string; grade: number; }[] = [];
+            const expected: { name: string; grade: number; }[] = [];
 
-          const sut = this.createSut(first);
-          const actual = sut.diffDistinct(second, x => x.grade);
-          assert.sameDeepMembers([...actual], expected);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.diffDistinct(second, x => x.grade);
+            assert.sameDeepMembers([...actual], expected);
+          });
 
         this.it2('when second sequence is empty, should return the first sequence distinct values',
           array.grades.concat(array.grades),
           [] as { name: string; grade: number; }[],
           (first, second) => {
 
-          const expected = array.grades;
+            const expected = array.grades;
 
-          const sut = this.createSut(first);
-          const actual = [...sut.diffDistinct(second, x => x.grade)];
-          assert.sameDeepMembers(actual, expected);
-        });
+            const sut = this.createSut(first);
+            const actual = [...sut.diffDistinct(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
 
         this.it2('when first sequence is empty, should return the second sequence distinct values',
           [] as { name: string; grade: number; }[],
           array.grades.concat(array.grades),
           (first, second) => {
 
-          const expected = array.grades;
+            const expected = array.grades;
 
-          const sut = this.createSut(first);
-          const actual = sut.diffDistinct(second, x => x.grade);
-          assert.sameDeepMembers([...actual], expected);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.diffDistinct(second, x => x.grade);
+            assert.sameDeepMembers([...actual], expected);
+          });
 
         this.it2('should return empty sequence when first and second sequences are empty',
           [] as { name: string; grade: number; }[],
           [] as { name: string; grade: number; }[],
           (first, second) => {
 
-          const expected: { name: string; grade: number; }[] = [];
+            const expected: { name: string; grade: number; }[] = [];
 
-          const sut = this.createSut(first);
-          const actual = sut.diffDistinct(second, x => x.grade);
-          assert.sameDeepMembers([...actual], expected);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.diffDistinct(second, x => x.grade);
+            assert.sameDeepMembers([...actual], expected);
+          });
       });
     });
 
