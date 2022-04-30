@@ -16,7 +16,7 @@ import {
   consume,
   entries,
   Gen,
-  getIterator,
+  getIterator, IDENTITY,
   IGNORED_ITEM,
   isArray,
   isIterable,
@@ -700,19 +700,22 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  intersect(items: Iterable<T>, keySelector: (item: T) => unknown = x => x): Seq<T> {
-    return this.generate(function* intersect(self) {
-      let secondKeys = new Set<unknown>();
-      for (const second of items) secondKeys.add(keySelector(second));
-      for (const first of self) {
-        const key = keySelector(first);
-        const exists = secondKeys.has(key);
-        if (exists) {
-          yield first;
-          secondKeys.delete(key);
-        }
-      }
-    });
+  intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T> {
+    return this.intersectWith(items, keySelector, keySelector);
+  }
+
+  intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlySet<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T>;
+
+  intersectBy<K extends object>(second: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T> {
+    const isHashable = (maybeHashable: unknown): maybeHashable is { has(k: K): unknown; } => {
+      return maybeHashable instanceof Map || maybeHashable instanceof Set;
+    }
+
+    return (isHashable(second)) ?
+      this.intersectByKeys(second, keySelector) :
+      this.intersectWith(second, keySelector, undefined);
   }
 
   intersperse(separator: T, insideOut?: boolean): Seq<T>;
@@ -1054,6 +1057,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   remove<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
+  // Synthetic overload needed for calling by derived class super
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T>;
 
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T> {
@@ -1775,6 +1779,56 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return isArray(source) ? source : [...source];
   }
 
+  private intersectByKeys<K>(keys: ReadonlyMap<K, unknown> | ReadonlySet<K>, keySelector: Selector<T, K> = IDENTITY): Seq<T> {
+    return this.generate(function* intersectByKeys(self) {
+      const iteratedSet = new Set<K>();
+
+      for (const {value, index} of entries(self)) {
+        const key = keySelector(value, index);
+        if (iteratedSet.has(key) || !keys.has(key)) continue;
+        yield value;
+        iteratedSet.add(key);
+      }
+      iteratedSet.clear();
+    });
+  }
+
+  private intersectWith<U = T, K = T>(second: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T> {
+    return this.generate(function* intersectWith(self, iterationContext) {
+      const secondIterator = iterationContext.closeWhenDone(getIterator(second));
+      let secondNext = secondIterator.next();
+      if (secondNext.done) return; // empty
+      const iteratedMap = new Map<unknown, boolean>();
+
+      const existsInSecond = (firstKey: unknown): boolean => {
+        let alreadyIterated = iteratedMap.get(firstKey);
+        if (alreadyIterated) return false;
+        else if (alreadyIterated !== undefined) {
+          iteratedMap.set(firstKey, true);
+          return true;
+        }
+        let secondIndex = 0;
+        while (!secondNext.done) {
+          const second = secondNext.value;
+          const secondKey = secondKeySelector ? secondKeySelector(second, secondIndex++) : second;
+          secondNext = secondIterator.next();
+          const match = sameValueZero(firstKey, secondKey);
+          if (!iteratedMap.has(secondKey)) iteratedMap.set(secondKey, match);
+          if (match) return true;
+        }
+
+        return false;
+      };
+
+      for (const {value: first, index} of entries(self)) {
+        const firstKey = firstKeySelector ? firstKeySelector(first, index) : first;
+        if (existsInSecond(firstKey)) yield first;
+      }
+
+      iteratedMap.clear();
+    });
+  }
+
   private toJSON(key: any): any {
     return this.toJsonOverride(key);
   }
@@ -1892,7 +1946,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findLastByConditionInternal(tillIndex, condition, fallback);
   }
 
-  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = x => x as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean): Seq<T> {
+  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = IDENTITY, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean): Seq<T> {
     return this.generate(function* remove(self) {
       const keys = new Map<K, number>();
       for (const second of items) {
@@ -1903,12 +1957,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
       for (const item of self) {
         const key = firstKeySelector(item);
-        if (keys.has(key)) {
-          const occurrencesCount = keys.get(key)!;
-          if (!all) {
-            if (occurrencesCount < 2) keys.delete(key);
-            else keys.set(key, occurrencesCount - 1);
-          }
+        const occurrencesCount = keys.get(key) ?? 0;
+        if (occurrencesCount) {
+          if (!all) keys.set(key, occurrencesCount - 1);
           continue;
         }
         yield item;

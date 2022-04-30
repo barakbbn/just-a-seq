@@ -230,6 +230,10 @@ export interface Seq<T> extends Iterable<T> {
 
   intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
+  intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlySet<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T>;
+
   // Intersperses a value (separator) between the items in the source sequence
   // Like join(), but return a sequence instead of string
   intersperse(separator: T, insideOut?: boolean): Seq<T>;
@@ -354,6 +358,7 @@ export interface Seq<T> extends Iterable<T> {
 
   takeLast(count: number): Seq<T>
 
+  // Similar to intersect() by not distinct items, rather as they appear in second iterable
   takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;

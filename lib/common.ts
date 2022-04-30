@@ -199,3 +199,5 @@ export interface TaggedSeq {
   [SeqTags.$maxCount]?: number;
   [SeqTags.$notMappingItems]?: boolean;
 }
+
+export const IDENTITY = <T>(v: unknown): T => v as T;

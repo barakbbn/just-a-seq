@@ -1492,12 +1492,15 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
     describe('intersect()', () => {
-      this.it2('should return items that exists in both sequences without duplications', array.zeroToNine.concat(array.oneToTen), array.zeroToTen.concat(array.tenOnes).filter(x => x % 2 === 1).reverse(), (first, secondOdds) => {
-        const expectedOdds = [...new Set(secondOdds)];
-        let sut = this.createSut(first);
-        let actual = [...sut.intersect(secondOdds)];
-        assert.sameMembers(actual, expectedOdds);
-      });
+      this.it2('should return items that exists in both sequences without duplications',
+        array.zeroToNine.concat(array.oneToTen),
+        array.zeroToTen.concat(array.tenOnes).filter(x => x % 2 === 1).reverse(),
+        (first, secondOdds) => {
+          const expectedOdds = [...new Set(secondOdds)];
+          let sut = this.createSut(first);
+          let actual = [...sut.intersect(secondOdds)];
+          assert.sameMembers(actual, expectedOdds);
+        });
 
       this.it2('should return empty sequence if none of items exists in both sequences', array.oneToTen, array.tenZeros, (first, second) => {
         const expected: number[] = [];
@@ -1514,8 +1517,8 @@ export abstract class SeqBase_Deferred_Tests {
       });
       this.it2('should return empty sequence if first sequence is empty', [], array.oneToTen, (first: Iterable<number>, second) => {
         const expected: number[] = [];
-        let sut = this.createSut(second);
-        let actual = [...sut.intersect(first)];
+        let sut = this.createSut(first);
+        let actual = [...sut.intersect(second)];
         assert.sameMembers(actual, expected);
       });
 
@@ -1542,10 +1545,153 @@ export abstract class SeqBase_Deferred_Tests {
         });
         this.it2('should return empty sequence if first sequence is empty', [], array.grades, (first: Iterable<{ name: string; grade: number }>, second) => {
           const expected: { name: string; grade: number; }[] = [];
-          let sut = this.createSut(second);
-          let actual = [...sut.intersect(first, x => x.grade)];
+          let sut = this.createSut(first);
+          let actual = [...sut.intersect(second, x => x.grade)];
           assert.sameDeepMembers(actual, expected);
         });
+      });
+    });
+
+    describe('intersectBy()', () => {
+      this.it2('should return items that exists in both sequences without duplications',
+        array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove),
+        array.gradesFiftyAndBelow.concat(array.gradesFiftyAndBelow).map(g => g.grade),
+        (first, grades) => {
+
+          const expected = array.grades.filter(x => x.grade === 50).slice(-1);
+          let sut = this.createSut(first);
+          let actual = [...sut.intersectBy(grades, x => x.grade)];
+          assert.sameDeepMembers(actual, expected);
+        });
+
+      this.it2('should return empty sequence if none of items exists in both sequences',
+        array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove).filter(x => x.grade !== 50),
+        array.gradesFiftyAndBelow.concat(array.gradesFiftyAndBelow).filter(x => x.grade !== 50).map(g => g.grade),
+        (first, second) => {
+          const expected: { name: string; grade: number; }[] = [];
+          let sut = this.createSut(first);
+          let actual = [...sut.intersectBy(second, x => x.grade)];
+          assert.sameDeepMembers(actual, expected);
+        });
+
+      this.it2('should return empty sequence if second sequence is empty',
+        array.grades,
+        [] as number[],
+        (first, second) => {
+          const expected: { name: string; grade: number; }[] = [];
+          let sut = this.createSut(first);
+          let actual = [...sut.intersectBy(second, x => x.grade)];
+          assert.sameDeepMembers(actual, expected);
+        });
+
+      this.it2('should return empty sequence if first sequence is empty',
+        [], array.grades.map(g => g.grade),
+        (first: Iterable<{ name: string; grade: number }>, second) => {
+          const expected: { name: string; grade: number; }[] = [];
+          let sut = this.createSut(first);
+          let actual = [...sut.intersectBy(second, x => x.grade)];
+          assert.sameDeepMembers(actual, expected);
+        });
+
+      describe('by Set', () => {
+        this.it1('should return items that exists in both sequences without duplications',
+          array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove),
+          first => {
+            const secondIterable = array.gradesFiftyAndBelow.concat(array.gradesFiftyAndBelow).map(g => g.grade);
+            const second = new Set(secondIterable);
+            const expected = array.grades.filter(x => x.grade === 50).slice(-1);
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if none of items exists in both sequences',
+          array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove).filter(x => x.grade !== 50),
+          first => {
+            const secondIterable = array.gradesFiftyAndBelow.concat(array.gradesFiftyAndBelow).filter(x => x.grade !== 50).map(g => g.grade);
+            const second = new Set(secondIterable);
+
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if second sequence is empty',
+          array.grades, first => {
+
+            const second = new Set<number>();
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if first sequence is empty',
+          [] as { name: string; grade: number }[], first => {
+
+            const secondIterable = array.grades.map(g => g.grade);
+            const second = new Set(secondIterable);
+
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+      });
+
+      describe('by Map', () => {
+        this.it1('should return items that exists in both sequences without duplications',
+          array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove),
+          first => {
+            const secondIterable: [number, { name: string; grade: number; }][] = array.gradesFiftyAndBelow
+              .concat(array.gradesFiftyAndBelow)
+              .map(g => [g.grade, g]);
+
+            const second = new Map(secondIterable);
+            const expected = array.grades.filter(x => x.grade === 50).slice(-1);
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if none of items exists in both sequences',
+          array.gradesFiftyAndAbove.concat(array.gradesFiftyAndAbove).filter(x => x.grade !== 50),
+          first => {
+            const secondIterable: [number, { name: string; grade: number; }][] = array.gradesFiftyAndBelow
+              .concat(array.gradesFiftyAndBelow)
+              .filter(x => x.grade !== 50)
+              .map(g => [g.grade, g]);
+
+            const second = new Map(secondIterable);
+
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if second sequence is empty',
+          array.grades, first => {
+
+            const second = new Map<number, unknown>();
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
+
+        this.it1('should return empty sequence if first sequence is empty',
+          [] as { name: string; grade: number }[], first => {
+
+            const secondIterable: [number, { name: string; grade: number; }][] = array.grades.map(g => [g.grade, g]);
+            const second = new Map(secondIterable);
+
+            const expected: { name: string; grade: number; }[] = [];
+            let sut = this.createSut(first);
+            let actual = [...sut.intersectBy(second, x => x.grade)];
+            assert.sameDeepMembers(actual, expected);
+          });
       });
     });
 
