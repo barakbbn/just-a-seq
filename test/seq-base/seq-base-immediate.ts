@@ -1163,448 +1163,328 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe('includesAll()', () => {
-      it('should return true if sequence contains all items from the second sequence', () => {
-        const first = array.oneToTen;
-        const second = [7, 2, 3, 7];
-        let sut = this.createSut(first);
-        let actual = sut.includesAll(second);
-        assert.isTrue(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAll(generator.from(second));
-        assert.isTrue(actual);
+      this.it2('should return true if sequence contains all items from the second sequence',
+        array.oneToTen, [7, 2, 3, 7], (first, second) => {
 
-        const first2 = array.grades;
-        const second2 = first2.filter(x => x.grade <= 50);
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesAll(second2);
-        assert.isTrue(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesAll(generator.from(second2));
-        assert.isTrue(actual2);
-      });
+          const sut = this.createSut(first);
+          const actual = sut.includesAll(second);
+          assert.isTrue(actual);
+        });
 
-      it('should return false if sequence contains only some of the items from the second sequence', () => {
-        const first = array.oneToTen;
-        const second = [7, 2, -1, 7];
-        let sut = this.createSut(first);
-        let actual = sut.includesAll(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAll(generator.from(second));
-        assert.isFalse(actual);
+      this.it2('should return false if sequence contains only some of the items from the second sequence',
+        array.oneToTen, [7, 2, -1, 7], (first, second) => {
 
-        const first2 = array.grades;
-        const missingItem = {name: "missing", grade: -1};
-        const second2 = first2.filter(x => x.grade <= 50).concat([missingItem]);
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesAll(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesAll(generator.from(second2));
-        assert.isFalse(actual2);
-      });
+          const sut = this.createSut(first);
+          const actual = sut.includesAll(second);
+          assert.isFalse(actual);
+        });
 
-      it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-        const first = array.oneToTen;
-        const second = [0, 0, 0, 0];
-        let sut = this.createSut(first);
-        let actual = sut.includesAll(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAll(generator.from(second));
-        assert.isFalse(actual);
+      this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+        array.oneToTen, [0, 0, 0, 0], (first, second) => {
 
-        const first2 = array.grades;
-        const second2 = array.gradesFiftyAndBelow; // different instances of objects, which without key selector aren't equal
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesAll(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesAll(generator.from(second2));
-        assert.isFalse(actual2);
-      });
+          const sut = this.createSut(first);
+          const actual = sut.includesAll(second);
+          assert.isFalse(actual);
+        });
 
-      it('should return false is source sequence is empty', () => {
-        const first: number[] = [];
-        const second = array.oneToTen;
-        let sut = this.createSut(first);
-        let actual = sut.includesAll(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAll(generator.from(second));
-        assert.isFalse(actual);
-      });
+      this.it2('should return false is source sequence is empty',
+        [] as number[], array.oneToTen, (first, second) => {
 
-      it('should return true if second sequence is empty', () => {
-        const first = array.oneToTen;
-        const second: number[] = [];
-        let sut = this.createSut(first);
-        let actual = sut.includesAll(second);
-        assert.isTrue(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAll(generator.from(second));
-        assert.isTrue(actual);
-      });
+          const sut = this.createSut(first);
+          const actual = sut.includesAll(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return true if second sequence is empty',
+        array.oneToTen, [] as number[], (first, second) => {
+
+          const sut = this.createSut(first);
+          const actual = sut.includesAll(second);
+          assert.isTrue(actual);
+        });
 
       describe('with key-selector', () => {
-        it('should return true if sequence contains all items from the second sequence', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndBelow.map(x => ({...x, score: x.grade}));
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, x => x.grade);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
+        this.it2('should return true if sequence contains all items from the second sequence',
+          array.grades, array.gradesFiftyAndBelow.map(x => ({grade: x.grade})),
+          (first, second) => {
 
-        it('should return false if sequence contains only some of the items from the second sequence', () => {
-          const first = array.grades;
-          const missingItem = {name: "missing", grade: -1};
-          const second = first.filter(x => x.grade <= 50).concat([missingItem]);
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, x => x.grade);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, x => x.grade);
+            assert.isTrue(actual);
+          });
 
-        it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-          const first = array.grades;
-          const second = [{name: "fake 1", grade: -1}, {name: "fake ", grade: -1}, {name: "fake 3", grade: -2}];
-          second.forEach(x => x.grade = -x.grade);
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second));
-          assert.isFalse(actual);
-        });
+        this.it2('should return false if sequence contains only some of the items from the second sequence',
+          array.gradesAboveFifty, array.grades, (first, second) => {
 
-        it('should return false is source sequence is empty', () => {
-          const first: { name: string; grade: number; }[] = [];
-          const second = array.grades;
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, x => x.grade);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-        it('should return true if second sequence is empty', () => {
-          const first = array.grades;
-          const second: { name: string; grade: number; }[] = [];
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, x => x.grade);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
+        this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+          array.grades,
+          [{grade: -1}, {grade: -1}, {grade: -2}],
+          (first, second) => {
 
-        // TODO: second sequence of different type
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return false is source sequence is empty',
+          [] as { name: string; grade: number; }[], array.grades, (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, x => x.grade);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return true if second sequence is empty',
+          array.grades, [] as { name: string; grade: number; }[], (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, x => x.grade);
+            assert.isTrue(actual);
+          });
       });
 
       describe('with second key-selector', () => {
-        it('should return true if sequence contains all items from the second sequence', () => {
-          const first = [
+        this.it2('should return true if sequence contains all items from the second sequence',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ], [
             {x: 0, y: 0},
             {x: -1, y: 1},
             {x: 1, y: -1}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isTrue(actual);
+          });
 
-        it('should return false if sequence contains only some of the items from the second sequence', () => {
-          const first = [
+        this.it2('should return false if sequence contains only some of the items from the second sequence',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ], [
             {x: 0, y: 0},
             {x: -1, y: 1},
             {x: 1, y: -1},
             {x: 9999, y: 9999}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-        it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-          const first = [
+        this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ], [
             {x: 2222, y: 2222},
             {x: -2222, y: 2222},
             {x: 3333, y: -3333},
             {x: 9999, y: 9999}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-        it('should return false is source sequence is empty', () => {
-          const first: { x: number; y: number; z: number }[] = [];
-          const second = [
+        this.it2('should return false is source sequence is empty',
+          [] as { x: number; y: number; z: number }[],
+          [
             {x: 2222, y: 2222},
             {x: -2222, y: 2222},
             {x: 3333, y: -3333},
             {x: 9999, y: 9999}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-        it('should return true if second sequence is empty', () => {
-          const first = [
+        this.it2('should return true if second sequence is empty',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second: { x: number; y: number; z: number }[] = [];
+          ],
+          [] as { x: number; y: number; z: number }[],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAll(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAll(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isTrue(actual);
+          });
       });
     });
 
     describe('includesAny()', () => {
-      it('should return true if sequence contains any item from the second sequence', () => {
-        const first = array.oneToTen;
-        const second = [-1, -2, 7, -3, -4];
-        let sut = this.createSut(first);
-        let actual = sut.includesAny(second);
-        assert.isTrue(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAny(generator.from(second));
-        assert.isTrue(actual);
-
-        const first2 = array.grades;
-        const second2 = first2.filter(x => x.grade >= 50);
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesAny(second2);
-        assert.isTrue(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesAny(generator.from(second2));
-        assert.isTrue(actual2);
-      });
-
-      it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-        const first = array.oneToTen;
-        const second = [0, 0, 0, 0];
-        let sut = this.createSut(first);
-        let actual = sut.includesAny(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAny(generator.from(second));
-        assert.isFalse(actual);
-
-        const first2 = array.grades;
-        const second2 = array.gradesFiftyAndBelow; // different instances of objects, which without key selector aren't equal
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesAny(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesAny(generator.from(second2));
-        assert.isFalse(actual2);
-      });
-
-      it('should return false is source sequence is empty', () => {
-        const first: number[] = [];
-        const second = array.oneToTen;
-        let sut = this.createSut(first);
-        let actual = sut.includesAny(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAny(generator.from(second));
-        assert.isFalse(actual);
-      });
-
-      it('should return false if second sequence is empty', () => {
-        const first = array.oneToTen;
-        const second: number[] = [];
-        let sut = this.createSut(first);
-        let actual = sut.includesAny(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesAny(generator.from(second));
-        assert.isFalse(actual);
-      });
-
-      describe('with key-selector', () => {
-        it('should return true if sequence contains any item from the second sequence', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndBelow.map(x => ({...x, score: x.grade}));
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, x => x.grade);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), x => x.grade);
+      this.it2('should return true if sequence contains any item from the second sequence',
+        array.oneToTen, [-1, -2, 7, -3, -4], (first, second) => {
+          const sut = this.createSut(first);
+          const actual = sut.includesAny(second);
           assert.isTrue(actual);
         });
 
-        it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-          const first = array.grades;
-          const second = [{name: "fake 1", grade: -1}, {name: "fake ", grade: -1}, {name: "fake 3", grade: -2}];
-          second.forEach(x => x.grade = -x.grade);
+      this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+        array.oneToTen, [0, 0, 0, 0], (first, second) => {
+
+          const sut = this.createSut(first);
+          const actual = sut.includesAny(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return false is source sequence is empty',
+        [] as number[], array.oneToTen, (first, second) => {
+
           let sut = this.createSut(first);
           let actual = sut.includesAny(second);
           assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second));
-          assert.isFalse(actual);
         });
 
-        it('should return false is source sequence is empty', () => {
-          const first: { name: string; grade: number; }[] = [];
-          const second = array.grades;
+      this.it2('should return false if second sequence is empty',
+        array.oneToTen, [] as number[], (first, second) => {
+
           let sut = this.createSut(first);
-          let actual = sut.includesAny(second, x => x.grade);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), x => x.grade);
+          let actual = sut.includesAny(second);
           assert.isFalse(actual);
         });
 
-        it('should return false if second sequence is empty', () => {
-          const first = array.grades;
-          const second: { name: string; grade: number; }[] = [];
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, x => x.grade);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
+      describe('with key-selector', () => {
+        this.it2('should return true if sequence contains any item from the second sequence',
+          array.grades,
+          array.gradesFiftyAndBelow.map(x => ({grade: x.grade})),
+          (first, second) => {
 
-        // TODO: second sequence of different type
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, x => x.grade);
+            assert.isTrue(actual);
+          });
+
+        this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+          array.grades,
+          [{name: "fake 1", grade: -1}, {name: "fake ", grade: -1}, {name: "fake 3", grade: -2}],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, x => x.grade);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return false is source sequence is empty',
+          [] as { name: string; grade: number; }[],
+          array.grades,
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, x => x.grade);
+            assert.isFalse(actual);
+          });
+
+        this.it2('should return false if second sequence is empty',
+          array.grades, [] as { grade: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, x => x.grade);
+            assert.isFalse(actual);
+          });
       });
 
       describe('with second key-selector', () => {
-        it('should return true if sequence contains any item from the second sequence', () => {
-          const first = [
+        this.it2('should return true if sequence contains any item from the second sequence',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ], [
             {x: 0, y: 0},
             {x: -1, y: 1},
             {x: 1, y: -1}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isTrue(actual);
+          });
 
-        it("should return false if sequence doesn't contains any of the items from the second sequence", () => {
-          const first = [
+        this.it2("should return false if sequence doesn't contains any of the items from the second sequence",
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ],
+          [
             {x: 2222, y: 2222},
             {x: -2222, y: 2222},
             {x: 3333, y: -3333},
             {x: 9999, y: 9999}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-        it('should return false is source sequence is empty', () => {
-          const first: { x: number; y: number; z: number }[] = [];
-          const second = [
+        this.it2('should return false is source sequence is empty',
+          [] as { x: number; y: number; z: number }[],
+          [
             {x: 2222, y: 2222},
             {x: -2222, y: 2222},
             {x: 3333, y: -3333},
             {x: 9999, y: 9999}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-        it('should return false if second sequence is empty', () => {
-          const first = [
+        this.it2('should return false if second sequence is empty',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second: { x: number; y: number; z: number }[] = [];
+          ],
+          [] as { x: number; y: number; z: number }[],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesAny(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.includesAny(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
       });
     });
 
@@ -3455,185 +3335,148 @@ export abstract class SeqBase_Immediate_Tests {
     });
 
     describe('sameItems()', () => {
-      it('should return true if both sequences have the same items', () => {
-        const first = array.oneToTen;
-        const second = array.oneToTen.reverse();
-        let sut = this.createSut(first);
-        let actual = sut.sameItems(second);
-        assert.isTrue(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.sameItems(generator.from(second));
-        assert.isTrue(actual);
-      });
+      this.it2('should return true if both sequences have the same items',
+        array.oneToTen, array.oneToTen.reverse(), (first, second) => {
+          const sut = this.createSut(first);
+          const actual = sut.sameItems(second);
+          assert.isTrue(actual);
+        });
 
-      it('should return true if both sequences are empty', () => {
-        assert.isTrue(this.createSut([]).sameItems([]));
-        assert.isTrue(this.createSut().sameItems(this.createSut()));
-      });
+      this.it2('should return true if both sequences are empty',
+        [] as unknown[], [] as unknown[], (first, second) => {
+          assert.isTrue(this.createSut(first).sameItems(second));
+        });
 
-      it('should return false if sequences have different number of items', () => {
-        const input = array.oneToTen;
-        const second = array.oneToNine;
+      this.it2('should return false if sequences have different number of items',
+        array.oneToTen, array.oneToNine, (first, second) => {
 
-        let sut = this.createSut(input);
-        let actual = sut.sameItems(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(input));
-        actual = sut.sameItems(generator.from(second));
-        assert.isFalse(actual);
-      });
+          const sut = this.createSut(first);
+          const actual = sut.sameItems(second);
+          assert.isFalse(actual);
+        });
 
-      it('should return false if one of the sequences is empty', () => {
-        let first: number[] = [];
-        let second = array.oneToNine;
+      this.it2('should return false if source sequences is empty',
+        [] as number[], array.oneToNine, (first, second) => {
 
-        let sut = this.createSut(first);
-        let actual = sut.sameItems(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.sameItems(generator.from(second));
-        assert.isFalse(actual);
+          const sut = this.createSut(first);
+          const actual = sut.sameItems(second);
+          assert.isFalse(actual);
+        });
 
-        first = array.oneToNine;
-        second = [];
-        sut = this.createSut(first);
-        actual = sut.sameItems(second);
-        assert.isFalse(actual);
-        sut = this.createSut(generator.from(first));
-        actual = sut.sameItems(generator.from(second));
-        assert.isFalse(actual);
+      this.it2('should return false if only second sequences is empty',
+        array.oneToNine, [] as number[], (first, second) => {
 
-      });
+          const sut = this.createSut(first);
+          const actual = sut.sameItems(second);
+          assert.isFalse(actual);
+        });
 
       describe('with key-selector', () => {
-        it('should return true if both sequences have the same items', () => {
-          const first = array.grades;
-          const second = array.grades.reverse();
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second, x => x.grade);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
+        this.it2('should return true if both sequences have the same items',
+          array.grades, array.grades.reverse(), (first, second) => {
 
-        it('should return false if sequences have different number of items', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndBelow.concat(array.gradesFiftyAndAbove);
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second, x => x.grade);
+            assert.isTrue(actual);
+          });
 
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second, x => x.grade);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
+        this.it2('should return false if sequences have different number of items',
+          array.grades, array.gradesFiftyAndBelow.concat(array.gradesFiftyAndAbove), (first, second) => {
 
-          sut = this.createSut(second);
-          actual = sut.sameItems(first, x => x.grade);
-          assert.isFalse(actual);
+            let sut = this.createSut(first);
+            let actual = sut.sameItems(second, x => x.grade);
+            assert.isFalse(actual);
 
-          sut = this.createSut(generator.from(second));
-          actual = sut.sameItems(generator.from(first), x => x.grade);
-          assert.isFalse(actual);
-        });
+            sut = this.createSut(second);
+            actual = sut.sameItems(first, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-        it('should return false if one of the sequences is empty', () => {
-          let first: { name: string; grade: number }[] = [];
-          let second = array.grades;
+        this.it2('should return false if only source sequences is empty',
+          [] as { name: string; grade: number }[], array.grades, (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second));
-          assert.isFalse(actual);
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second);
+            assert.isFalse(actual);
+          });
 
-          first = array.grades;
-          second = [];
-          sut = this.createSut(first);
-          actual = sut.sameItems(second);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second));
-          assert.isFalse(actual);
-        });
+        this.it2('should return false if only second sequences is empty',
+          array.grades, [] as { name: string; grade: number }[], (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second);
+            assert.isFalse(actual);
+          });
 
         // TODO: second sequence of different type
       });
 
       describe('with second key-selector', () => {
-        it('should return true if both sequences have the same items', () => {
-          const first = [
+        this.it2('should return true if both sequences have the same items',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ], [
             {x: -1, y: 1},
             {x: 0, y: 0},
             {x: 0, y: 1},
             {x: 1, y: 0},
             {x: 1, y: -1}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isTrue(actual);
-        });
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isTrue(actual);
+          });
 
-        it('should return false if sequences have different number of items', () => {
-          const first = [
+        this.it2('should return false if sequences have different number of items',
+          [
             {x: 0, y: 0, z: 0},
             {x: 0, y: 1, z: 1},
             {x: 1, y: 0, z: 0},
             {x: -1, y: 1, z: -1},
             {x: 1, y: -1, z: 1}
-          ];
-          const second = [
+          ],
+          [
             {x: -1, y: 1},
             {x: 0, y: 0},
             {x: 0, y: 1},
             {x: 1, y: 0}
-          ];
+          ],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
 
-          let sut2 = this.createSut(second);
-          let actual2 = sut2.sameItems(first, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual2);
-          sut2 = this.createSut(generator.from(second));
-          actual2 = sut2.sameItems(generator.from(first), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual2);
-        });
+            const sut2 = this.createSut(second);
+            const actual2 = sut2.sameItems(first, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual2);
+          });
 
-        it("should return false if one of the sequences is empty", () => {
-          const first: { x: number; y: number; z: number; }[] = [{x: 0, y: 0, z: 0}];
-          const second: { x: number; y: number; }[] = [];
+        this.it2("should return false if only source sequences is empty",
+          [] as { x: number; y: number; }[],
+          [{x: 0, y: 0, z: 0}] as { x: number; y: number; z: number; }[],
+          (first, second) => {
 
-          let sut = this.createSut(first);
-          let actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
-          sut = this.createSut(generator.from(first));
-          actual = sut.sameItems(generator.from(second), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual);
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
 
-          let sut2 = this.createSut(second);
-          let actual2 = sut2.sameItems(first, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual2);
-          sut2 = this.createSut(generator.from(second));
-          actual2 = sut2.sameItems(generator.from(first), l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
-          assert.isFalse(actual2);
-        });
+        this.it2("should return false if only second sequences is empty",
+          [{x: 0, y: 0, z: 0}] as { x: number; y: number; z: number; }[],
+          [] as { x: number; y: number; }[],
+          (first, second) => {
+
+            const sut = this.createSut(first);
+            const actual = sut.sameItems(second, l => `${l.x}|${l.y}`, r => `${r.x}|${r.y}`);
+            assert.isFalse(actual);
+          });
       });
     });
 

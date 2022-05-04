@@ -309,6 +309,10 @@ export interface Seq<T> extends Iterable<T> {
 
   removeFalsy(): Seq<T>;
 
+  removeKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+  removeKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+  removeKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
   removeNulls(): Seq<T>;
 
   repeat(count: number): Seq<T>;
