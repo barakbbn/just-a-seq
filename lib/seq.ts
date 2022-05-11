@@ -60,7 +60,7 @@ export interface Seq<T> extends Iterable<T> {
 
   diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
-  diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
+  diff<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T | U>;
 
   diff<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T | U>;
 
@@ -68,7 +68,9 @@ export interface Seq<T> extends Iterable<T> {
 
   distinct(keySelector?: Selector<T, unknown>): Seq<T>;
 
-  endsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+  endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+
+  endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
 
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
@@ -231,7 +233,9 @@ export interface Seq<T> extends Iterable<T> {
   intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;
+
   intersectBy<K>(keys: ReadonlySet<K>, keySelector: Selector<T, K>): Seq<T>;
+
   intersectBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T>;
 
   // Intersperses a value (separator) between the items in the source sequence
@@ -310,7 +314,9 @@ export interface Seq<T> extends Iterable<T> {
   removeFalsy(): Seq<T>;
 
   removeKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+
   removeKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+
   removeKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
 
   removeNulls(): Seq<T>;
@@ -349,7 +355,9 @@ export interface Seq<T> extends Iterable<T> {
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
 
-  startsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
 
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => unknown, secondKeySelector: (item: U) => K): boolean;
 

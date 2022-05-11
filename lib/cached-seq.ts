@@ -79,10 +79,9 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return super.sameOrderedItems(second, equals);
   }
 
-  startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
-
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
-
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {

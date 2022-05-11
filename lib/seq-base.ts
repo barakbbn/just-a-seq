@@ -78,7 +78,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   average(selector: Selector<T, number>): number;
 
-  average(selector: Selector<T, number> = x => x as unknown as number): number | never {
+  average(selector: Selector<T, number> = IDENTITY): number | never {
     let sum = 0;
     let count = 0;
     for (const value of this) sum += selector(value, count++);
@@ -140,10 +140,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
-  diff<U>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): Seq<T | U>;
+  diff<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T | U>;
   diff<U, K>(
     items: Iterable<U>,
-    firstKeySelector: (item: T) => K = x => x as unknown as K,
+    firstKeySelector: (item: T) => K = IDENTITY,
     secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): Seq<T | U> {
 
     return this.generate(function* diff(self) {
@@ -174,7 +174,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  diffDistinct(items: Iterable<T>, keySelector: (item: T) => unknown = x => x): Seq<T> {
+  diffDistinct(items: Iterable<T>, keySelector: (item: T) => unknown = IDENTITY): Seq<T> {
     const self = this;
     return this.generate(function* diff() {
       const second: [T, unknown][] = Array.from(items, item => [item, keySelector(item)]);
@@ -206,7 +206,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  distinct(keySelector: Selector<T, unknown> = x => x): Seq<T> {
+  distinct(keySelector: Selector<T, unknown> = IDENTITY): Seq<T> {
     return this.generate(function* distinct(self) {
       const keys = new Set<unknown>();
       let index = 0;
@@ -220,10 +220,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  endsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
-
+  endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
-
   endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   endsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
@@ -898,7 +897,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   max(selector: Selector<T, number>): number;
 
-  max(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  max(selector: Selector<T, number> = IDENTITY): number | void {
     const maxItemResult = this.maxItemBySelector(selector);
     return maxItemResult?.[1] ?? Number.NEGATIVE_INFINITY;
   }
@@ -919,7 +918,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   min(selector: Selector<T, number>): number;
 
-  min(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  min(selector: Selector<T, number> = IDENTITY): number | void {
     const maxItemResult = this.minItemBySelector(selector);
     return maxItemResult?.[1] ?? Number.POSITIVE_INFINITY;
   }
@@ -1075,7 +1074,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   removeFalsy(): Seq<T> {
-    return this.filter(x => x);
+    return this.filter(IDENTITY);
   }
 
   removeKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
@@ -1264,10 +1263,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
 
-  startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
-
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
-
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   startsWith<U, K>(items: Iterable<U>,
@@ -1307,7 +1305,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   sum(selector: Selector<T, number>): number;
 
-  sum(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  sum(selector: Selector<T, number> = IDENTITY): number | void {
     let sum = 0;
     let index = 0;
     for (const value of this) sum += selector(value, index++);
