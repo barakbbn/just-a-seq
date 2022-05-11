@@ -91,7 +91,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       super.countOptimized(this.source, condition);
   }
 
-  distinct<K>(keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
+  distinct(keySelector: Selector<T, unknown> = x => x): Seq<T> {
     if (this.tapCallbacks.length || (keySelector?.length ?? 0) > 1 || !SeqTags.optimize(this)) {
       return super.distinct(keySelector);
     }

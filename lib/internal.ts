@@ -23,13 +23,20 @@ export function randomInternal(optimized: boolean): Seq<number> {
     _random ?? (_random = initRandom(false));
 }
 
-export function asSeqInternal<T>(itemsProvider: Iterable<T> | (() => Iterator<T>), optimized = Seq.enableOptimization): Seq<T> {
+export function asSeqInternal<T>(itemsProvider: Iterable<T>[] | [() => Iterator<T>], optimized = Seq.enableOptimization): Seq<T> {
+  function isGenerator(itemsProvider: Iterable<T>[] | [() => Iterator<T>]): itemsProvider is [() => Iterator<T>] {
+    return typeof itemsProvider[0] === 'function';
+  }
+
   const tags: [symbol, any][] = optimized ? [[SeqTags.$optimize, true]] : [];
+  let seq: Seq<T> | undefined = undefined;
 
-  if (typeof itemsProvider !== 'function' && SeqTags.isSeq<T>(itemsProvider)) {
-    const isSameOptimizationFlag = SeqTags.optimize(itemsProvider) === optimized;
-    if (isSameOptimizationFlag) return itemsProvider;
-  } else if (typeof itemsProvider === 'function') itemsProvider = generate(itemsProvider);
+  const [first, ...rest] = isGenerator(itemsProvider) ? [generate(itemsProvider[0])] : itemsProvider;
+  if (SeqTags.isSeq<T>(first)) {
+    const isSameOptimizationFlag = SeqTags.optimize(first) === optimized;
+    if (isSameOptimizationFlag) seq = first;
+  }
 
-  return factories.Seq<T>(itemsProvider, undefined, tags);
+  if (!seq) seq = factories.Seq<T>(first, undefined, tags);
+  return rest.length ? seq.concat(...rest) : seq;
 }

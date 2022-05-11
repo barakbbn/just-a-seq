@@ -58,15 +58,23 @@ export interface Seq<T> extends Iterable<T> {
 
   count(condition?: Condition<T>): number;
 
-  diff<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
+  diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
-  diffDistinct<K>(items: Iterable<T>, keySelector?: (item: T) => K): Seq<T>;
+  diff<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T | U>;
 
-  distinct<K = T>(keySelector?: Selector<T, K>): Seq<T>;
+  diff<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T | U>;
 
-  endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
+  diffDistinct(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+
+  distinct(keySelector?: Selector<T, unknown>): Seq<T>;
+
+  endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+
+  endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
 
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+
+  endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   entries(): Seq<[index: number, value: T]>;
 
@@ -209,7 +217,7 @@ export interface Seq<T> extends Iterable<T> {
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
 
-  indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, options?: { equals(a: T, b: U): unknown }): number; // Overload
@@ -223,6 +231,12 @@ export interface Seq<T> extends Iterable<T> {
   insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
   intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+
+  intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;
+
+  intersectBy<K>(keys: ReadonlySet<K>, keySelector: Selector<T, K>): Seq<T>;
+
+  intersectBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T>;
 
   // Intersperses a value (separator) between the items in the source sequence
   // Like join(), but return a sequence instead of string
@@ -299,6 +313,12 @@ export interface Seq<T> extends Iterable<T> {
 
   removeFalsy(): Seq<T>;
 
+  removeKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+
+  removeKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+
+  removeKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
   removeNulls(): Seq<T>;
 
   repeat(count: number): Seq<T>;
@@ -334,9 +354,14 @@ export interface Seq<T> extends Iterable<T> {
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
-  startsWith<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
+
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
 
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => unknown, secondKeySelector: (item: U) => K): boolean;
+
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   sum(): T extends number ? number : never; // Overload
   sum(selector: Selector<T, number>): number;
@@ -345,6 +370,7 @@ export interface Seq<T> extends Iterable<T> {
 
   takeLast(count: number): Seq<T>
 
+  // Similar to intersect() by not distinct items, rather as they appear in second iterable
   takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   takeOnly<U = T>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T>;

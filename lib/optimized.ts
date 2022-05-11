@@ -5,9 +5,9 @@ import {asSeqInternal, internalEmpty, randomInternal} from './internal';
 
 export * from './index';
 
-export function asSeq<T>(items: Iterable<T>): ISeq<T>;
+export function asSeq<T>(...items: Iterable<T>[]): ISeq<T>;
 export function asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
-export function asSeq<T>(itemsProvider: Iterable<T> | (() => Iterator<T>)): ISeq<T> {
+export function asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]): ISeq<T> {
   return asSeqInternal(itemsProvider, true);
 }
 

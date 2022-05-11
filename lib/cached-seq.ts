@@ -57,7 +57,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   last(fallback: T): T;
   last(fallback?: T): T | undefined {
     const array = this.array;
-    return array.length? array[array.length - 1]: fallback;
+    return array.length ? array[array.length - 1] : fallback;
   }
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number {
@@ -79,13 +79,18 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return super.sameOrderedItems(second, equals);
   }
 
-  startsWith<K>(items: Iterable<T>, keySelector: (item: T) => K = t => t as unknown as K): boolean {
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
+
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     const array = this.array;
     if (Array.isArray(items)) {
       if (items.length === 0) return true;
       if (array.length < items.length) return false;
     }
-    return super.startsWith(items, keySelector);
+    return super.startsWith(items, firstKeySelector as any, secondKeySelector);
   }
 
   tap(callback: Selector<T, void>): CachedSeq<T> {

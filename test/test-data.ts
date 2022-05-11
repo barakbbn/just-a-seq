@@ -145,6 +145,10 @@ export const array = new class {
   repeatConcat<T>(value: T[], count: number): T[] {
     return new Array<T>().concat(...generator.repeat(value, count));
   };
+
+  reverse<T>(value: T[]): T[] {
+    return value.slice().reverse()
+  }
 };
 
 export class Folder {
@@ -198,7 +202,7 @@ export const generator = new class {
     })
   };
 
-  from<T>(array: T[]): Iterable<T>
+  from<T>(array:readonly T[]): Iterable<T>
   from(string: string): Iterable<string>
   from<T>(arrayOrString: Iterable<T>): Iterable<T> {
     return new ReusableGenerator<T>(function* from() {
