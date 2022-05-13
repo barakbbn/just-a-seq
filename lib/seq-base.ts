@@ -13,10 +13,11 @@ import {
   ToComparableKey
 } from "./seq";
 import {
+  closeIterator,
   consume,
   entries,
   Gen,
-  getIterator,
+  getIterator, IDENTITY,
   IGNORED_ITEM,
   isArray,
   isIterable,
@@ -77,7 +78,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   average(selector: Selector<T, number>): number;
 
-  average(selector: Selector<T, number> = x => x as unknown as number): number | never {
+  average(selector: Selector<T, number> = IDENTITY): number | never {
     let sum = 0;
     let count = 0;
     for (const value of this) sum += selector(value, count++);
@@ -113,6 +114,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   concat(...items: Iterable<T>[]): Seq<T> {
+    if (!items.length) return this;
     return this.generate(function* concat(self: Iterable<T>) {
       yield* self;
       for (const part of items) yield* part;
@@ -137,56 +139,60 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.countInternal(condition);
   }
 
-  diff<K = T>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
+  diff(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
+  diff<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): Seq<T | U>;
+  diff<U, K>(
+    items: Iterable<U>,
+    firstKeySelector: (item: T) => K = IDENTITY,
+    secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): Seq<T | U> {
+
     return this.generate(function* diff(self) {
-      const firstKeys = new Set<K>();
-      const second: [T, K][] = Array.isArray(items) ? new Array<[T, K]>(items.length) : [];
 
-      let index = 0;
-      for (const item of items) second[index++] = [item, keySelector(item)];
+      const second: [U, K][] = Array.from(items, item => [item, secondKeySelector(item)]);
 
-      if (index === 0) {
+      if (!second.length) {
         yield* self;
         return;
       }
 
       const secondKeys = new Set<K>(second.map(([_, key]) => key));
+      const firstKeys = new Set<K>();
 
       for (const item of self) {
-        const key = keySelector(item);
+        const key = firstKeySelector(item);
         if (!secondKeys.has(key)) yield item;
         firstKeys.add(key);
       }
+      secondKeys.clear();
 
       for (const [value, key] of second) {
         if (!firstKeys.has(key)) yield value;
       }
 
-      secondKeys.clear();
       firstKeys.clear();
+      second.length = 0;
     });
   }
 
-  diffDistinct<K>(items: Iterable<T>, keySelector: (item: T) => K = x => x as unknown as K): Seq<T> {
+  diffDistinct(items: Iterable<T>, keySelector: (item: T) => unknown = IDENTITY): Seq<T> {
     const self = this;
     return this.generate(function* diff() {
-      const firstKeys = new Set<K>();
-      const second: [T, K][] = Array.isArray(items) ? new Array<[T, K]>(items.length) : [];
-      let index = 0;
-      for (const item of items) second[index++] = [item, keySelector(item)];
+      const second: [T, unknown][] = Array.from(items, item => [item, keySelector(item)]);
 
-      if (index === 0) {
+      if (!second.length) {
         yield* self.distinct(keySelector);
         return;
       }
 
-      const secondKeys = new Set<K>(second.map(([_, key]) => key));
+      const secondKeys = new Set<unknown>(second.map(([_, key]) => key));
+      const firstKeys = new Set<unknown>();
 
       for (const item of self) {
         const key = keySelector(item);
         if (!secondKeys.has(key) && !firstKeys.has(key)) yield item;
         firstKeys.add(key);
       }
+      secondKeys.clear();
 
       for (const [value, key] of second) {
         if (!firstKeys.has(key)) {
@@ -195,14 +201,14 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         }
       }
 
-      secondKeys.clear();
       firstKeys.clear();
+      second.length = 0;
     });
   }
 
-  distinct<K>(keySelector: Selector<T, K> = x => x as unknown as K): Seq<T> {
+  distinct(keySelector: Selector<T, unknown> = IDENTITY): Seq<T> {
     return this.generate(function* distinct(self) {
-      const keys = new Set<K>();
+      const keys = new Set<unknown>();
       let index = 0;
       for (const item of self) {
         const key = keySelector(item, index++);
@@ -214,23 +220,32 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  endsWith<U = T>(items: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
-
+  endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
   endsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+  endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
-  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: (item: T) => K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    const first = firstKeySelector ?
+  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+    if (this === items) return true;
+
+    function isEqualsFunc(param?: any): param is { equals(t: T, u: U): unknown; } {
+      return typeof param?.equals === 'function';
+    }
+
+    let equals: (t: T, u: U) => unknown = isEqualsFunc(firstKeySelector) ? firstKeySelector.equals : sameValueZero;
+
+    const first = firstKeySelector && !isEqualsFunc(firstKeySelector) ?
       Array.from(this, (item: T, index: number) => firstKeySelector(item /*, index, false */)) :
       Array.from(this) as unknown as K[];
 
-    const second = (!secondKeySelector && Array.isArray(items)) ? items as K[] : secondKeySelector ?
+    const second = (!secondKeySelector && Array.isArray(items)) ? items as K[] : secondKeySelector && !isEqualsFunc(firstKeySelector) ?
       Array.from(items, (item: U, index: number) => secondKeySelector(item /*, index, true */)) :
       Array.from(items) as unknown as K[];
 
     let offset = first.length - second.length;
     if (offset < 0) return false;
     for (const item of second) {
-      if (!sameValueZero(first[offset++], item)) return false;
+      if (!equals(first[offset++] as unknown as T, item as unknown as U)) return false;
     }
     return true;
   }
@@ -508,21 +523,22 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   includesAll<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   includesAll<U, K>(items: Iterable<U>,
-                    firstKeySelector: (item: T) => K = t => t as unknown as K,
+                    firstKeySelector: (item: T) => K = IDENTITY,
                     secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    const secondKeys = new Set<K>();
-    let index = 0;
-    for (const item of this) {
-      if (secondKeys.size === 0) {
-        let secondIndex = 0;
-        for (const item of items) secondKeys.add(secondKeySelector(item as U /*, secondIndex++, true */));
-        if (secondKeys.size === 0) return true;
+
+    const lazyScan = new LazyScanAndMark(this, firstKeySelector);
+    try {
+      for (const value of items) {
+        const key = secondKeySelector(value);
+        const exists = lazyScan.everExistedNext(key);
+        if (!exists) return false;
       }
-      const key = firstKeySelector(item as T /*, index++, false */);
-      secondKeys.delete(key);
-      if (secondKeys.size === 0) return true;
+
+      return true;
+
+    } finally {
+      lazyScan.dispose();
     }
-    return false;
   }
 
   includesAny<U = T>(items: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean; // Overload
@@ -530,23 +546,20 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   includesAny<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
 
   includesAny<U, K>(items: Iterable<U>,
-                    firstKeySelector: (item: T) => K = t => t as unknown as K,
+                    firstKeySelector: (item: T) => K = IDENTITY,
                     secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    let secondKeys = new Set<K>();
-    let index = 0;
-    for (const item of this) {
-      if (secondKeys.size === 0) {
-        let secondIndex = 0;
-        for (const item of items) secondKeys.add(secondKeySelector(item as U /*, secondIndex++, true */));
-        if (secondKeys.size === 0) return false;
+
+    const lazyScan = new LazyScanAndMark(items, secondKeySelector);
+    try {
+      for (const item of this) {
+        const key = firstKeySelector(item);
+        if (lazyScan.everExistedNext(key)) return true;
       }
-      const key = firstKeySelector(item as T /*, index++, false */);
-      if (secondKeys.has(key)) {
-        secondKeys.clear();
-        return true;
-      }
+      return false;
+
+    } finally {
+      lazyScan.dispose();
     }
-    return false;
   }
 
   includesSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): boolean;
@@ -587,7 +600,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, keySelector?: (item: T | U) => unknown): number;
 
-  indexOfSubSequence<U = T>(subSequence: Iterable<T>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
+  indexOfSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, keySelector?: (item: T | U) => unknown): number;
 
   indexOfSubSequence<U = T>(subSequence: Iterable<U>, options?: { equals(a: T, b: U): unknown }): number; // Overload
 
@@ -685,19 +698,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  intersect(items: Iterable<T>, keySelector: (item: T) => unknown = x => x): Seq<T> {
-    return this.generate(function* intersect(self) {
-      let secondKeys = new Set<unknown>();
-      for (const second of items) secondKeys.add(keySelector(second));
-      for (const first of self) {
-        const key = keySelector(first);
-        const exists = secondKeys.has(key);
-        if (exists) {
-          yield first;
-          secondKeys.delete(key);
-        }
-      }
-    });
+  intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T> {
+    return this.intersectWith(items, keySelector, keySelector);
+  }
+
+  intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlySet<K>, keySelector: Selector<T, K>): Seq<T>;
+  intersectBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T>;
+
+  intersectBy<K extends object>(second: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: Selector<T, K>): Seq<T> {
+    return (isHashable(second)) ?
+      this.intersectByKeys(second, keySelector) :
+      this.intersectWith(second, keySelector, undefined);
   }
 
   intersperse(separator: T, insideOut?: boolean): Seq<T>;
@@ -885,7 +897,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   max(selector: Selector<T, number>): number;
 
-  max(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  max(selector: Selector<T, number> = IDENTITY): number | void {
     const maxItemResult = this.maxItemBySelector(selector);
     return maxItemResult?.[1] ?? Number.NEGATIVE_INFINITY;
   }
@@ -906,7 +918,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   min(selector: Selector<T, number>): number;
 
-  min(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  min(selector: Selector<T, number> = IDENTITY): number | void {
     const maxItemResult = this.minItemBySelector(selector);
     return maxItemResult?.[1] ?? Number.POSITIVE_INFINITY;
   }
@@ -1039,6 +1051,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   remove<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): Seq<T>;
 
+  // Synthetic overload needed for calling by derived class super
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T>;
 
   remove<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T> {
@@ -1061,7 +1074,17 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   removeFalsy(): Seq<T> {
-    return this.filter(x => x);
+    return this.filter(IDENTITY);
+  }
+
+  removeKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+  removeKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+  removeKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
+  removeKeys<K>(keys: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T> {
+    return (isHashable(keys)) ?
+      this.filter(item => !keys.has(keySelector(item))) :
+      this.removeAll(keys, keySelector, IDENTITY);
   }
 
   removeNulls(): Seq<T> {
@@ -1093,20 +1116,24 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   sameItems<U, K>(second: Iterable<U>,
                   firstKeySelector: (item: T | U) => K = t => t as unknown as K,
                   secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
-    let secondKeys = new Map<K, number>();
-    for (const item of second) {
-      const key = secondKeySelector(item /*, secondIndex++ */);
-      const count = secondKeys.get(key) ?? 0;
-      secondKeys.set(key, count + 1);
+
+    const lazyScan = new LazyScanAndMark(second, secondKeySelector);
+    try {
+      let firstCount = 0;
+      for (const value of this) {
+        firstCount++;
+        const key = firstKeySelector(value /*, firstIndex++ */);
+        const exists = lazyScan.includesNext(key);
+        if (!exists) return false;
+      }
+
+      lazyScan.moveNext();
+      const secondStatus = lazyScan.getStatus();
+      return secondStatus.done && firstCount === secondStatus.count;
+
+    } finally {
+      lazyScan.dispose();
     }
-    for (const item of this) {
-      const key = firstKeySelector(item /*, firstIndex++ */);
-      const secondCounter = secondKeys.get(key);
-      if (secondCounter === undefined) return false;
-      if (secondCounter === 1) secondKeys.delete(key);
-      else secondKeys.set(key, secondCounter - 1);
-    }
-    return secondKeys.size === 0;
   }
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals: (first: T, second: U, index: number) => boolean = sameValueZero): boolean {
@@ -1235,22 +1262,36 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
   }
 
-  startsWith<U = T, K = T>(items: Iterable<U>, keySelector?: (item: T | U) => K): boolean;
 
+  startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
+  startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
+  startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
   startsWith<U, K>(items: Iterable<U>,
-                   firstKeySelector: (item: T) => K = x => x as unknown as K,
+                   firstKeySelector: ((item: T) => K) | { equals(t: T, u: U): unknown; } = ((x: T) => x) as unknown as (item: T) => K,
                    secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+    if (this === items) return true;
     if (Array.isArray(items) && items.length === 0) return true;
+
+    function isEqualsFunc(param?: any): param is { equals(t: T, u: U): unknown; } {
+      return typeof param?.equals === 'function';
+    }
+
+    let equals: (t: T, u: U) => unknown = sameValueZero;
+    if (isEqualsFunc(firstKeySelector)) {
+      equals = firstKeySelector.equals;
+      secondKeySelector = firstKeySelector = (x: any) => x as any;
+    }
+
 
     const secondIterator = getIterator(items);
     let secondNext = secondIterator.next();
     for (const {value: first, index: firstIndex} of entries(this)) {
       if (secondNext.done) return true;
-      const firstKey = firstKeySelector(first /* , firstIndex, false */);
+      const firstKey = firstKeySelector?.(first /* , firstIndex, false */);
       const secondKey = secondKeySelector(secondNext.value);
-      const same = sameValueZero(firstKey, secondKey);
+      const same = equals(firstKey as unknown as T, secondKey as unknown as U);
       if (!same) return false;
       secondNext = secondIterator.next();
     }
@@ -1264,7 +1305,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   sum(selector: Selector<T, number>): number;
 
-  sum(selector: Selector<T, number> = x => x as unknown as number): number | void {
+  sum(selector: Selector<T, number> = IDENTITY): number | void {
     let sum = 0;
     let index = 0;
     for (const value of this) sum += selector(value, index++);
@@ -1300,36 +1341,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
     return this.generate(function* takeOnly(self, iterationContext) {
-      const map = new Map<K, number>();
-      const secondIterator = iterationContext.closeWhenDone(getIterator(items));
-      let secondNext = secondIterator.next();
-      if (secondNext.done) return; // empty
-      let secondIndex = 0;
-      const removeFromSecond = (firstKey: K): boolean => {
-        let secondCount = map.get(firstKey);
-        if (secondCount) {
-          if (secondCount === 1) map.delete(firstKey);
-          else map.set(firstKey, secondCount - 1);
-          return true;
-        }
-        while (!secondNext.done) {
-          const second = secondNext.value;
-          const secondKey = secondKeySelector ? secondKeySelector(second, secondIndex++) : second as unknown as K;
-          secondNext = secondIterator.next();
-          if (sameValueZero(firstKey, secondKey)) return true;
-          secondCount = map.get(secondKey) || 0;
-          map.set(secondKey, secondCount + 1);
-        }
+      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
+      iterationContext.onClose(() => lazyScan.dispose());
 
-        return false;
-      };
 
       let firstIndex = 0;
       for (const first of self) {
         const firstKey = firstKeySelector ? firstKeySelector(first, firstIndex++) : first as unknown as K;
-        const removed = removeFromSecond(firstKey);
-        if (removed) yield first;
+        const exists = lazyScan.includesNext(firstKey);
+        if (exists) yield first;
       }
+
+      lazyScan.dispose();
     });
   }
 
@@ -1456,6 +1479,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   abstract [Symbol.iterator](): Iterator<T>;
+
+  toJSON(key: any): any {
+    return this.toJsonOverride(key);
+  }
 
   protected findSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, equals: (a: T, b: U) => unknown): [number, number] {
     // console.log(`includesSubSequence()`);
@@ -1745,8 +1772,33 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return isArray(source) ? source : [...source];
   }
 
-  private toJSON(key: any): any {
-    return this.toJsonOverride(key);
+  private intersectByKeys<K>(keys: ReadonlyMap<K, unknown> | ReadonlySet<K>, keySelector: Selector<T, K> = IDENTITY): Seq<T> {
+    return this.generate(function* intersectByKeys(self) {
+      const iteratedSet = new Set<K>();
+
+      for (const {value, index} of entries(self)) {
+        const key = keySelector(value, index);
+        if (iteratedSet.has(key) || !keys.has(key)) continue;
+        yield value;
+        iteratedSet.add(key);
+      }
+      iteratedSet.clear();
+    });
+  }
+
+  private intersectWith<U = T, K = T>(second: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector?: Selector<U, K>): Seq<T> {
+    return this.generate(function* intersectWith(self, iterationContext) {
+
+      const lazyScan = new LazyScanAndMark(second, secondKeySelector);
+      iterationContext.onClose(() => lazyScan.dispose());
+
+      for (const {value: first, index} of entries(self)) {
+        const firstKey = firstKeySelector ? firstKeySelector(first, index) : first;
+        if (lazyScan.noneRepeatedNext(firstKey)) yield first;
+      }
+
+      lazyScan.dispose();
+    });
   }
 
   private unionInternal(second: Iterable<T>, keySelector: ((value: T) => unknown) | undefined, rightToLeft: boolean): Seq<T> {
@@ -1862,28 +1914,20 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findLastByConditionInternal(tillIndex, condition, fallback);
   }
 
-  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = x => x as unknown as K, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean): Seq<T> {
-    return this.generate(function* remove(self) {
-      const keys = new Map<K, number>();
-      for (const second of items) {
-        const key = secondKeySelector(second);
-        const occurrencesCount = (keys.get(key) ?? 0) + 1;
-        keys.set(key, occurrencesCount);
-      }
+  private removeInternal<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K = IDENTITY, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K, all: boolean): Seq<T> {
+    return this.generate(function* remove(self, iterationContext) {
+      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
+      iterationContext.onClose(() => lazyScan.dispose());
 
       for (const item of self) {
         const key = firstKeySelector(item);
-        if (keys.has(key)) {
-          const occurrencesCount = keys.get(key)!;
-          if (!all) {
-            if (occurrencesCount < 2) keys.delete(key);
-            else keys.set(key, occurrencesCount - 1);
-          }
-          continue;
-        }
-        yield item;
+        const exists = all ?
+          lazyScan.everExistedNext(key) :
+          lazyScan.includesNext(key);
+        if (!exists) yield item;
       }
-      keys.clear();
+
+      lazyScan.dispose();
     });
   }
 
@@ -1999,10 +2043,114 @@ class CyclicBuffer<T> implements Iterable<T> {
   }
 }
 
-function parseEqualsFn(param?: number | ((item: any) => any) | { equals(a: any, b: any): unknown }) {
+function parseEqualsFn(param?: number | ((item: any) => any) | { equals(a: any, b: any): unknown }): ((a: any, b: any) => unknown) | undefined {
   return (typeof param === 'function') ?
     (a: any, b: any) => sameValueZero(param(a), param(b)) :
     (typeof param === 'object' && typeof param.equals === 'function') ?
       param.equals :
       undefined;
+}
+
+function isHashable<K>(maybeHashable: unknown): maybeHashable is (ReadonlySet<K> | ReadonlyMap<K, unknown>) {
+  return maybeHashable instanceof Map || maybeHashable instanceof Set;
+}
+
+class LazyScanAndMark {
+  private keysCounter = new Map<unknown, number>();
+  private iterator: Iterator<unknown>;
+  private next: IteratorResult<unknown, unknown>;
+  private index = 0;
+  private itemsCount = 0;
+
+  constructor(private items: Iterable<unknown>, private keySelector: Selector<any, unknown> = IDENTITY) {
+  }
+
+  getStatus(): { empty: boolean; done: boolean; count: number; } {
+    return {
+      empty: this.checkIsEmpty(),
+      done: !!this.next?.done,
+      count: this.itemsCount
+    }
+  }
+
+  includesNext(key: unknown): boolean {
+    let counter = this.keysCounter.get(key) ?? 0;
+    if (counter) {
+      if (counter === 1) this.keysCounter.delete(key);
+      else this.keysCounter.set(key, counter - 1);
+      return true;
+    }
+
+    while (!this.moveNext().done) {
+      const second = this.next.value;
+      const secondKey = this.keySelector(second, this.index++);
+
+      const match = sameValueZero(key, secondKey);
+      if (match) return true;
+      counter = this.keysCounter.get(secondKey) ?? 0;
+      this.keysCounter.set(secondKey, counter + 1);
+    }
+
+    return false;
+  };
+
+  everExistedNext(key: unknown): boolean {
+    let existed = this.keysCounter.has(key);
+    if (existed) return true;
+
+    while (!this.moveNext().done) {
+      const second = this.next.value;
+      const secondKey = this.keySelector(second, this.index++);
+      this.keysCounter.set(secondKey, 1);
+
+      const match = sameValueZero(key, secondKey);
+      if (match) return true;
+    }
+
+    return false;
+  };
+
+  noneRepeatedNext(key: unknown): boolean {
+    let count = this.keysCounter.get(key) ?? 0;
+    if (count > 0) {
+      this.keysCounter.set(key, -1);
+      return true;
+    }
+
+    while (!this.moveNext().done) {
+      const second = this.next.value;
+      const secondKey = this.keySelector(second, this.index++);
+
+      if (this.keysCounter.has(secondKey)) continue;
+
+
+      const match = sameValueZero(key, secondKey);
+      this.keysCounter.set(secondKey, match ? -1 : 1);
+      if (match) return true;
+    }
+
+    return false;
+  };
+
+  dispose(): void {
+    this.keysCounter.clear();
+    closeIterator(this.iterator);
+  }
+
+  moveNext(): IteratorResult<unknown, unknown> {
+    if (!this.iterator) {
+      this.iterator = getIterator(this.items);
+    }
+    if (!this.next?.done) {
+      this.next = this.iterator.next();
+      if (!this.next.done) this.itemsCount++;
+    }
+
+    return this.next;
+  }
+
+  private checkIsEmpty(): boolean {
+    if (!this.next) this.moveNext();
+    return this.itemsCount === 0;
+  }
 }
