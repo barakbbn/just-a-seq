@@ -297,14 +297,14 @@ export abstract class SeqBase_Grouping_Tests {
             cache: new Map<string, { scoreLevel: string; }>(),
             comparableKey: (key: { scoreLevel: string; }) => key.scoreLevel,
             key: (s: Sample & { diff: number; }) => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, ...keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
                 scoreLevel: (s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle') as ScoreLevel
               });
             },
-            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, ...keys: any[]) => {
+            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 diff: s.diff,
@@ -326,7 +326,7 @@ export abstract class SeqBase_Grouping_Tests {
               period: s.period,
               scoreAbovePeriod: s.score > s.period
             }),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, ...keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
@@ -354,7 +354,9 @@ export abstract class SeqBase_Grouping_Tests {
             (items as unknown as (Sample & { diff: number; })[]).forEach((s, i) => map.set(level2.cachedKey(s),
               [...(map.get(level2.cachedKey(s)) || []),
                 level2.mapValue2Factory(expectedLevel2MapValue2Keys)(
-                  level2.mapValueFactory(expectedLevel2MapValue1Keys)(s, i, level2.key(s), level1.key(s)), i, level2.key(s), level1.key(s)
+                  level2.mapValueFactory(expectedLevel2MapValue1Keys)(s, i, [level1.key(s), level2.key(s)]),
+                  i,
+                  [level1.key(s), level2.key(s)]
                 )]));
             expected.set(key, map as any);
           });
@@ -367,7 +369,7 @@ export abstract class SeqBase_Grouping_Tests {
               (items as unknown as ({ period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
                 .forEach((s, i) => map.set(level3.cachedKey(s), [
                     ...(map.get(level3.cachedKey(s)) || []),
-                    level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, level3.key(s), key2, key1)]
+                    level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, [key1, key2, level3.key(s)])]
                   )
                 );
               mapByType.set(key2, map as any);
@@ -1015,6 +1017,10 @@ export abstract class SeqBase_Grouping_Tests {
         });
       });
 
+      function sumBy<T>(items: Iterable<T>, map: (item: T) => number): number {
+        return [...items].reduce((prev, curr) => prev + map(curr), 0);
+      }
+
       describe('ungroup()', () => {
         const sum = (items: Iterable<number>): number => [...items].reduce((prev, curr) => prev + curr, 0);
 
@@ -1025,7 +1031,7 @@ export abstract class SeqBase_Grouping_Tests {
           function countDepth(seq: Seq<any>): number {
             // noinspection LoopStatementThatDoesntLoopJS
             for (const group of seq) {
-              return 1 + ((SeqTags.isSeq(group) && 'key' in group) ? countDepth(group) : 0);
+              return ((SeqTags.isSeq(group) && 'key' in group) ? (1 + countDepth(group)) : 0);
             }
             return 0;
           }
@@ -1033,8 +1039,8 @@ export abstract class SeqBase_Grouping_Tests {
           const depthBeforeUngroup = countDepth(grouped);
           const depthAfterUngroup = countDepth(sut);
 
-          assert.equal(depthBeforeUngroup, 3);
-          assert.equal(depthAfterUngroup, 2);
+          assert.equal(depthBeforeUngroup, 2);
+          assert.equal(depthAfterUngroup, 1);
         });
 
         this.it('should map items in new inner group according to aggregator function', array.zeroToTen, input => {
@@ -1072,31 +1078,103 @@ export abstract class SeqBase_Grouping_Tests {
 
         this.it('should provide correct list of keys parameters to aggregator function', array.zeroToTen, input => {
           const expectedKeysToValues = [
-            'false,0,0 -> [0]',
-            'true,0,0 -> [6]',
-            'false,1,0 -> [4]',
-            'true,1,0 -> [10]',
-            'false,2,0 -> [2]',
-            'true,2,0 -> [8]',
-            'false,0,1 -> [3]',
-            'true,0,1 -> [9]',
-            'false,1,1 -> [1]',
-            'true,1,1 -> [7]',
-            'false,2,1 -> [5]'
+            '0,0,false -> [0]',
+            '0,0,true -> [6]',
+            '0,1,false -> [4]',
+            '0,1,true -> [10]',
+            '0,2,false -> [2]',
+            '0,2,true -> [8]',
+            '1,0,false -> [3]',
+            '1,0,true -> [9]',
+            '1,1,false -> [1]',
+            '1,1,true -> [7]',
+            '1,2,false -> [5]'
           ];
           const actualKeysToValues: string[] = [];
-          this.createSut(input)
+          const grouped = this.createSut(input)
             .groupBy(n => n % 2)
             .thenGroupBy(n => n % 3)
-            .thenGroupBy(n => n > 5)
-            .ungroup((group, key1, key2) => {
-              actualKeysToValues.push(`${group.key},${key1},${key2} -> ${group.toString()}`);
+            .thenGroupBy(n => n > 5);
+
+          grouped
+            .ungroup((group, keys) => {
+              actualKeysToValues.push(`${keys} -> ${group.toString()}`);
               return sum(group);
             })
             .toMap();
 
           assert.sameMembers(actualKeysToValues, expectedKeysToValues);
         });
+
+        describe('chaining ungroup()', () => {
+          this.it('should remove the most inner group', array.samples, input => {
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period)
+              .thenGroupBy(s => s.score);
+
+            const sut = grouped
+              .ungroup(group => group.key * group.length())
+              .ungroup(group => group.key * group.length());
+
+            function countDepth(seq: Seq<any>): number {
+              // noinspection LoopStatementThatDoesntLoopJS
+              for (const group of seq) {
+                return ((SeqTags.isSeq(group) && 'key' in group) ? (1 + countDepth(group)) : 0);
+              }
+              return 0;
+            }
+
+            const depthBeforeUngroup = countDepth(grouped);
+            const depthAfterUngroup = countDepth(sut);
+
+            assert.equal(depthBeforeUngroup, 4);
+            assert.equal(depthAfterUngroup, 2);
+          });
+        });
+      });
+
+      describe('aggregate', () => {
+        this.it('should return sequence of the results of the aggregator function on each inner group',
+          array.samples,
+          (input, inputArray) => {
+
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period);
+
+            const sut = grouped.aggregate(group => group.sum(s => s.score));
+
+            const distinctKeys = [...new Set(inputArray.map(s => `${s.ok}|${s.type}|${s.period}`))];
+            const expected = distinctKeys.map(key => {
+              const itemsWithSameKey = inputArray.filter(s => `${s.ok}|${s.type}|${s.period}` === key);
+              return sumBy(itemsWithSameKey, s => s.score);
+            });
+
+            const actual = [...sut];
+            assert.sameMembers(actual, expected);
+          });
+
+        this.it('should provide correct list of keys parameters to aggregator function',
+          array.samples,
+          (input, inputArray) => {
+
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period);
+
+            const distinctKeys = [...new Map(inputArray.map(s => [`${s.ok}|${s.type}|${s.period}`, s])).values()];
+            const expectedKeys = distinctKeys.map(s => [s.ok, s.type, s.period]);
+
+            const actualKeys: [boolean, string, number][] = [];
+            const sut = grouped.aggregate((group, keys) => actualKeys.push(keys));
+            materialize(sut);
+
+            assert.sameDeepMembers(actualKeys, expectedKeys);
+          });
       });
     });
 
@@ -1248,4 +1326,16 @@ export abstract class SeqBase_Grouping_Tests {
   });
 
   protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
+}
+
+function materialize(value: any): any {
+  function isIterable(value: any): value is Iterable<any> {
+    return value && typeof value !== 'string' && typeof value[Symbol.iterator] === 'function';
+  }
+
+  function* deepToArray(iterable: Iterable<any>): Generator<any> {
+    for (const item of iterable) yield isIterable(item) ? [...deepToArray(item)] : item;
+  }
+
+  return isIterable(value) ? [...deepToArray(value)] : value;
 }

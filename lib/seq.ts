@@ -454,7 +454,9 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  mapInGroup<U>(mapFn: (item: T, index: number, ...keys: Ks) => U): SeqOfMultiGroups<Ks, U>;
+  aggregate<U>(fn: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>;
+
+  mapInGroup<U>(mapFn: (item: T, index: number, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): SeqOfMultiGroups<Ks, U>;
 
   thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], T>;
 
@@ -468,7 +470,7 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
 
   toObject(arrayed: true): ObjectHierarchy<Ks, T[]>;
 
-  ungroup<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, ...ancestors: ExcludeLast<Ks>) => U): SeqOfGroupsWithoutLast<Ks, U>;
+  ungroup<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): SeqOfGroupsWithoutLast<Ks, U>;
 }
 
 export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2, infer K3, ...infer KRest]
@@ -485,9 +487,11 @@ export type Last<Ts extends any[]> = Ts extends [...infer Rest, infer Last]
   ? Last
   : Ts[0];
 
-export type ExcludeLast<Ts extends any[]> = Ts extends [...infer Rest, infer Tail]
-  ? Rest
-  : Ts;
+export type Headless<Ts extends any[]> = Ts extends [infer Head, ...infer Rest] ? Rest : Ts;
+
+export type Tailless<Ts extends any[]> = Ts extends [...infer Rest, infer Last] ? Rest : Ts;
+
+export type Reverse<T extends any[], R extends any[] = []> = ReturnType<T extends [infer F, ...infer L] ? () => Reverse<L, [F, ...R]> : () => R>;
 
 export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
@@ -505,10 +509,6 @@ export interface SortedSeqFactory {
              keySelector?: (x: T) => K,
              comparer?: Comparer<K>,
              descending?: boolean): SortedSeq<T>;
-}
-
-export interface GroupedSeqFactory {
-  <K, T>(key: K, items: Iterable<T>): GroupedSeq<K, T>;
 }
 
 export interface SeqOfGroupsFactory {
@@ -530,7 +530,6 @@ export const factories: {
   readonly Seq: SeqFactory;
   readonly CachedSeq: CachedSeqFactory;
   readonly SortedSeq: SortedSeqFactory;
-  readonly GroupedSeq: GroupedSeqFactory;
   readonly SeqOfGroups: SeqOfGroupsFactory;
   readonly FilterMapSeq: FilterMapSeqFactory;
 } = <any>{};

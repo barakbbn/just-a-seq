@@ -1,4 +1,4 @@
-import {CachedSeq, Seq, SortedSeq} from "./seq";
+import {CachedSeq, KeyedSeq, Seq, SortedSeq} from "./seq";
 
 export interface IterationContext {
   closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
@@ -131,6 +131,7 @@ export class SeqTags {
   static readonly $notAffectingNumberOfItems: unique symbol = Symbol('notAffectingNumberOfItems');
   static readonly $maxCount: unique symbol = Symbol('maxCount');
   static readonly $notMappingItems: unique symbol = Symbol('notMappingItems');
+  static readonly $group: unique symbol = Symbol('group');
 
   static getTag<Tag extends keyof TaggedSeq>(seq: object, tag: Tag): TaggedSeq[Tag] {
     const guard = (seq: any): seq is TaggedSeq => seq;
@@ -188,6 +189,12 @@ export class SeqTags {
       (on as any)[tag] = value
     }
   }
+
+  static group<K, T>(seq: Iterable<T>): seq is KeyedSeq<K, T> {
+    const isNot = !this.getTag(seq, this.$group);
+    return !isNot;
+  }
+
 }
 
 export interface TaggedSeq {
@@ -198,6 +205,7 @@ export interface TaggedSeq {
   [SeqTags.$notAffectingNumberOfItems]?: boolean;
   [SeqTags.$maxCount]?: number;
   [SeqTags.$notMappingItems]?: boolean;
+  [SeqTags.$group]?: boolean;
 }
 
 export const IDENTITY = <T>(v: unknown): T => v as T;

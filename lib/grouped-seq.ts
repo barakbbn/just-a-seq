@@ -1,24 +1,54 @@
 import {
   CachedSeq,
   ComparableType,
-  ExcludeLast,
   factories,
-  GroupedSeq,
+  GroupedSeq, KeyedSeq,
   Last,
   MapHierarchy,
   MultiGroupedSeq,
-  ObjectHierarchy,
-  Selector,
+  ObjectHierarchy, Reverse,
+  Selector, Seq,
   SeqOfGroupsWithoutLast,
-  SeqOfMultiGroups,
-  ToComparableKey
+  SeqOfMultiGroups, Headless,
+  ToComparableKey, Tailless
 } from "./seq";
 import {consume, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
+
+class MultiKeysTuple<Ks extends any[] = any[]> extends Array<any> {
+  get first(): Ks[0] {
+    return this[0];
+  }
+
+  get outer(): Ks[0] {
+    return this[0];
+  }
+
+  get last(): Last<Ks> {
+    return this[this.length - 1];
+  }
+
+  get inner(): Last<Ks> {
+    return this[this.length - 1];
+  }
+
+  get parent(): Last<Tailless<Ks>> {
+    return this[this.length - 2];
+  }
+}
+
+function toMultiKeysTuple<Ks extends any[] = any[]>(from: Ks): Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; } {
+  return MultiKeysTuple.from(from) as (Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; });
+}
+
 export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T> {
-  constructor(public readonly key: K, protected items: Iterable<T>) {
+  constructor(
+    public readonly key: K,
+    protected items: Iterable<T>,
+    public readonly ancestorKeys: readonly unknown[] = []) {
     super();
+    SeqTags.setTagsIfMissing(this, [[SeqTags.$group, true]]);
   }
 
   static create<K, T>(key: K, items: Iterable<T>) {
@@ -26,13 +56,13 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
   }
 
   tap(callback: Selector<T, void>): GroupedSeq<K, T> {
-    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback));
+    return new GroupedSeqImpl<K, T>(this.key, this.tapGenerator(callback), this.ancestorKeys);
   }
 
   map<U = T>(mapFn: Selector<T, U>): GroupedSeq<K, U> {
     return new GroupedSeqImpl<K, U>(this.key, new Gen(this, function* map(self: Iterable<T>) {
       for (const {value, index} of entries(self)) yield mapFn(value, index);
-    }));
+    }), this.ancestorKeys);
   }
 
   [Symbol.iterator](): Iterator<T> {
@@ -43,11 +73,11 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
 class GroupingSelector {
   constructor(public readonly key?: Selector<any, any>,
               private readonly comparableKeySelector?: ToComparableKey<any>,
-              private readonly values?: ReadonlyArray<(x: unknown, index: number, ...keys: any[]) => unknown>,
-              public readonly aggregator?: (group: GroupedSeq<any, any>, ...keys: any[]) => any) {
+              private readonly values?: ReadonlyArray<(x: unknown, index: number, keys: any) => unknown>,
+              public readonly aggregator?: (group: GroupedSeq<any, any>, keys: any[]) => any) {
   }
 
-  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: (x: unknown, index: number, ...keys: any[]) => unknown): GroupingSelector {
+  static from(keySelector?: Selector<any, any>, toComparableKey?: ToComparableKey<any>, valueSelector?: (x: unknown, index: number, keys: any[]) => unknown): GroupingSelector {
     return new GroupingSelector(keySelector, toComparableKey, valueSelector ? [valueSelector] : undefined);
   }
 
@@ -61,16 +91,16 @@ class GroupingSelector {
     return this.comparableKeySelector ? this.comparableKeySelector(key) : key;
   }
 
-  selectValue(value: any, index: number, keys: readonly unknown[]): any {
+  selectValue(value: any, index: number, keys: unknown[] | unknown): any {
     return this.values?.reduce((v, selector) => {
       if (v === IGNORED_ITEM) return value;
-      return selector(v, index, ...keys);
+      return selector(v, index, keys);
     }, value) ?? value;
   }
 
   clone(opts: {
-    addedValueSelectors?: readonly ((item: any, index: number, ...keys: readonly any[]) => unknown)[];
-    aggregator?: (group: GroupedSeq<any, any>, ...keys: any[]) => any;
+    addedValueSelectors?: readonly ((item: any, index: number, keys: readonly any[]) => unknown)[];
+    aggregator?: (group: GroupedSeq<any, any>, keys: any[]) => any;
   } = {}): GroupingSelector {
 
     const values = opts.addedValueSelectors?.length ?
@@ -95,7 +125,7 @@ class Container {
               public readonly key?: unknown,
               public readonly comparable?: any,
               public readonly ancestorKeys: readonly unknown[] = [],
-              private readonly aggregator?: (group: GroupedSeq<any, any>, ...keys: any[]) => any) {
+              private readonly aggregator?: (group: GroupedSeq<any, any>, keys: any[]) => any) {
     if (!isLast) this.map = new Map<any, any>();
   }
 
@@ -109,7 +139,7 @@ class Container {
     return container;
   }
 
-  getOrAddChildContainer(isLast: boolean, key: any, comparable: any, ancestorKeys: readonly unknown[], aggregator?: (group: GroupedSeq<any, any>, ...keys: any[]) => any): Container {
+  getOrAddChildContainer(isLast: boolean, key: any, comparable: any, ancestorKeys: readonly unknown[], aggregator?: (group: GroupedSeq<any, any>, keys: any[]) => any): Container {
     console.assert(this.map, 'Cannot call getOrAddChild on leaf container');
     let container = this.map.get(comparable);
     if (!container) {
@@ -124,14 +154,13 @@ class Container {
     this._array.push(item)
   }
 
-  getAllKeys(): readonly unknown[] {
-    return this.isRoot ? [] : [this.key, ...this.ancestorKeys];
+  getAllKeys(): unknown[] {
+    return this.isRoot ? [] : [...this.ancestorKeys, this.key];
   }
 
   aggregate(group: GroupedSeq<unknown, unknown>): unknown {
-    return this.aggregator ? this.aggregator(group, ...this.ancestorKeys) : group;
+    return this.aggregator ? this.aggregator(group, toMultiKeysTuple(this.getAllKeys())) : group;
   }
-
 }
 
 export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
@@ -166,6 +195,28 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
+  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U> {
+    function* traverseLeaves(source: Iterable<any>): Generator<GroupedSeqImpl<Last<Ks>, TOut>> {
+      for (const entry of source) {
+        const isGroup = SeqTags.group(entry);
+        if (!isGroup) {
+          yield source as unknown as GroupedSeqImpl<Last<Ks>, TOut>;
+          return;
+        }
+        yield* traverseLeaves(entry);
+      }
+    }
+
+    return this.generate(function* aggregate(items) {
+      for (const entry of items) {
+        if (!SeqTags.group(entry)) break;
+        for (const leaf of traverseLeaves(entry)) {
+          const keys = toMultiKeysTuple<Ks>([...leaf.ancestorKeys, leaf.key] as Ks);
+          yield aggregator(leaf, keys);
+        }
+      }
+    })
+  }
 
   cache(now?: boolean): any {
     if (this.cacheable) {
@@ -184,10 +235,10 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return instance;
   }
 
-  mapInGroup<U>(mapFn: (item: TOut, index: number, ...keys: Ks) => U): any {
+  mapInGroup<U>(mapFn: (item: TOut, index: number, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): any {
     const lastSelector = this.selectors.slice(-1)[0];
     const newLastSelector = lastSelector.clone({
-      addedValueSelectors: [mapFn as unknown as (item: any, index: number, ...keys: readonly any[]) => unknown]
+      addedValueSelectors: [mapFn as unknown as (item: any, index: number, keys: readonly any[]) => unknown]
     });
     const selectors = this.selectors.slice(0, this.selectors.length - 1).concat(newLastSelector);
     const instance = new SeqOfMultiGroupsImpl(this.source, selectors);
@@ -237,7 +288,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     // return this.lazyIterator();
   }
 
-  ungroup<U = TOut>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, ...keys: ExcludeLast<Ks>) => U): SeqOfGroupsWithoutLast<Ks, U> {
+  ungroup<U = TOut>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): SeqOfGroupsWithoutLast<Ks, U> {
 
     let indexOfLastSelectorWithoutAggregation = -1;
     for (let i = this.selectors.length - 1; i >= 0; i--) {
@@ -254,7 +305,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     const newSelectors = [...this.selectors];
     newSelectors[indexOfLastSelectorWithoutAggregation] = newLastSelector;
 
-    const instance = new SeqOfMultiGroupsImpl<ExcludeLast<Ks>, TIn, U>(this.source, newSelectors);
+    const instance = new SeqOfMultiGroupsImpl<any, TIn, U>(this.source, newSelectors);
 
     return instance as unknown as SeqOfGroupsWithoutLast<Ks, U>;
   }
@@ -352,7 +403,10 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       * [Symbol.iterator](): Generator<GroupedSeq<any, any> | TOut> {
         if (this.containerGenerator.isLast) yield* (this.containerGenerator as any);
         else for (const container of this.containerGenerator as Iterable<Container>) {
-          const seq = factories.GroupedSeq(container.key, new SeqOfGroupsGenerator(container, this.optimize))
+          const seq = new GroupedSeqImpl(
+            container.key,
+            new SeqOfGroupsGenerator(container, this.optimize),
+            container.ancestorKeys);
           if (this.optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
           const aggregated = container.aggregate(seq) as GroupedSeq<any, any>;
           yield aggregated;
@@ -406,7 +460,9 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
         const isLast = (this.selectors.length - 1) === index;
         const {key, comparable} = selector.selectKeyAndComparable(item, entry.index);
         const ancestorKeys = currentContainer.getAllKeys();
-        item = selector.selectValue(item, entry.index, [key, ...ancestorKeys]);
+        const keys = [...ancestorKeys, key];
+        const keyOrMultiKeys = (keys.length === 1) ? key : toMultiKeysTuple(keys);
+        item = selector.selectValue(item, entry.index, keyOrMultiKeys);
 
         currentContainer = currentContainer.getOrAddChildContainer(isLast, key, comparable, ancestorKeys, selector.aggregator);
 
@@ -440,12 +496,12 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     const map = new Map();
     this.materialize(
       map,
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>) => {
         const container = new Map();
         if (parentContainer) parentContainer.set(groupedSeq.key, container);
         return container;
       },
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>): void => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>): void => {
         parentContainer.set(groupedSeq.key, groupedSeq.filter(x => x !== IGNORED_ITEM).toArray() as unknown as any);
       });
 
@@ -456,7 +512,7 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     const obj: any = {};
     this.materialize<any, TOut[]>(
       obj,
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
         const container = {};
         if (parentContainer) {
           const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
@@ -464,7 +520,7 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
         }
         return container;
       },
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
         const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
         parentContainer[validKey] = groupedSeq.filter(x => x !== IGNORED_ITEM).last();
       }
@@ -477,7 +533,7 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     const obj: any = {};
     this.materialize<any, TOut[]>(
       obj,
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
         const container = {};
         if (parentContainer) {
           const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
@@ -485,7 +541,7 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
         }
         return container;
       },
-      (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
         const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
         parentContainer[validKey] = groupedSeq.filter(x => x !== IGNORED_ITEM).toArray();
       }
@@ -496,21 +552,22 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
 
   private materialize<TContainer extends object, V>(
     initialContainer: TContainer,
-    createContainer: (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: TContainer, comparableKey?: ComparableType) => TContainer,
-    setValue: (groupedSeq: MultiGroupedSeq<any, any>, parentContainer: TContainer, comparableKey: ComparableType) => void
+    createContainer: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, comparableKey?: ComparableType) => TContainer,
+    setValue: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, comparableKey: ComparableType) => void
   ): void {
 
     const source = this.seqOfGroups;
     const groupedSeqToContainerMap = new Map<unknown, TContainer>([[source, initialContainer]]);
     const maxDepthIndex = this.selectors.length - 1;
 
-    function* traverse(source: Iterable<any>, context: { depth: number; } = {depth: 0}): Generator<{ groupedSeq: MultiGroupedSeq<any, any>; parent: Iterable<any>; depth: number; isLeaf: boolean; }, void, undefined> {
+    function* traverse(source: Iterable<any>, context: { depth: number; } = {depth: 0}): Generator<{ groupedSeq: KeyedSeq<any, any>; parent: Iterable<any>; depth: number; isLeaf: boolean; }, void, undefined> {
       for (const entry of entries(source)) {
         const isLeaf = context.depth === maxDepthIndex;
         yield {groupedSeq: entry.value, parent: source, depth: context.depth, isLeaf};
         if (!isLeaf) yield* traverse(entry.value, {depth: context.depth + 1});
       }
     }
+
     for (const {groupedSeq, parent, depth, isLeaf} of traverse(source)) {
 
       const selector = this.selectors[depth];
