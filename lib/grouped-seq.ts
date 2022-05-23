@@ -1,15 +1,14 @@
 import {
   CachedSeq,
   ComparableType,
-  factories,
   GroupedSeq, KeyedSeq,
   Last,
   MapHierarchy,
   MultiGroupedSeq,
-  ObjectHierarchy, Reverse,
+  ObjectHierarchy,
   Selector, Seq,
   SeqOfGroupsWithoutLast,
-  SeqOfMultiGroups, Headless,
+  SeqOfMultiGroups,
   ToComparableKey, Tailless
 } from "./seq";
 import {consume, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
@@ -195,7 +194,27 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
-  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U> {
+  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>
+  aggregate<U = TOut>({reducer, initialValue}: {
+    reducer: (previousValue: U,
+              currentValue: TOut,
+              currentIndex: number,
+              group: GroupedSeq<Last<Ks>, TOut>,
+              keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U;
+    initialValue?: U;
+  }): Seq<U>;
+  aggregate<U>(aggregator:
+                 ((group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U) |
+                 {
+                   reducer: (previousValue: U,
+                             currentValue: TOut,
+                             currentIndex: number,
+                             group: GroupedSeq<Last<Ks>, TOut>,
+                             keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U;
+                   initialValue?: U;
+                 }): Seq<U> {
+
+
     function* traverseLeaves(source: Iterable<any>): Generator<GroupedSeqImpl<Last<Ks>, TOut>> {
       for (const entry of source) {
         const isGroup = SeqTags.group(entry);
@@ -207,12 +226,19 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
       }
     }
 
+    const actualAggregator = typeof aggregator === 'function' ?
+      aggregator :
+      (group: GroupedSeq<Last<Ks>, TOut>, keys: any) => group.reduce<U>(
+        (_1, _2, _3) => aggregator.reducer(_1, _2, _3, group, keys),
+        aggregator.initialValue as unknown as U);
+
     return this.generate(function* aggregate(items) {
       for (const entry of items) {
         if (!SeqTags.group(entry)) break;
         for (const leaf of traverseLeaves(entry)) {
           const keys = toMultiKeysTuple<Ks>([...leaf.ancestorKeys, leaf.key] as Ks);
-          yield aggregator(leaf, keys);
+          const value = actualAggregator(leaf, keys);
+          yield value;
         }
       }
     })

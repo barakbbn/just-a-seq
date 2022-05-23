@@ -454,7 +454,16 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  aggregate<U>(fn: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>;
+  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>;
+
+  aggregate<U = T>({reducer, initialValue}: {
+    reducer: (previousValue: U,
+              currentValue: T,
+              currentIndex: number,
+              group: GroupedSeq<Last<Ks>, T>,
+              keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U;
+    initialValue?: U;
+  }): Seq<U>;
 
   mapInGroup<U>(mapFn: (item: T, index: number, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): SeqOfMultiGroups<Ks, U>;
 

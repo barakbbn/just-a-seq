@@ -1157,7 +1157,7 @@ export abstract class SeqBase_Grouping_Tests {
             assert.sameMembers(actual, expected);
           });
 
-        this.it('should provide correct list of keys parameters to aggregator function',
+        this.it('should provide correct list of keys parameters to reducer function',
           array.samples,
           (input, inputArray) => {
 
@@ -1175,6 +1175,87 @@ export abstract class SeqBase_Grouping_Tests {
 
             assert.sameDeepMembers(actualKeys, expectedKeys);
           });
+
+        describe('by reduce', () => {
+          this.it('should return sequence of the results of the reducer function on each inner group',
+            array.samples,
+            (input, inputArray) => {
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const sut = grouped.aggregate({
+                  reducer: (prev, sample) => prev + sample.score,
+                  initialValue: 0
+                }
+              );
+
+              const distinctKeys = [...new Set(inputArray.map(s => `${s.ok}|${s.type}|${s.period}`))];
+              const expected = distinctKeys.map(key => {
+                const itemsWithSameKey = inputArray.filter(s => `${s.ok}|${s.type}|${s.period}` === key);
+                return sumBy(itemsWithSameKey, s => s.score);
+              });
+
+              const actual = [...sut];
+              assert.sameMembers(actual, expected);
+            });
+
+          this.it('should provide correct list of keys parameters to reducer function',
+            array.samples,
+            (input, inputArray) => {
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const expectedKeys = inputArray.map(s => [s.ok, s.type, s.period]);
+
+              const actualKeys: [boolean, string, number][] = [];
+
+              const sut = grouped.aggregate({
+                  reducer: (prev, sample, index, group, keys) => actualKeys.push(keys),
+                  initialValue: 0
+                }
+              );
+              materialize(sut);
+
+              assert.sameDeepMembers(actualKeys, expectedKeys);
+            });
+
+          this.it('should provide all inner groups and all their items to reducer function in correct order',
+            array.samples, (input, inputArray) => {
+              const map = new Map<string, Sample[]>()
+              inputArray.forEach(s => {
+                const key = `${s.ok}|${s.type}|${s.period}`;
+                (map.get(key) ?? map.set(key, []).get(key)!).push(s);
+              })
+              const expected = [...map.values()];
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const actualItems = new Map<string, Sample[]>();
+              const sut = grouped.aggregate({
+                  reducer(prev, currentValue, index, group, keys) {
+                    const key = keys.join('|');
+                    (actualItems.get(key) ?? actualItems.set(key, []).get(key)!).push(currentValue);
+                    assert.deepEqual(currentValue, group.at(index), `expected currentValue: ${currentValue} is same object in group[${index}]. but actual is ${group.at(index)}`);
+                    return currentValue;
+                  },
+                  initialValue: inputArray[0]
+                }
+              );
+              materialize(sut);
+              const actual = [...actualItems.values()];
+
+              assert.sameDeepMembers(actual, expected);
+            });
+        });
       });
     });
 
