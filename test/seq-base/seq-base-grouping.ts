@@ -126,31 +126,32 @@ export abstract class SeqBase_Grouping_Tests {
         assert.deepEqual(actual2, expected);
       });
 
-      this.it('should filter grouped sequences as expected', array.samples, input => {
-        const expectedMap = new Map<string, Sample[]>();
-        for (const s of input) {
-          const items = expectedMap.get(s.type) ?? [];
-          items.push(s);
-          expectedMap.set(s.type, items);
-        }
-        const expectedSet = new Set<number>();
-        for (const samples of expectedMap.values()) {
-          if (samples.length <= 5) continue;
-          samples.map(s => s.score).forEach(s => expectedSet.add(s));
-        }
-        const expected = [...expectedSet];
+      this.it('should filter grouped sequences as expected',
+        array.samples, (input, inputArray) => {
+          const expectedMap = new Map<string, Sample[]>();
+          for (const s of inputArray) {
+            const items = expectedMap.get(s.type) ?? [];
+            items.push(s);
+            expectedMap.set(s.type, items);
+          }
+          const expectedSet = new Set<number>();
+          for (const samples of expectedMap.values()) {
+            if (samples.length <= 5) continue;
+            samples.map(s => s.score).forEach(s => expectedSet.add(s));
+          }
+          const expected = [...expectedSet];
 
-        const sut = this.createSut(input)
-          .groupBy(s => s.type)
-          .filter(group => group.hasAtLeast(6))
-          .flat()
-          .map(s => s.score)
-          .distinct()
+          const sut = this.createSut(input)
+            .groupBy(s => s.type)
+            .filter(group => group.hasAtLeast(6))
+            .flat()
+            .map(s => s.score)
+            .distinct()
 
-        const actual = [...sut];
+          const actual = [...sut];
 
-        assert.deepEqual(actual, expected);
-      });
+          assert.deepEqual(actual, expected);
+        });
 
       this.it('should be able to iterate child grouped-sequence after main sequence closed', array.samples, input => {
         const firstItem = array.samples[0];
@@ -229,7 +230,7 @@ export abstract class SeqBase_Grouping_Tests {
             comparableKey: (key: { ok: boolean; type: string; }) => key.type + (key.ok ? '+' : '-'),
             key: (s: Sample) => ({ok: s.ok, type: s.type}),
             cachedKey(s: Sample) {
-              const [key, comparable] = [this.key(s), this.comparableKey(s)];
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
           };
@@ -289,7 +290,7 @@ export abstract class SeqBase_Grouping_Tests {
               return ({...s, diff: s.score - s.period});
             },
             cachedKey(s: Sample) {
-              const [key, comparable] = [this.key(s), this.comparableKey(s)];
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
           };
@@ -1257,6 +1258,103 @@ export abstract class SeqBase_Grouping_Tests {
             });
         });
       });
+
+      describe('groupBy$()', () => {
+        this.it('should return sequence of groups by key-selector of some object',
+          array.samples, (input, inputArray) => {
+            const expectedMap = new Map<string, any[]>();
+            inputArray.forEach(s => {
+              const key = JSON.stringify({type: s.type, ok: s.ok});
+              expectedMap.set(key, [...(expectedMap.get(key) || []), s]);
+            });
+            const expected = [...expectedMap.entries()].map(([, items]) => [{
+              type: items[0].type,
+              ok: items[0].ok
+            }, items]);
+
+            const sut = this.createSut(input).groupBy$(s => ({type: s.type, ok: s.ok}));
+            const actualGrouped = [...sut];
+            const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+            assert.deepEqual(actual, expected);
+          });
+        describe('thenGroupBy$', () => {
+          function expectedSamplesHierarchyWithComplexKey() {
+            const input = array.samples;
+
+            const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{ period: number; scoreAbovePeriod: boolean; }, Sample[]>>>();
+
+            const level1 = {
+              cache: new Map<string, { ok: boolean; type: string; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({ok: s.ok, type: s.type}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+            const level2 = {
+              cache: new Map<string, { scoreLevel: string; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+            const level3 = {
+              cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({period: s.period, scoreAbovePeriod: s.score > s.period}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+
+            // Level 1
+            input.forEach(s => expected.set(level1.cachedKey(s), [...(expected.get(level1.cachedKey(s)) || []), s] as any));
+            // Level 2
+            expected.forEach((items, key) => {
+              const map = new Map<any, any[]>();
+              (items as unknown as Sample[]).forEach(s => map.set(level2.cachedKey(s), [...(map.get(level2.cachedKey(s)) || []), s]));
+              expected.set(key, map as any);
+            });
+            // Level 3
+            expected.forEach(mapByType => mapByType.forEach((items, key) => {
+              const map = new Map<any, any[]>();
+              (items as unknown as Sample[]).forEach(s => map.set(level3.cachedKey(s), [...(map.get(level3.cachedKey(s)) || []), s]));
+              mapByType.set(key, map as any);
+            }));
+
+            return {
+              expected,
+              input,
+              level1: {key: level1.key, comparableKey: level1.comparableKey},
+              level2: {key: level2.key, comparableKey: level2.comparableKey},
+              level3: {key: level3.key, comparableKey: level3.comparableKey}
+            };
+          }
+
+          it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors', () => {
+            const {expected, input, level1, level2, level3} = expectedSamplesHierarchyWithComplexKey();
+
+            const sut = this.createSut(input)
+              .groupBy$(s => level1.key(s))
+              .thenGroupBy$(s => level2.key(s))
+              .thenGroupBy$(s => level3.key(s));
+
+            const actual = new Map([...sut].map(level1 =>
+              [level1.key, new Map([...level1].map(level2 =>
+                [level2.key, new Map([...level2].map(level3 =>
+                  [level3.key, [...level3]]))]
+              ))]));
+
+            assert.deepEqual(actual, expected);
+          });
+
+        });
+      });
     });
 
     describe('groupJoin()', () => {
@@ -1404,6 +1502,7 @@ export abstract class SeqBase_Grouping_Tests {
         });
       });
     });
+
   });
 
   protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;

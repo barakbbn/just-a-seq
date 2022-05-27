@@ -273,12 +273,16 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return instance;
   }
 
-  thenGroupBy<K2>(keySelector?: Selector<TOut, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], TOut> {
+  thenGroupBy<K2>(keySelector: Selector<TOut, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], TOut> {
     const newSelector = GroupingSelector.from(keySelector, toComparableKey);
     return new SeqOfMultiGroupsImpl<[...Ks, K2], TIn, TOut>(
       this.source,
       [...this.selectors, newSelector],
     );
+  }
+
+  thenGroupBy$<K2 extends object>(keySelector: Selector<TOut, K2>): SeqOfMultiGroups<[...Ks, K2], TOut> {
+    return this.thenGroupBy(keySelector, JSON.stringify)
   }
 
   tap(callback: Selector<MultiGroupedSeq<Ks, TOut>, void>): any {
@@ -301,8 +305,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
   toObject(arrayed?: boolean): ObjectHierarchy<Ks, TOut | TOut[]> {
     const hierarchyTransformer = new HierarchyTransformer(this, this.selectors.filter(s => !s.aggregator));
 
-    return arrayed?
-      hierarchyTransformer.toObjectArray():
+    return arrayed ?
+      hierarchyTransformer.toObjectArray() :
       hierarchyTransformer.toObjectSingle();
   }
 

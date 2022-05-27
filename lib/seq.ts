@@ -188,6 +188,8 @@ export interface Seq<T> extends Iterable<T> {
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: ToComparableKey<K>, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
+  groupBy$<K extends object>(keySelector: Selector<T, K>): SeqOfGroups<K, T>;
+
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I>;
 
   groupJoinRight<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<I, T>;
@@ -440,7 +442,9 @@ export interface MultiGroupedSeq<Ks extends any[], T> extends KeyedSeq<Ks[0], Su
 export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
   mapInGroup<U>(mapFn: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
-  thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[K, K2], T>;
+  thenGroupBy<K2>(keySelector: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[K, K2], T>;
+
+  thenGroupBy$<K2 extends object>(keySelector: Selector<T, K2>): SeqOfMultiGroups<[K, K2], T>;
 
   toMap<K2, V>(keySelector: Selector<GroupedSeq<K, T>, K2>, valueSelector?: Selector<GroupedSeq<K, T>, V>, toComparableKey?: ToComparableKey<K2>): Map<K2, V>;
 
@@ -467,7 +471,9 @@ export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedS
 
   mapInGroup<U>(mapFn: (item: T, index: number, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): SeqOfMultiGroups<Ks, U>;
 
-  thenGroupBy<K2>(keySelector?: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], T>;
+  thenGroupBy<K2>(keySelector: Selector<T, K2>, toComparableKey?: ToComparableKey<K2>): SeqOfMultiGroups<[...Ks, K2], T>;
+
+  thenGroupBy$<K2 extends object>(keySelector: Selector<T, K2>): SeqOfMultiGroups<[...Ks, K2], T>;
 
   toMap(): MapHierarchy<Ks, T>;
 
