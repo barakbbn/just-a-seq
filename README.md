@@ -177,13 +177,13 @@ console.log(asSeq(layers)
 | firstAndRest | flat         | flatMap      | **flatHierarchy** |                 |
 | groupBy      | **groupBy$** | groupJoin    | groupJoinRight    | **thenGroupBy** |
 | ifEmpty      | innerJoin    | insert       | insertAfter       | insertBefore    |
-| intersect    | intersperse  |              |                   |                 |
+| intersect    | intersectBy  | intersperse  |                   |                 |
 | join         |              |              |                   |                 |
 | map          | **matchBy**  |              |                   |                 |
 | ofType       |              |              |                   |                 |
 | prepend      | push         |              |                   |                 |
 | reduce       | reduceRight  | remove       | removeAll         | removeFalsy     |
-| removeNulls  | repeat       | reverse      |                   |                 |
+| removeKeys   | removeNulls  | repeat       | reverse           |                 |
 | skip         | skipFirst    | skipLast     |                   |                 |
 | skipWhile    | slice        | sort         | sortBy            | **thenSortBy**  |
 | sorted       | split        |              |                   |                 |
