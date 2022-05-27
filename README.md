@@ -167,30 +167,30 @@ console.log(asSeq(layers)
 
 #### Deferred actions
 
-|              |              |                |                   |                |
-|--------------|--------------|----------------|-------------------|----------------|
-| append       |              |                |                   |                |
-| cache        | chunk        | concat         |                   |                |
-| diff         | diffDistinct | distinct       |                   |                |
-| entries      |              |                |                   |                |
-| filter       |              |                |                   |                |
-| firstAndRest | flat         | flatMap        | **flatHierarchy** |                |
-| groupBy      | groupJoin    | groupJoinRight | **thenGroupBy**   |                |
-| ifEmpty      | innerJoin    | insert         | insertAfter       | insertBefore   |
-| intersect    | intersectBy  | intersperse    |                   |                |
-| join         |              |                |                   |                |
-| map          | **matchBy**  |                |                   |                |
-| ofType       |              |                |                   |                |
-| prepend      | push         |                |                   |                |
-| reduce       | reduceRight  | remove         | removeAll         | removeFalsy    |
-| removeKeys   | removeNulls  | repeat         | reverse           |                |
-| skip         | skipFirst    | skipLast       |                   |                |
-| skipWhile    | slice        | sort           | sortBy            | **thenSortBy** |
-| sorted       | split        |                |                   |                |
-| take         | takeLast     | takeOnly       | takeWhile         | **tap**        |
-| transform    |              |                |                   |                |
-| union        | unshift      |                |                   |                |
-| zip          | zipAll       | zipWithIndex   |                   |                |
+|              |              |              |                   |                 |
+|--------------|--------------|--------------|-------------------|-----------------|
+| append       |              |              |                   |                 |
+| cache        | chunk        | concat       |                   |                 |
+| diff         | diffDistinct | distinct     |                   |                 |
+| entries      |              |              |                   |                 |
+| filter       |              |              |                   |                 |
+| firstAndRest | flat         | flatMap      | **flatHierarchy** |                 |
+| groupBy      | **groupBy$** | groupJoin    | groupJoinRight    | **thenGroupBy** |
+| ifEmpty      | innerJoin    | insert       | insertAfter       | insertBefore    |
+| intersect    | intersectBy  | intersperse  |                   |                 |
+| join         |              |              |                   |                 |
+| map          | **matchBy**  |              |                   |                 |
+| ofType       |              |              |                   |                 |
+| prepend      | push         |              |                   |                 |
+| reduce       | reduceRight  | remove       | removeAll         | removeFalsy     |
+| removeKeys   | removeNulls  | repeat       | reverse           |                 |
+| skip         | skipFirst    | skipLast     |                   |                 |
+| skipWhile    | slice        | sort         | sortBy            | **thenSortBy**  |
+| sorted       | split        |              |                   |                 |
+| take         | takeLast     | takeOnly     | takeWhile         | **tap**         |
+| transform    |              |              |                   |                 |
+| union        | unshift      |              |                   |                 |
+| zip          | zipAll       | zipWithIndex |                   |                 |
 
 #### Factories
 

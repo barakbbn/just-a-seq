@@ -1,3 +1,6 @@
+import {SeqBase} from "../lib/seq-base";
+import {EMPTY_ARRAY, SeqTags} from "../lib/common";
+
 export const array = new class {
   get falsyValues(): any[] {
     return [0, '', null, false, undefined, Number.NaN];
@@ -121,7 +124,6 @@ export const array = new class {
     function* folderChildren(folder: Folder): Generator<Folder> {
       yield folder;
       for (const child of folder.subFolders) {
-        yield child;
         yield* folderChildren(child);
       }
     }
@@ -133,6 +135,32 @@ export const array = new class {
 
     return flattened;
   }
+
+  // buildFoldersTree(): Folder[] {
+  //   const buildPath = (folder: Folder | undefined): string | undefined => {
+  //     let path: string[] = [];
+  //     while (folder) {
+  //       path.unshift(folder.name);
+  //       folder = folder.parent;
+  //     }
+  //     return path.length ? path.join("/") : undefined;
+  //   }
+  //
+  //   const flatFolders = this.flatFolders.map(f => ({
+  //     path: buildPath(f)!,
+  //     name: f.name,
+  //     parent: buildPath(f.parent)
+  //   }));
+  //
+  //   const map = new Map<any, any>();
+  //   const context = {
+  //     ancestors: <Folder[]>[]
+  //   };
+  //   for (const folder of flatFolders) {
+  //
+  //   }
+  //
+  // }
 
   range(from: number, to: number, step: number = 1) {
     return [...generator.range(from, to, step)];
@@ -253,3 +281,28 @@ export class TestableArray<T> extends Array<T> {
   }
 }
 
+export class TestableDerivedSeq<T> extends SeqBase<T> {
+  private _wasIterated = false;
+
+  constructor(
+    protected readonly source: Iterable<T> = EMPTY_ARRAY,
+    tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
+
+    super();
+
+    SeqTags.setTagsIfMissing(this, tags);
+  }
+
+  get wasIterated(): boolean {
+    return this._wasIterated;
+  }
+
+  * [Symbol.iterator](): Iterator<T> {
+    this._wasIterated = true;
+    yield* this.source;
+  }
+
+  protected getSourceForNewSequence(): Iterable<T> {
+    return this.source;
+  }
+}

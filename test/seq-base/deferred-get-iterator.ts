@@ -1,6 +1,6 @@
 import {Seq} from "../../lib";
 import {assert} from "chai";
-import {TestableArray} from "../test-data";
+import {TestableArray, TestableDerivedSeq} from "../test-data";
 
 export abstract class SeqBase_Deferred_GetIterator_Tests {
   constructor(protected optimized: boolean) {
@@ -18,16 +18,19 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
       };
 
       const iterable = {
-        getIteratorWasCalled: false,
+        wasIterated: false,
         [Symbol.iterator](): Iterator<any> {
-          this.getIteratorWasCalled = true;
+          this.wasIterated = true;
           return [0][Symbol.iterator]();
         }
       };
 
-      test(title + ' - generator', iterable, () => iterable.getIteratorWasCalled);
       const array = new TestableArray(0, 1, 2);
+      const seq = new TestableDerivedSeq();
+
+      test(title + ' - generator', iterable, () => iterable.wasIterated);
       test(title + ' - array', array, () => array.getIteratorCount > 0);
+      test(title + ' - seq', seq, () => seq.wasIterated);
     };
 
     describe('as()', () => testGetIterator(sut => sut.as<number>()));
@@ -63,6 +66,10 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
     }))));
 
     describe('groupBy()', () => testGetIterator(sut => sut.groupBy(() => 1,)));
+    describe('groupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2)));
+    describe('groupBy().thanGroupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).thenGroupBy(()=>3)));
+    describe('groupBy().thanGroupBy().ungroup()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).ungroup(g => g.first())));
+    describe('groupBy().thanGroupBy().aggregate()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).aggregate(g => g.first())));
 
     describe('groupJoin()', () => testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1)));
 

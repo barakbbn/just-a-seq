@@ -469,6 +469,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
   }
 
+  groupBy$<K extends object>(keySelector: Selector<T, K>): SeqOfGroups<K, T> {
+    return this.groupBy(keySelector, JSON.stringify);
+  }
+
   groupJoin<I, K>(inner: Iterable<I>, outerKeySelector: Selector<T, K>, innerKeySelector: Selector<I, K>): SeqOfGroups<T, I> {
     return this.groupJoinInternal(this, outerKeySelector, inner, innerKeySelector);
   }

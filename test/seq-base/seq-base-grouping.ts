@@ -2,6 +2,7 @@ import {KeyedSeq, Seq, SeqOfGroups} from "../../lib";
 import {describe, it} from "mocha";
 import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
+import {SeqTags} from "../../lib/common";
 
 export abstract class SeqBase_Grouping_Tests {
   constructor(protected optimized: boolean) {
@@ -125,31 +126,32 @@ export abstract class SeqBase_Grouping_Tests {
         assert.deepEqual(actual2, expected);
       });
 
-      this.it('should filter grouped sequences as expected', array.samples, input => {
-        const expectedMap = new Map<string, Sample[]>();
-        for (const s of input) {
-          const items = expectedMap.get(s.type) ?? [];
-          items.push(s);
-          expectedMap.set(s.type, items);
-        }
-        const expectedSet = new Set<number>();
-        for (const samples of expectedMap.values()) {
-          if (samples.length <= 5) continue;
-          samples.map(s => s.score).forEach(s => expectedSet.add(s));
-        }
-        const expected = [...expectedSet];
+      this.it('should filter grouped sequences as expected',
+        array.samples, (input, inputArray) => {
+          const expectedMap = new Map<string, Sample[]>();
+          for (const s of inputArray) {
+            const items = expectedMap.get(s.type) ?? [];
+            items.push(s);
+            expectedMap.set(s.type, items);
+          }
+          const expectedSet = new Set<number>();
+          for (const samples of expectedMap.values()) {
+            if (samples.length <= 5) continue;
+            samples.map(s => s.score).forEach(s => expectedSet.add(s));
+          }
+          const expected = [...expectedSet];
 
-        const sut = this.createSut(input)
-          .groupBy(s => s.type)
-          .filter(group => group.hasAtLeast(6))
-          .flat()
-          .map(s => s.score)
-          .distinct()
+          const sut = this.createSut(input)
+            .groupBy(s => s.type)
+            .filter(group => group.hasAtLeast(6))
+            .flat()
+            .map(s => s.score)
+            .distinct()
 
-        const actual = [...sut];
+          const actual = [...sut];
 
-        assert.deepEqual(actual, expected);
-      });
+          assert.deepEqual(actual, expected);
+        });
 
       this.it('should be able to iterate child grouped-sequence after main sequence closed', array.samples, input => {
         const firstItem = array.samples[0];
@@ -228,7 +230,7 @@ export abstract class SeqBase_Grouping_Tests {
             comparableKey: (key: { ok: boolean; type: string; }) => key.type + (key.ok ? '+' : '-'),
             key: (s: Sample) => ({ok: s.ok, type: s.type}),
             cachedKey(s: Sample) {
-              const [key, comparable] = [this.key(s), this.comparableKey(s)];
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
           };
@@ -277,7 +279,7 @@ export abstract class SeqBase_Grouping_Tests {
 
         function expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors() {
           const input = array.samples;
-          const expected = new  Map<{ok: boolean, type: string}, Map<{scoreLevel: string}, Map<{period: number, scoreAbovePeriod: boolean}, {scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string}[]>>>();
+          const expected = new Map<{ ok: boolean, type: string }, Map<{ scoreLevel: string }, Map<{ period: number, scoreAbovePeriod: boolean }, { scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string }[]>>>();
 
           const level1 = {
             cache: new Map<string, { ok: boolean; type: string; }>(),
@@ -288,7 +290,7 @@ export abstract class SeqBase_Grouping_Tests {
               return ({...s, diff: s.score - s.period});
             },
             cachedKey(s: Sample) {
-              const [key, comparable] = [this.key(s), this.comparableKey(s)];
+              const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
           };
@@ -296,14 +298,14 @@ export abstract class SeqBase_Grouping_Tests {
             cache: new Map<string, { scoreLevel: string; }>(),
             comparableKey: (key: { scoreLevel: string; }) => key.scoreLevel,
             key: (s: Sample & { diff: number; }) => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, ...keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
                 scoreLevel: (s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle') as ScoreLevel
               });
             },
-            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, ...keys: any[]) => {
+            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 diff: s.diff,
@@ -321,18 +323,18 @@ export abstract class SeqBase_Grouping_Tests {
           const level3 = {
             cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
             comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod ? '+' : '-'),
-            key: (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
+            key: (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
               period: s.period,
               scoreAbovePeriod: s.score > s.period
             }),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, ...keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
                 scoreAbovePeriod: s.score > s.period
               });
             },
-            cachedKey(s: {period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) {
+            cachedKey(s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) {
               const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
               return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
             }
@@ -353,7 +355,9 @@ export abstract class SeqBase_Grouping_Tests {
             (items as unknown as (Sample & { diff: number; })[]).forEach((s, i) => map.set(level2.cachedKey(s),
               [...(map.get(level2.cachedKey(s)) || []),
                 level2.mapValue2Factory(expectedLevel2MapValue2Keys)(
-                  level2.mapValueFactory(expectedLevel2MapValue1Keys)(s, i, level2.key(s), level1.key(s)), i, level2.key(s), level1.key(s)
+                  level2.mapValueFactory(expectedLevel2MapValue1Keys)(s, i, [level1.key(s), level2.key(s)]),
+                  i,
+                  [level1.key(s), level2.key(s)]
                 )]));
             expected.set(key, map as any);
           });
@@ -362,15 +366,15 @@ export abstract class SeqBase_Grouping_Tests {
           const expectedLevel3MapValueKeys: { ok: boolean; type: string; }[] = [];
           expected.forEach((mapByType, key1) =>
             mapByType.forEach((items, key2) => {
-            const map = new Map<any, any[]>();
-            (items as unknown as ({period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
-              .forEach((s, i) => map.set(level3.cachedKey(s), [
-                  ...(map.get(level3.cachedKey(s)) || []),
-                  level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, level3.key(s), key2, key1)]
-                )
-              );
-            mapByType.set(key2, map as any);
-          }));
+              const map = new Map<any, any[]>();
+              (items as unknown as ({ period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
+                .forEach((s, i) => map.set(level3.cachedKey(s), [
+                    ...(map.get(level3.cachedKey(s)) || []),
+                    level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, [key1, key2, level3.key(s)])]
+                  )
+                );
+              mapByType.set(key2, map as any);
+            }));
 
           return {
             expected,
@@ -761,6 +765,36 @@ export abstract class SeqBase_Grouping_Tests {
           assert.deepEqual(actual, expected);
         });
 
+        // it('should call tap callback for each top level group after performing mapInGroup()', () => {
+        //   const input = array.samples;
+        //   const maps: Map<any, number>[] = [new Map(), new Map(), new Map()];
+        //   array.samples.forEach(sample => {
+        //     maps[0].set(sample.type, (maps[0].get(sample.type) ?? 0) + sample.score);
+        //     maps[1].set(sample.type, (maps[1].get(sample.type) ?? 0) + sample.period);
+        //     maps[1].set(sample.type, (maps[1].get(sample.type) ?? 0) + sample.score);
+        //   });
+        //
+        //   const expected = maps.map(map => [...map.entries()].map(([key, value]) => ({key, value})));
+        //
+        //   const actual: { key: string; value: number; }[][] = [[], [], []];
+        //
+        //   const sut = this.createSut(input)
+        //     .groupBy(sample => sample.type, undefined, sample => ({
+        //       period: sample.period,
+        //       result: {value: sample.score}
+        //     }))
+        //     .tap(group => actual[0].push({key: group.key, value: group.sum(s => s.result.value)}))
+        //     .mapInGroup(sample => ({point: {x: sample.period, y: sample.result.value}}))
+        //     .tap(group => actual[1].push({key: group.key, value: group.sum(s => s.point.x)}))
+        //     .thenGroupBy(point => point.point.x)
+        //     .tap(group => actual[2].push({key: group.key, value: group.sum(s => s.sum(ss => ss.point.y))}));
+        //
+        //   for (const x of sut) {
+        //   }
+        //
+        //   assert.deepEqual(actual, expected);
+        // });
+
         describe('on each grouped sequence', () => {
           it('should produce same results before and after tap', () => {
             const input = array.oneToTen;
@@ -983,6 +1017,344 @@ export abstract class SeqBase_Grouping_Tests {
           });
         });
       });
+
+      function sumBy<T>(items: Iterable<T>, map: (item: T) => number): number {
+        return [...items].reduce((prev, curr) => prev + map(curr), 0);
+      }
+
+      describe('ungroup()', () => {
+        const sum = (items: Iterable<number>): number => [...items].reduce((prev, curr) => prev + curr, 0);
+
+        this.it('should remove the most inner group', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const sut = grouped.ungroup(group => sum(group));
+
+          function countDepth(seq: Seq<any>): number {
+            // noinspection LoopStatementThatDoesntLoopJS
+            for (const group of seq) {
+              return ((SeqTags.isSeq(group) && 'key' in group) ? (1 + countDepth(group)) : 0);
+            }
+            return 0;
+          }
+
+          const depthBeforeUngroup = countDepth(grouped);
+          const depthAfterUngroup = countDepth(sut);
+
+          assert.equal(depthBeforeUngroup, 2);
+          assert.equal(depthAfterUngroup, 1);
+        });
+
+        this.it('should map items in new inner group according to aggregator function', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const sut = grouped.ungroup(group => sum(group));
+
+          const expected = [
+            [0, [
+              sum([0, 6]),
+              sum([3, 9])
+            ]],
+            [1, [
+              sum([1, 7]),
+              sum([4, 10])
+            ]],
+            [2, [
+              sum([2, 8]),
+              sum([5])
+            ]]
+          ];
+
+          const actual = sut.toArray().map(g => [g.key, g.toArray()]);
+
+          assert.deepEqual(actual, expected);
+        });
+
+        this.it('should not affect the sequence before the ungroup', array.zeroToTen, input => {
+          const grouped = this.createSut(input).groupBy(n => n % 3).thenGroupBy(n => n % 2);
+          const expectedBeforeUngroup = grouped.toMap();
+          grouped.ungroup(group => sum(group)).toMap();
+          const actualAfterUngroup = grouped.toMap();
+
+          assert.deepEqual(actualAfterUngroup, expectedBeforeUngroup);
+        });
+
+        this.it('should provide correct list of keys parameters to aggregator function', array.zeroToTen, input => {
+          const expectedKeysToValues = [
+            '0,0,false -> [0]',
+            '0,0,true -> [6]',
+            '0,1,false -> [4]',
+            '0,1,true -> [10]',
+            '0,2,false -> [2]',
+            '0,2,true -> [8]',
+            '1,0,false -> [3]',
+            '1,0,true -> [9]',
+            '1,1,false -> [1]',
+            '1,1,true -> [7]',
+            '1,2,false -> [5]'
+          ];
+          const actualKeysToValues: string[] = [];
+          const grouped = this.createSut(input)
+            .groupBy(n => n % 2)
+            .thenGroupBy(n => n % 3)
+            .thenGroupBy(n => n > 5);
+
+          grouped
+            .ungroup((group, keys) => {
+              actualKeysToValues.push(`${keys} -> ${group.toString()}`);
+              return sum(group);
+            })
+            .toMap();
+
+          assert.sameMembers(actualKeysToValues, expectedKeysToValues);
+        });
+
+        describe('chaining ungroup()', () => {
+          this.it('should remove the most inner group', array.samples, input => {
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period)
+              .thenGroupBy(s => s.score);
+
+            const sut = grouped
+              .ungroup(group => group.key * group.length())
+              .ungroup(group => group.key * group.length());
+
+            function countDepth(seq: Seq<any>): number {
+              // noinspection LoopStatementThatDoesntLoopJS
+              for (const group of seq) {
+                return ((SeqTags.isSeq(group) && 'key' in group) ? (1 + countDepth(group)) : 0);
+              }
+              return 0;
+            }
+
+            const depthBeforeUngroup = countDepth(grouped);
+            const depthAfterUngroup = countDepth(sut);
+
+            assert.equal(depthBeforeUngroup, 4);
+            assert.equal(depthAfterUngroup, 2);
+          });
+        });
+      });
+
+      describe('aggregate', () => {
+        this.it('should return sequence of the results of the aggregator function on each inner group',
+          array.samples,
+          (input, inputArray) => {
+
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period);
+
+            const sut = grouped.aggregate(group => group.sum(s => s.score));
+
+            const distinctKeys = [...new Set(inputArray.map(s => `${s.ok}|${s.type}|${s.period}`))];
+            const expected = distinctKeys.map(key => {
+              const itemsWithSameKey = inputArray.filter(s => `${s.ok}|${s.type}|${s.period}` === key);
+              return sumBy(itemsWithSameKey, s => s.score);
+            });
+
+            const actual = [...sut];
+            assert.sameMembers(actual, expected);
+          });
+
+        this.it('should provide correct list of keys parameters to reducer function',
+          array.samples,
+          (input, inputArray) => {
+
+            const grouped = this.createSut(input)
+              .groupBy(s => s.ok)
+              .thenGroupBy(s => s.type)
+              .thenGroupBy(s => s.period);
+
+            const distinctKeys = [...new Map(inputArray.map(s => [`${s.ok}|${s.type}|${s.period}`, s])).values()];
+            const expectedKeys = distinctKeys.map(s => [s.ok, s.type, s.period]);
+
+            const actualKeys: [boolean, string, number][] = [];
+            const sut = grouped.aggregate((group, keys) => actualKeys.push(keys));
+            materialize(sut);
+
+            assert.sameDeepMembers(actualKeys, expectedKeys);
+          });
+
+        describe('by reduce', () => {
+          this.it('should return sequence of the results of the reducer function on each inner group',
+            array.samples,
+            (input, inputArray) => {
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const sut = grouped.aggregate({
+                  reducer: (prev, sample) => prev + sample.score,
+                  initialValue: 0
+                }
+              );
+
+              const distinctKeys = [...new Set(inputArray.map(s => `${s.ok}|${s.type}|${s.period}`))];
+              const expected = distinctKeys.map(key => {
+                const itemsWithSameKey = inputArray.filter(s => `${s.ok}|${s.type}|${s.period}` === key);
+                return sumBy(itemsWithSameKey, s => s.score);
+              });
+
+              const actual = [...sut];
+              assert.sameMembers(actual, expected);
+            });
+
+          this.it('should provide correct list of keys parameters to reducer function',
+            array.samples,
+            (input, inputArray) => {
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const expectedKeys = inputArray.map(s => [s.ok, s.type, s.period]);
+
+              const actualKeys: [boolean, string, number][] = [];
+
+              const sut = grouped.aggregate({
+                  reducer: (prev, sample, index, group, keys) => actualKeys.push(keys),
+                  initialValue: 0
+                }
+              );
+              materialize(sut);
+
+              assert.sameDeepMembers(actualKeys, expectedKeys);
+            });
+
+          this.it('should provide all inner groups and all their items to reducer function in correct order',
+            array.samples, (input, inputArray) => {
+              const map = new Map<string, Sample[]>()
+              inputArray.forEach(s => {
+                const key = `${s.ok}|${s.type}|${s.period}`;
+                (map.get(key) ?? map.set(key, []).get(key)!).push(s);
+              })
+              const expected = [...map.values()];
+
+              const grouped = this.createSut(input)
+                .groupBy(s => s.ok)
+                .thenGroupBy(s => s.type)
+                .thenGroupBy(s => s.period);
+
+              const actualItems = new Map<string, Sample[]>();
+              const sut = grouped.aggregate({
+                  reducer(prev, currentValue, index, group, keys) {
+                    const key = keys.join('|');
+                    (actualItems.get(key) ?? actualItems.set(key, []).get(key)!).push(currentValue);
+                    assert.deepEqual(currentValue, group.at(index), `expected currentValue: ${currentValue} is same object in group[${index}]. but actual is ${group.at(index)}`);
+                    return currentValue;
+                  },
+                  initialValue: inputArray[0]
+                }
+              );
+              materialize(sut);
+              const actual = [...actualItems.values()];
+
+              assert.sameDeepMembers(actual, expected);
+            });
+        });
+      });
+
+      describe('groupBy$()', () => {
+        this.it('should return sequence of groups by key-selector of some object',
+          array.samples, (input, inputArray) => {
+            const expectedMap = new Map<string, any[]>();
+            inputArray.forEach(s => {
+              const key = JSON.stringify({type: s.type, ok: s.ok});
+              expectedMap.set(key, [...(expectedMap.get(key) || []), s]);
+            });
+            const expected = [...expectedMap.entries()].map(([, items]) => [{
+              type: items[0].type,
+              ok: items[0].ok
+            }, items]);
+
+            const sut = this.createSut(input).groupBy$(s => ({type: s.type, ok: s.ok}));
+            const actualGrouped = [...sut];
+            const actual = actualGrouped.map(group => [group.key, [...group]]);
+
+            assert.deepEqual(actual, expected);
+          });
+        describe('thenGroupBy$', () => {
+          function expectedSamplesHierarchyWithComplexKey() {
+            const input = array.samples;
+
+            const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{ period: number; scoreAbovePeriod: boolean; }, Sample[]>>>();
+
+            const level1 = {
+              cache: new Map<string, { ok: boolean; type: string; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({ok: s.ok, type: s.type}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+            const level2 = {
+              cache: new Map<string, { scoreLevel: string; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({scoreLevel: s.score < 50 ? 'low' : s.score >= 80 ? 'high' : 'middle'}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+            const level3 = {
+              cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
+              comparableKey: JSON.stringify,
+              key: (s: Sample) => ({period: s.period, scoreAbovePeriod: s.score > s.period}),
+              cachedKey(s: Sample) {
+                const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
+                return this.cache.get(comparable) ?? this.cache.set(comparable, key).get(comparable)!;
+              }
+            };
+
+            // Level 1
+            input.forEach(s => expected.set(level1.cachedKey(s), [...(expected.get(level1.cachedKey(s)) || []), s] as any));
+            // Level 2
+            expected.forEach((items, key) => {
+              const map = new Map<any, any[]>();
+              (items as unknown as Sample[]).forEach(s => map.set(level2.cachedKey(s), [...(map.get(level2.cachedKey(s)) || []), s]));
+              expected.set(key, map as any);
+            });
+            // Level 3
+            expected.forEach(mapByType => mapByType.forEach((items, key) => {
+              const map = new Map<any, any[]>();
+              (items as unknown as Sample[]).forEach(s => map.set(level3.cachedKey(s), [...(map.get(level3.cachedKey(s)) || []), s]));
+              mapByType.set(key, map as any);
+            }));
+
+            return {
+              expected,
+              input,
+              level1: {key: level1.key, comparableKey: level1.comparableKey},
+              level2: {key: level2.key, comparableKey: level2.comparableKey},
+              level3: {key: level3.key, comparableKey: level3.comparableKey}
+            };
+          }
+
+          it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors', () => {
+            const {expected, input, level1, level2, level3} = expectedSamplesHierarchyWithComplexKey();
+
+            const sut = this.createSut(input)
+              .groupBy$(s => level1.key(s))
+              .thenGroupBy$(s => level2.key(s))
+              .thenGroupBy$(s => level3.key(s));
+
+            const actual = new Map([...sut].map(level1 =>
+              [level1.key, new Map([...level1].map(level2 =>
+                [level2.key, new Map([...level2].map(level3 =>
+                  [level3.key, [...level3]]))]
+              ))]));
+
+            assert.deepEqual(actual, expected);
+          });
+
+        });
+      });
     });
 
     describe('groupJoin()', () => {
@@ -1130,7 +1502,20 @@ export abstract class SeqBase_Grouping_Tests {
         });
       });
     });
+
   });
 
   protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
+}
+
+function materialize(value: any): any {
+  function isIterable(value: any): value is Iterable<any> {
+    return value && typeof value !== 'string' && typeof value[Symbol.iterator] === 'function';
+  }
+
+  function* deepToArray(iterable: Iterable<any>): Generator<any> {
+    for (const item of iterable) yield isIterable(item) ? [...deepToArray(item)] : item;
+  }
+
+  return isIterable(value) ? [...deepToArray(value)] : value;
 }
