@@ -459,7 +459,8 @@ export abstract class SeqBase_Grouping_Tests {
               .thenGroupBy(s => level2.key(s), level2.comparableKey)
               .thenGroupBy(s => level3.key(s), level3.comparableKey);
 
-            assert.deepEqual(sut.toMap(), expected);
+            const actual = sut.toMap();
+            assert.deepEqual(actual, expected);
           });
 
           it('should group items into hierarchy by several grouped composite keys and to-comparable-key selectors and multiple value-selectors', () => {

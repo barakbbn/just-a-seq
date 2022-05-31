@@ -4111,9 +4111,17 @@ export abstract class SeqBase_Immediate_Tests {
         (input, inputArray) => {
           const expected = new Map(inputArray.map(x => [x.grade, x]));
 
-          let sut = this.createSut(input);
-          let actual = sut.toMap(x => x.grade);
+          const sut = this.createSut(input);
+          const actual = sut.toMap(x => x.grade);
           assert.sameDeepOrderedMembers([...actual], [...expected]);
+        });
+
+      this.it1('should use last value in case of duplicate keys',
+        array.samples, (input, inputArray) => {
+          const expected = new Map(inputArray.map(s => [s.type, s]));
+          const sut = this.createSut(input);
+          const actual = sut.toMap(s => s.type);
+          assert.deepEqual(actual, expected);
         });
 
       describe('with value selector', () => {
@@ -4122,9 +4130,17 @@ export abstract class SeqBase_Immediate_Tests {
           (input, inputArray) => {
             const expected = new Map(inputArray.map(x => [x.grade, x.name]));
 
-            let sut = this.createSut(input);
-            let actual = sut.toMap(x => x.grade, x => x.name);
+            const sut = this.createSut(input);
+            const actual = sut.toMap(x => x.grade, x => x.name);
             assert.sameDeepOrderedMembers([...actual], [...expected]);
+          });
+
+        this.it1('should use last value in case of duplicate keys',
+          array.samples, (input, inputArray) => {
+            const expected = new Map(inputArray.map(s => [s.type, s.score]));
+            const sut = this.createSut(input);
+            const actual = sut.toMap(s => s.type, s => s.score);
+            assert.deepEqual(actual, expected);
           });
       });
 
@@ -4133,20 +4149,35 @@ export abstract class SeqBase_Immediate_Tests {
           [{x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 999}, {x: 1, y: 1, z: 1}, {x: 2, y: 2, z: 2},],
           (input, inputArray) => {
 
-            const keysSet = new Set();
+            const keys = new Map<string, unknown>();
             const expected = new Map();
             inputArray.forEach(xyz => {
-              const key = `[${xyz.x},${xyz.y}]`;
-              if (!keysSet.has(key)) {
-                keysSet.add(key);
-                expected.set({x: xyz.x, y: xyz.y}, xyz);
-              }
+              const key = {x: xyz.x, y: xyz.y};
+              const comparable = `[${xyz.x},${xyz.y}]`;
+              const realKey = keys.get(comparable) ?? keys.set(comparable, key).get(comparable)!;
+              expected.set(realKey, xyz);
             });
 
-            let sut = this.createSut(input);
-            let actual = sut.toMap(xyz => ({x: xyz.x, y: xyz.y}), undefined, key => `[${key.x},${key.y}]`);
+            const sut = this.createSut(input);
+            const actual = sut.toMap(xyz => ({x: xyz.x, y: xyz.y}), undefined, key => `[${key.x},${key.y}]`);
             assert.sameDeepOrderedMembers([...actual], [...expected]);
+          });
 
+        this.it1('should use last value in case of duplicate keys',
+          array.samples, (input, inputArray) => {
+            const keys = new Map<string, unknown>();
+            const expected = new Map();
+            inputArray.forEach(s => {
+              const key = {type: s.type};
+              const comparable = s.type;
+              const realKey = keys.get(comparable) ?? keys.set(comparable, key).get(comparable)!;
+              expected.set(realKey, s);
+            });
+
+
+            const sut = this.createSut(input);
+            const actual = sut.toMap(s => ({type: s.type}), undefined, s => s.type);
+            assert.deepEqual(actual, expected);
           });
       });
 
@@ -4155,14 +4186,13 @@ export abstract class SeqBase_Immediate_Tests {
           [{x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 999}, {x: 1, y: 1, z: 1}, {x: 2, y: 2, z: 2},],
           (input, inputArray) => {
 
-            const keysSet = new Set();
+            const keys = new Map<string, unknown>();
             const expected = new Map();
             inputArray.forEach(xyz => {
-              const key = `[${xyz.x},${xyz.y}]`;
-              if (!keysSet.has(key)) {
-                keysSet.add(key);
-                expected.set({x: xyz.x, y: xyz.y}, `[${xyz.x},${xyz.y},${xyz.z}]`);
-              }
+              const key = {x: xyz.x, y: xyz.y};
+              const comparable = `[${xyz.x},${xyz.y}]`;
+              const realKey = keys.get(comparable) ?? keys.set(comparable, key).get(comparable)!;
+              expected.set(realKey, `[${xyz.x},${xyz.y},${xyz.z}]`);
             });
 
             const sut = this.createSut(input);
@@ -4172,6 +4202,61 @@ export abstract class SeqBase_Immediate_Tests {
               key => `[${key.x},${key.y}]`);
 
             assert.sameDeepOrderedMembers([...actual], [...expected]);
+          });
+
+        this.it1('should use last value in case of duplicate keys',
+          array.samples, (input, inputArray) => {
+            const keys = new Map<string, unknown>();
+            const expected = new Map();
+            inputArray.forEach(s => {
+              const key = {type: s.type};
+              const comparable = s.type;
+              const realKey = keys.get(comparable) ?? keys.set(comparable, key).get(comparable)!;
+              expected.set(realKey, s.score);
+            });
+
+            const sut = this.createSut(input);
+            const actual = sut.toMap(s => ({type: s.type}), s => s.score, s => s.type);
+            assert.deepEqual(actual, expected);
+          });
+      });
+    });
+
+    describe('toMapOfOccurrences()', () => {
+      this.it1('should return a Map of keys mapped to number of times each key exists in source sequence',
+        [0, 1, 4, 4, 4, 4, 3, 3, 3, 2, 2], input => {
+          const expected = new Map([
+            [0, 1], [1, 1], [4, 4], [3, 3], [2, 2]
+          ]);
+
+          const actual = this.createSut(input).toMapOfOccurrences();
+          assert.deepEqual(actual, expected);
+        });
+
+      describe('with key-selector', () => {
+        this.it1('should return a Map of keys mapped to number of times each key exists in source sequence',
+          array.samples, (input, inputArray) => {
+            const expected = new Map();
+            for(const s of inputArray) {
+              expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
+            }
+
+            const actual = this.createSut(input).toMapOfOccurrences(s => s.type);
+            assert.deepEqual(actual, expected);
+          });
+      });
+
+      describe('with comparable key', () => {
+        this.it1('should return a Map of keys mapped to number of times each key exists in source sequence',
+          array.samples, (input, inputArray) => {
+            let expected = new Map();
+            for(const s of inputArray) {
+              expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
+            }
+            expected = new Map([...expected].map(entry => [{type: entry[0]}, entry[1]]));
+
+            const actual = this.createSut(input).toMapOfOccurrences(s => ({type: s.type}), key => key.type);
+            assert.deepEqual(actual, expected);
           });
       });
     });

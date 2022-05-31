@@ -11,7 +11,7 @@ import {
   SeqOfMultiGroups,
   ToComparableKey, Tailless
 } from "./seq";
-import {consume, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
+import {consume, Dict, EMPTY_ARRAY, entries, Gen, IGNORED_ITEM, IterationContext, SeqTags, TaggedSeq} from "./common";
 import {SeqBase} from "./seq-base";
 
 
@@ -71,7 +71,7 @@ export class GroupedSeqImpl<K, T> extends SeqBase<T> implements GroupedSeq<K, T>
 
 class GroupingSelector {
   constructor(public readonly key?: Selector<any, any>,
-              private readonly comparableKeySelector?: ToComparableKey<any>,
+              public readonly comparableKeySelector?: ToComparableKey<any>,
               private readonly values?: ReadonlyArray<(x: unknown, index: number, keys: any) => unknown>,
               public readonly aggregator?: (group: GroupedSeq<any, any>, keys: any[]) => any) {
   }
@@ -523,35 +523,40 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
   }
 
   toMap<K, V>(): Map<any, any> {
-    const map = new Map();
+    const comparableKeySelector = this.selectors[0].comparableKeySelector;
+    const rootContainer: Map<any, any> = comparableKeySelector ? new Dict(comparableKeySelector) : new Map();
+
     this.materialize(
-      map,
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>) => {
-        const container = new Map();
+      rootContainer,
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, any>, depth) => {
+        const comparableKeySelector = this.selectors[depth + 1]?.comparableKeySelector;
+        const container = comparableKeySelector ? new Dict(comparableKeySelector) : new Map();
         if (parentContainer) parentContainer.set(groupedSeq.key, container);
         return container;
       },
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, Map<ComparableType, any>>): void => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: Map<any, any>): void => {
         parentContainer.set(groupedSeq.key, groupedSeq.filter(x => x !== IGNORED_ITEM).toArray() as unknown as any);
       });
 
-    return map;
+    return rootContainer;
   }
 
   toObjectSingle(): ObjectHierarchy<Ks, TOut[]> {
     const obj: any = {};
     this.materialize<any, TOut[]>(
       obj,
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, depth) => {
         const container = {};
         if (parentContainer) {
-          const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
+          const comparableKeySelector = this.selectors[depth].comparableKeySelector;
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) || !comparableKeySelector ? groupedSeq.key : comparableKeySelector(groupedSeq.key)}`;
           parentContainer[validKey] = container;
         }
         return container;
       },
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
-        const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, depth) => {
+        const comparableKeySelector = this.selectors[depth].comparableKeySelector;
+        const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) || !comparableKeySelector ? groupedSeq.key : comparableKeySelector(groupedSeq.key)}`;
         parentContainer[validKey] = groupedSeq.filter(x => x !== IGNORED_ITEM).last();
       }
     );
@@ -563,16 +568,18 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     const obj: any = {};
     this.materialize<any, TOut[]>(
       obj,
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, depth) => {
         const container = {};
         if (parentContainer) {
-          const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
+          const comparableKeySelector = this.selectors[depth].comparableKeySelector;
+          const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) || !comparableKeySelector ? groupedSeq.key : comparableKeySelector(groupedSeq.key)}`;
           parentContainer[validKey] = container;
         }
         return container;
       },
-      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, comparableKey?: ComparableType) => {
-        const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) ? groupedSeq.key : comparableKey}`;
+      (groupedSeq: KeyedSeq<any, any>, parentContainer: any, depth) => {
+        const comparableKeySelector = this.selectors[depth].comparableKeySelector;
+        const validKey = `${HierarchyTransformer.isValidPropertyKey(groupedSeq.key) || !comparableKeySelector ? groupedSeq.key : comparableKeySelector(groupedSeq.key)}`;
         parentContainer[validKey] = groupedSeq.filter(x => x !== IGNORED_ITEM).toArray();
       }
     );
@@ -582,8 +589,8 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
 
   private materialize<TContainer extends object, V>(
     initialContainer: TContainer,
-    createContainer: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, comparableKey?: ComparableType) => TContainer,
-    setValue: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, comparableKey: ComparableType) => void
+    createContainer: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, depth: number) => TContainer,
+    setValue: (groupedSeq: KeyedSeq<any, any>, parentContainer: TContainer, depth: number) => void
   ): void {
 
     const source = this.seqOfGroups;
@@ -599,17 +606,12 @@ class HierarchyTransformer<Ks extends any[], TIn, TOut = TIn> {
     }
 
     for (const {groupedSeq, parent, depth, isLeaf} of traverse(source)) {
-
-      const selector = this.selectors[depth];
-      const key = groupedSeq.key;
-      const comparable = selector.toComparableKey(key);
-
       const parentContainer = groupedSeqToContainerMap.get(parent)!;
       console.assert(parentContainer);
       if (isLeaf) {
-        setValue(groupedSeq, parentContainer, comparable);
+        setValue(groupedSeq, parentContainer, depth);
       } else if (!groupedSeqToContainerMap.has(groupedSeq)) {
-        groupedSeqToContainerMap.set(groupedSeq, createContainer(groupedSeq, parentContainer, comparable));
+        groupedSeqToContainerMap.set(groupedSeq, createContainer(groupedSeq, parentContainer, depth));
       }
     }
   }

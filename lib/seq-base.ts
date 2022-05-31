@@ -1,6 +1,6 @@
 import {internalEmpty} from "./internal";
 import {
-  CachedSeq,
+  CachedSeq, ComparableType,
   Comparer,
   Condition,
   factories,
@@ -14,7 +14,7 @@ import {
 } from "./seq";
 import {
   closeIterator,
-  consume,
+  consume, Dict,
   entries,
   Gen,
   getIterator, IDENTITY,
@@ -1382,24 +1382,30 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return [...this];
   }
 
-  toMap<K, V>(keySelector: Selector<T, K>, valueSelector: Selector<T, V> = t => t as unknown as V, toComparableKey?: ToComparableKey<K>): Map<K, V> {
-    if (!toComparableKey) {
-      return new Map<K, V>(this.map((item, index) => [keySelector(item, index), valueSelector(item, index)]));
-    }
+  toMap<K, V>(keySelector: Selector<T, K>, valueSelector: Selector<T, V> = IDENTITY, toComparableKey?: ToComparableKey<K>): Map<K, V> {
+    const mappedEntries = this.map((item, index) => [keySelector(item, index), valueSelector(item, index)] as [K, V]);
+    return toComparableKey != null?
+      new Dict<K, V>(toComparableKey, mappedEntries):
+      new Map<K, V>(mappedEntries);
+  }
 
-    const keys = new Set<ReturnType<ToComparableKey<K>>>();
-    const map = new Map<K, V>();
-    let index = 0;
-    for (const item of this) {
-      const key = keySelector(item, index);
-      const stringKey = toComparableKey(key);
-      if (!keys.has(stringKey)) {
-        keys.add(stringKey);
-        const value = valueSelector(item, index);
-        map.set(key, value);
+  toMapOfOccurrences<K = T>(keySelector: Selector<T, K> = IDENTITY, toComparableKey?: ToComparableKey<K>): Map<K, number> {
+
+    if (toComparableKey != null) {
+      const dict = new Dict<K, number>(toComparableKey);
+      for (const {value, index} of entries(this)) {
+        dict.addOrUpdate(keySelector(value, index), 1, prev => prev + 1);
       }
 
-      index++;
+      return dict;
+    }
+
+    const map = new Map<K, number>();
+
+    for (const {value, index} of entries(this)) {
+      const key = keySelector(value, index);
+      const prevCount = map.get(key) ?? 0;
+      map.set(key, prevCount + 1);
     }
 
     return map;

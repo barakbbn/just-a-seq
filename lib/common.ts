@@ -1,4 +1,4 @@
-import {CachedSeq, KeyedSeq, Seq, SortedSeq} from "./seq";
+import {CachedSeq, ComparableType, KeyedSeq, Seq, SortedSeq} from "./seq";
 
 export interface IterationContext {
   closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
@@ -209,3 +209,92 @@ export interface TaggedSeq {
 }
 
 export const IDENTITY = <T>(v: unknown): T => v as T;
+
+export class Dict<K = any, V = any> extends Map<K, V> {
+  private lastSet: [ComparableType, [K, V]] | undefined = undefined;
+  private readonly comparableKeySelector: (key: K) => ComparableType;
+
+  constructor(toComparableKey: (key: K) => ComparableType, entries?: readonly (readonly [K, V])[] | null);
+  constructor(toComparableKey: (key: K) => ComparableType, iterable: Iterable<readonly [K, V]>);
+
+  constructor(toComparableKey: (key: K) => ComparableType, entries?: readonly (readonly [K, V])[] | null | Iterable<readonly [K, V]>) {
+
+    super();
+    this.comparableKeySelector = toComparableKey;
+    if (entries) {
+      for (const entry of entries) this.set(...entry);
+    }
+  }
+
+  [Symbol.iterator](): IterableIterator<[K, V]> {
+    return this.entries();
+  }
+
+  clear(): void {
+    super.clear();
+    this.lastSet = undefined;
+  }
+
+  delete(key: K): boolean {
+    const comparable = this.toComparableKey<K>(key);
+    if (this.lastSet && sameValueZero(comparable, this.lastSet[0])) this.lastSet = undefined;
+    return super.delete(comparable);
+  }
+
+  forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
+    super.forEach(v => callbackfn((v as unknown as [K, V])[1], (v as unknown as [K, V])[0], this));
+  }
+
+  get(key: K): V | undefined {
+    return (super.get(this.toComparableKey<K>(key)) as unknown as [K, V])?.[1];
+  }
+
+  has(key: K): boolean {
+    return super.has(this.toComparableKey<K>(key));
+  }
+
+  * keys(): IterableIterator<K> {
+    for (const v of super.values()) yield (v as unknown as [K, V])[0];
+  }
+
+  set(key: K, value: V): this {
+    const comparable = this.toComparableKey(key);
+    if (this.lastSet && sameValueZero(comparable, this.lastSet[0])) {
+      this.lastSet[1][1] = value;
+    } else {
+      this.lastSet = [comparable, [key, value]];
+      super.set(...(this.lastSet as unknown as [K, V]));
+    }
+
+    return this;
+  }
+
+  * values(): IterableIterator<V> {
+    for (const v of super.values()) yield (v as unknown as [K, V])[1];
+  }
+
+  entries(): IterableIterator<[K, V]> {
+    return super.values() as unknown as IterableIterator<[K, V]>;
+  }
+
+  addOrUpdate(key: K, value: V, update: (value: V) => V): this {
+    const comparable = this.toComparableKey<K>(key);
+    if (this.lastSet && sameValueZero(comparable, this.lastSet[0])) {
+      this.lastSet[1][1] = update(this.lastSet[1][1]);
+    } else {
+      let entry = super.get(comparable) as unknown as [K, V];
+      if (entry) entry[1] = update(entry[1]);
+      else {
+        entry = [key, value];
+        super.set(comparable, entry as unknown as V);
+      }
+      this.lastSet = [comparable as unknown as ComparableType, entry];
+    }
+
+    return this;
+  }
+
+  private toComparableKey<AS = ComparableType>(key: K): AS {
+    return this.comparableKeySelector(key) as unknown as AS;
+  }
+}
