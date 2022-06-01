@@ -4244,6 +4244,20 @@ export abstract class SeqBase_Immediate_Tests {
             const actual = this.createSut(input).toMapOfOccurrences(s => s.type);
             assert.deepEqual(actual, expected);
           });
+
+        this.it1('should call key-selector function for every item from source sequence',
+          array.samples, (input, inputArray) => {
+            const expected = new Map();
+            for(const s of inputArray) {
+              expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
+            }
+            const actual: Sample[] = [];
+             this.createSut(input).toMapOfOccurrences(s => {
+               actual.push(s);
+               return s.type;
+             });
+            assert.deepEqual(actual, inputArray);
+          });
       });
 
       describe('with comparable key', () => {
@@ -4258,6 +4272,23 @@ export abstract class SeqBase_Immediate_Tests {
             const actual = this.createSut(input).toMapOfOccurrences(s => ({type: s.type}), key => key.type);
             assert.deepEqual(actual, expected);
           });
+
+        this.it1('should call key-selector function for every item from source sequence',
+          array.samples, (input, inputArray) => {
+            const expected = inputArray.map(s => ({type: s.type}));
+
+            const actual: {type: string}[] = [];
+            this.createSut(input).toMapOfOccurrences(s => ({type: s.type}), key => {
+              actual.push(key);
+              return key.type;
+            });
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it1('should return empty Map when source sequence is empty', [], input => {
+          const actual = this.createSut(input).toMapOfOccurrences(x => ({x}), key => key.x);
+          assert.equal(actual.size, 0);
+        });
       });
     });
 
