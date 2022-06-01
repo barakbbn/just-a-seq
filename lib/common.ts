@@ -215,6 +215,7 @@ export class Dict<K = any, V = any> extends Map<K, V> {
   private readonly comparableKeySelector: (key: K) => ComparableType;
 
   constructor(toComparableKey: (key: K) => ComparableType, entries?: readonly (readonly [K, V])[] | null);
+
   constructor(toComparableKey: (key: K) => ComparableType, iterable: Iterable<readonly [K, V]>);
 
   constructor(toComparableKey: (key: K) => ComparableType, entries?: readonly (readonly [K, V])[] | null | Iterable<readonly [K, V]>) {
@@ -224,6 +225,10 @@ export class Dict<K = any, V = any> extends Map<K, V> {
     if (entries) {
       for (const entry of entries) this.set(...entry);
     }
+  }
+
+  static caseInsensitive<V = any>(): Dict<string, V> {
+    return new Dict<string, V>(k => k.toLocaleLowerCase())
   }
 
   [Symbol.iterator](): IterableIterator<[K, V]> {

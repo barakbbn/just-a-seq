@@ -149,21 +149,21 @@ console.log(asSeq(layers)
 
 #### Immediate actions
 
-|            |                    |             |                     |       |
-|------------|--------------------|-------------|---------------------|-------|
-| all        | any                | at          | average             |
+|            |                    |                    |                     |          |
+|------------|--------------------|--------------------|---------------------|----------|
+| all        | any                | at                 | average             |
 | consume    | count              |
 | endsWith   | every              |
-| find       | findIndex          | findLast    | findLastIndex       | first |
+| find       | findIndex          | findLast           | findLastIndex       | first    |
 | forEach    |
 | hasAtLeast |
-| includes   | includesAll        | includesAny | includesSubSequence |
-| indexOf    | indexOfSubSequence | isEmpty     |
-| last       | lastIndexOf        | length      |
+| includes   | includesAll        | includesAny        | includesSubSequence |
+| indexOf    | indexOfSubSequence | isEmpty            |
+| last       | lastIndexOf        | length             |
 | max        | min                |
 | reduce     | reduceRight        |
-| sameItems  | sameOrderedItems   | some        | startsWith          | sum   |
-| toArray    | toMap              | toSet       | toString            |
+| sameItems  | sameOrderedItems   | some               | startsWith          | sum      |
+| toArray    | toMap              | toMapOfOccurrences | toSet               | toString |
 
 #### Deferred actions
 
