@@ -170,7 +170,7 @@ console.log(asSeq(layers)
 |              |              |              |                   |                 |
 |--------------|--------------|--------------|-------------------|-----------------|
 | append       |              |              |                   |                 |
-| cache        | chunk        | concat       |                   |                 |
+| cache        | chunk        | chunkBy      | chunkBySum        | concat          |
 | diff         | diffDistinct | distinct     |                   |                 |
 | entries      |              |              |                   |                 |
 | filter       |              |              |                   |                 |

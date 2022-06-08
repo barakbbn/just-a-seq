@@ -45,9 +45,18 @@ export interface Seq<T> extends Iterable<T> {
 
   average(selector: Selector<T, number>): number;
 
-  cache(now?: boolean): CachedSeq<T>; // remember, cache, checkpoint, snapshot, persist, save, materialize, execute, evaluate
+  cache(now?: boolean): CachedSeq<T>;
 
   chunk(count: number): Seq<Seq<T>>;
+
+  chunkBy<U>(processor: (itemInfo: { item: T; index: number; itemNumber: number; chunkNumber: number; userData?: U; }) => {
+    chunkStatus: 'Continue' | 'SplitWithItem' | 'SplitWithoutItem';
+    userData?: U;
+  }): Seq<Seq<T>>;
+
+  chunkBySum(limit: number, opts?: { maxItemsInChunk: number }): T extends number ? Seq<Seq<T>> : never;
+
+  chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk: number }): Seq<Seq<T>>;
 
   concat(...items: Iterable<T>[]): Seq<T>;
 

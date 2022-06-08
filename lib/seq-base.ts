@@ -91,25 +91,102 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   chunk(size: number): Seq<Seq<T>> {
     if (size < 1) return internalEmpty<Seq<T>>();
+
+    return this.chunkBy(itemInfo => {
+      return {
+        chunkStatus: itemInfo.itemNumber === size ? 'SplitWithItem' : 'Continue'
+      }
+    });
+  }
+
+  chunkBy<U>(processor: (itemInfo: { item: T; index: number; itemNumber: number; chunkNumber: number; userData?: U; }) => {
+    chunkStatus: 'Continue' | 'SplitWithItem' | 'SplitWithoutItem';
+    userData?: U;
+  }): Seq<Seq<T>> {
     const self = this;
     const optimize = SeqTags.optimize(this);
-    return this.generate(function* chunk(items, iterationContext) {
-      let innerSeq: Seq<T> | undefined;
+
+    return this.generate(function* chunkBy(items, iterationContext) {
+      enum ChunkStatus {
+        Continue = 'Continue',
+        splitWithItem = 'SplitWithItem',
+        splitWithoutItem = 'SplitWithoutItem'
+      }
+
       iterationContext.onClose(() => innerSeq?.consume())
       const iterator = iterationContext.closeWhenDone(getIterator(items));
+
+      let innerSeq: Seq<T> | undefined;
+      let index = 0;
+      let chunkNumber = 0;
+      let userData: U | undefined = undefined;
+
       let next = iterator.next();
       while (!next.done) {
         innerSeq?.consume();
         if (next.done) break;
+
+        chunkNumber++;
         innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
-          let count = 0;
-          while (size > count++ && !next.done) {
+          let itemNumber = 1;
+          let chunkStatus = ChunkStatus.Continue;
+
+          while (chunkStatus === ChunkStatus.Continue && !next.done) {
+            const itemInfo = {
+              item: next.value,
+              index,
+              itemNumber,
+              chunkNumber,
+              userData
+            };
+
+            const chunkingResult = processor(itemInfo);
+            chunkStatus = chunkingResult.chunkStatus as ChunkStatus;
+            userData = chunkingResult.userData;
+
+            if (chunkStatus === ChunkStatus.splitWithoutItem) {
+              if (itemNumber === 1) throw new Error('Cannot have empty chunk');
+              break;
+            }
             yield next.value;
             next = iterator.next();
+            index++;
+            itemNumber++;
+
+            if (chunkStatus === ChunkStatus.splitWithItem) break;
           }
+
         })), optimize);
+
         yield innerSeq;
       }
+    });
+  }
+
+  chunkBySum(limit: number, opts?: { maxItemsInChunk: number }): T extends number ? Seq<Seq<T>> : never;
+
+  chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk: number }): Seq<Seq<T>>;
+
+  chunkBySum(limit: number, selectorOrOpts?: ((item: T, index: number, itemNumber: number) => number) | { maxItemsInChunk: number; }, opts: { maxItemsInChunk: number } = {maxItemsInChunk: Number.MAX_VALUE}): Seq<Seq<T>> {
+    const selector = typeof selectorOrOpts !== 'function' ?
+      IDENTITY :
+      selectorOrOpts;
+
+    if (selectorOrOpts && typeof selectorOrOpts === 'object') opts = selectorOrOpts;
+
+    if (opts.maxItemsInChunk <= 0) {
+      throw new Error('maxItemsInChunk parameter must be positive value')
+    }
+
+    return this.chunkBy<number>(itemInfo => {
+      const value = selector(itemInfo.item, itemInfo.index, itemInfo.itemNumber);
+      const nextValue = (itemInfo.userData ?? 0) + value;
+      const reachedMaxItems = itemInfo.itemNumber === opts.maxItemsInChunk;
+      const completeChunk = nextValue >= limit || reachedMaxItems;
+      return {
+        chunkStatus: completeChunk ? nextValue === limit || itemInfo.itemNumber === 1 || reachedMaxItems ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
+        userData: completeChunk ? 0 : nextValue
+      };
     });
   }
 

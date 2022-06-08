@@ -2,12 +2,13 @@ import {describe, it} from "mocha";
 import {Condition, Seq} from "../../lib";
 import {assert} from "chai";
 import {array, Folder, generator, Sample} from "../test-data";
+import {TestHarness} from "./test-harness";
 
 export abstract class SeqBase_Deferred_Tests {
   constructor(protected optimized: boolean) {
   }
 
-  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: T[]) => void) {
+  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void) {
     it(title + ' - array source', () => testFn(input, input));
     it(title + ' - generator source', () => testFn(generator.from(input), input));
     it(title + ' - sequence source', () => testFn(this.createSut(input), input));
@@ -66,6 +67,7 @@ export abstract class SeqBase_Deferred_Tests {
         const actual = sut.asSeq();
         assert.notEqual(actual, sut);
       });
+
       this.it1('should produce same results as before', array.oneToTen, input => {
         const sut = this.createSut(input);
         const seq = sut.asSeq();
@@ -75,11 +77,10 @@ export abstract class SeqBase_Deferred_Tests {
       });
     });
 
-    describe("chunk", () => {
-      const testRangeOfChunkSizes = <T>(input: Iterable<T>, consumeOuterSequenceFirst: boolean) => {
+    describe("chunk()", () => {
+      const testRangeOfChunkSizes = <T>(input: Iterable<T>, inputArray: readonly T[], consumeOuterSequenceFirst: boolean) => {
         const sut = this.createSut(input);
 
-        const inputArray = [...input];
         for (let chunkSize = 1; chunkSize <= inputArray.length; chunkSize++) {
           const expected: any[] = [];
           for (let skip = 0; skip < inputArray.length; skip += chunkSize) {
@@ -100,18 +101,29 @@ export abstract class SeqBase_Deferred_Tests {
         }
       };
 
-      it('when input sequence is array, should return inner sequences each with number of items as the chunk size and last one with remaining items', () => {
-        testRangeOfChunkSizes(array.oneToTen, false);
-        testRangeOfChunkSizes(array.oneToTen, true);
-      });
+      this.it1('should return inner sequences each with number of items as the chunk size and last one with remaining items',
+        array.oneToTen, (input, inputArray) => {
+          testRangeOfChunkSizes(input, inputArray, false);
+          testRangeOfChunkSizes(input, inputArray, true);
+        });
 
-      it('when input sequence is generator, should return inner sequences each with number of items as the chunk size and last one with remaining items', () => {
-        testRangeOfChunkSizes(generator.from(array.oneToTen), false);
-        testRangeOfChunkSizes(generator.from(array.oneToTen), true);
-      });
+      this.it1('should not consume all chunks when iterating one chunk at a time',
+        array.grades, input => {
 
-      it('should return empty sequence when chunk size is zero or less', () => {
-        const input = array.oneToTen;
+          const sut = TestHarness.monitorIteration(this.createSut(input).chunk(2));
+
+          for (const chunk of sut) {
+            assert.isFalse(TestHarness.$$consumed(sut));
+            assert.isFalse(TestHarness.$$getIteratorInvoked(chunk));
+            assert.isFalse(TestHarness.$$yielded(chunk));
+
+            for (const item of chunk) {
+              assert.isFalse(TestHarness.$$consumed(chunk));
+            }
+          }
+        });
+
+      this.it1('should return empty sequence when chunk size is zero or less', array.oneToTen, input => {
         const sut = this.createSut(input);
         let actual = [...sut.chunk(0)];
         assert.lengthOf(actual, 0);
@@ -120,30 +132,250 @@ export abstract class SeqBase_Deferred_Tests {
         assert.lengthOf(actual, 0);
       });
 
-      it('should return 1 inner sequence with all items when chunk size equals or greater than number of existing items', () => {
-        const input = array.oneToTen;
-        const sut = this.createSut(input);
+      this.it1('should return 1 inner sequence with all items when chunk size equals or greater than number of existing items',
+        array.oneToTen, (input, inputArray) => {
+          const sut = this.createSut(input);
+          const expected = inputArray.slice();
+          let chunkSize = expected.length;
+          let actual = [...sut.chunk(chunkSize)];
 
-        let chunkSize = input.length;
-        let actual = [...sut.chunk(chunkSize)];
+          assert.lengthOf(actual, 1);
+          let actualInner = [...actual[0]];
+          assert.sameOrderedMembers(actualInner, expected);
 
-        assert.lengthOf(actual, 1);
-        let actualInner = [...actual[0]];
-        assert.sameOrderedMembers(actualInner, input);
+          chunkSize = expected.length * 2;
+          actual = [...sut.chunk(chunkSize)];
+          assert.lengthOf(actual, 1);
+          actualInner = [...actual[0]];
+          assert.sameOrderedMembers(actualInner, expected);
+        });
 
-        chunkSize = input.length * 2;
-        actual = [...sut.chunk(chunkSize)];
-        assert.lengthOf(actual, 1);
-        actualInner = [...actual[0]];
-        assert.sameOrderedMembers(actualInner, input);
+      this.it1('should be able to iterate child chunked-sequence after main sequence closed',
+        array.oneToTen, (input, inputArray) => {
+          const expected = inputArray.slice().splice(0, 2)
+          const sut = this.createSut(input).chunk(2);
+          let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
+          const actual = [...firstChunk];
+          assert.deepEqual(actual, expected);
+        });
+    });
+
+    describe('chunkBy()', () => {
+      this.it1('should create expected number of chunks with expected items in each',
+        array.grades, (input, inputArray) => {
+          const expected: { name: string; grade: number; }[][] = [
+            [inputArray[0], inputArray[1], inputArray[2]],
+            [inputArray[3], inputArray[4], inputArray[5]],
+            [inputArray[6], inputArray[7]],
+            [inputArray[8], inputArray[9]],
+            [inputArray[10]]
+          ];
+          //chunk every 3 items, when absolute item index is greater than 5, move item to next chunk
+          const createSut = () => this.createSut(input).chunkBy(itemInfo => {
+            const completeChunk = itemInfo.itemNumber % 3 === 0;
+            return {
+              chunkStatus: completeChunk ? itemInfo.index <= 5 ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
+              userData: completeChunk ? undefined : itemInfo.item.grade
+            };
+          });
+
+          for (const outerFirst of [false, true]) {
+            let actual: Iterable<Iterable<{ name: string; grade: number; }>> = createSut();
+            if (outerFirst) actual = [...actual]
+
+            let chunkIndex = 0;
+            for (const actualChunk of actual) {
+              const expectedChunk = expected[chunkIndex++];
+              let itemIndex = 0;
+              for (const actualItem of actualChunk) assert.strictEqual(actualItem, expectedChunk[itemIndex++]);
+              assert.sameOrderedMembers([...actualChunk], expectedChunk);
+            }
+          }
+        });
+
+      this.it1('should not consume all chunks when iterating one chunk at a time',
+        array.grades, input => {
+
+          const sut = TestHarness.monitorIteration(this.createSut(input)
+            .chunkBy(itemInfo => ({chunkStatus: itemInfo.itemNumber === 3 ? 'SplitWithItem' : 'Continue'}))
+          );
+
+          for (const chunk of sut) {
+            assert.isFalse(TestHarness.$$consumed(sut));
+            assert.isFalse(TestHarness.$$getIteratorInvoked(chunk));
+            assert.isFalse(TestHarness.$$yielded(chunk));
+
+            for (const item of chunk) {
+              assert.isFalse(TestHarness.$$consumed(chunk));
+            }
+          }
+        });
+
+      this.it1('should return empty sequence if source sequence is empty', [], input => {
+        const sut = this.createSut(input).chunkBy(() => ({chunkStatus: 'SplitWithItem'}));
+        const actual = [...sut].map(x => [...x]);
+        assert.isEmpty(actual);
       });
 
-      this.it1('should be able to iterate child chunked-sequence after main sequence closed', array.oneToTen, (input) => {
-        const expected = [...input].splice(0, 2)
-        const sut = this.createSut(input).chunk(2);
-        let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
-        const actual = [...firstChunk];
-        assert.deepEqual(actual, expected);
+      this.it1('should create only one chunk if never calling completeChunk function',
+        array.grades, (input, inputArray) => {
+          const sut = this.createSut(input).chunkBy(() => ({chunkStatus: 'Continue'}));
+          const expected = [inputArray.slice()];
+          const actual = [...sut].map(x => [...x]);
+          assert.sameDeepOrderedMembers(actual, expected);
+        });
+
+      this.it1('should call processor context argument with correct values',
+        array.grades, (input, inputArray) => {
+
+          const expected = [ //chunk every 3 items, when absolute item index is greater than 5, move item to next chunk
+            {item: inputArray[0], index: 0, itemNumber: 1, chunkNumber: 1, userData: undefined},
+            {item: inputArray[1], index: 1, itemNumber: 2, chunkNumber: 1, userData: inputArray[0].grade},
+            {item: inputArray[2], index: 2, itemNumber: 3, chunkNumber: 1, userData: inputArray[1].grade},
+
+            {item: inputArray[3], index: 3, itemNumber: 1, chunkNumber: 2, userData: -1},
+            {item: inputArray[4], index: 4, itemNumber: 2, chunkNumber: 2, userData: inputArray[3].grade},
+            {item: inputArray[5], index: 5, itemNumber: 3, chunkNumber: 2, userData: inputArray[4].grade},
+
+            {item: inputArray[6], index: 6, itemNumber: 1, chunkNumber: 3, userData: -1},
+            {item: inputArray[7], index: 7, itemNumber: 2, chunkNumber: 3, userData: inputArray[6].grade},
+            {item: inputArray[8], index: 8, itemNumber: 3, chunkNumber: 3, userData: inputArray[7].grade},
+
+            {item: inputArray[8], index: 8, itemNumber: 1, chunkNumber: 4, userData: -1},
+            {item: inputArray[9], index: 9, itemNumber: 2, chunkNumber: 4, userData: inputArray[8].grade},
+            {item: inputArray[10], index: 10, itemNumber: 3, chunkNumber: 4, userData: inputArray[9].grade},
+
+            {item: inputArray[10], index: 10, itemNumber: 1, chunkNumber: 5, userData: -1}
+          ];
+
+          const actual: unknown[] = [];
+          const sut = this.createSut(input).chunkBy(itemInfo => {
+            actual.push(itemInfo);
+            const completeChunk = itemInfo.itemNumber % 3 === 0;
+            return {
+              chunkStatus: completeChunk ? itemInfo.index <= 5 ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
+              userData: completeChunk ? -1 : itemInfo.item.grade
+            };
+          });
+
+          TestHarness.materialize(sut);
+          assert.sameDeepOrderedMembers(actual, expected);
+        });
+
+      this.it1('should throw when calling completeChunk function with false for the first item in chunk', array.grades, (input, inputArray) => {
+        const sut = this.createSut(input).chunkBy(() => ({chunkStatus: 'SplitWithoutItem'}));
+        assert.throw(() => TestHarness.materialize(sut));
+      });
+
+    });
+
+    describe('chunkBySum()', () => {
+      this.it1('should split number sequence into each chunk, numbers having their total sum less or equals the limit',
+        [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], input => {
+          const LIMIT = 6;
+          const expected: number[][] = [
+            [0, 0, 0, 1, 1, 1, 2],
+            [2, 2],
+            [3, 3],
+            [3]
+          ];
+
+          const sut = this.createSut(input).chunkBySum(LIMIT);
+          const actual = [...sut].map(x => [...x]);
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should split into each chunk, items having their total sum less or equals the limit',
+        array.samples, (input, inputArray) => {
+          const LIMIT = 150;
+          let i = 0;
+          const expected: Sample[][] = [
+            inputArray.slice(0, 4), // 50 + 5 + 0 + 0 (?100) = 55
+            inputArray.slice(4, 6), // 100 + 50 = 150
+            inputArray.slice(6, 9), // 0 + 0 + 100 (?100) = 100
+            inputArray.slice(9, 11), // 100 + 50 = 150
+            inputArray.slice(11, 15), // 0 + 100 + 20 + 20 (?20) = 140
+            inputArray.slice(15) // 20
+          ];
+
+          const createSut = () => this.createSut(input).chunkBySum(LIMIT, sample => sample.score);
+          for (const outerFirst of [false, true]) {
+            let actual: Iterable<Iterable<Sample>> = createSut();
+            if (outerFirst) actual = [...actual]
+
+            let chunkIndex = 0;
+            for (const actualChunk of actual) {
+              const expectedChunk = expected[chunkIndex++];
+              let itemIndex = 0;
+              for (const actualItem of actualChunk) assert.strictEqual(actualItem, expectedChunk[itemIndex++]);
+              assert.sameOrderedMembers([...actualChunk], expectedChunk);
+            }
+          }
+        });
+
+      this.it1('should return empty sequence if source sequence is empty', [], input => {
+        const sut = this.createSut(input).chunkBySum(0);
+        const actual = [...sut].map(x => [...x]);
+        assert.isEmpty(actual);
+      });
+
+      describe('with maxItemsInChunk', () => {
+
+        this.it1('should split number sequence into each chunk, numbers having their total sum less or equals the limit and no more than specifiex max items in chunk',
+          [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], input => {
+            const LIMIT = 6;
+            const MAX = 4;
+            const expected: number[][] = [
+              [0, 0, 0, 1],
+              [1, 1, 2, 2],
+              [2, 3],
+              [3, 3]
+            ];
+
+            const sut = this.createSut(input).chunkBySum(LIMIT, {maxItemsInChunk: MAX});
+            const actual = [...sut].map(x => [...x]);
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it1('should split into each chunk, items having their total sum less or equals the limit',
+          array.samples, (input, inputArray) => {
+            const LIMIT = 150;
+            const MAX = 3;
+
+            let i = 0;
+            const expected: Sample[][] = [
+              inputArray.slice(0, 3), // 50 + 5 + 0  -> |3|
+              inputArray.slice(3, 6), // 0 + 100 + 50 = 150 -> |3|
+              inputArray.slice(6, 9), // 0 + 0 + 100 -> |3|
+              inputArray.slice(9, 11), // 100 + 50 = 150
+              inputArray.slice(11, 14), // 0 + 100 + 20 -> |3|
+              inputArray.slice(14) // 20 + 20 -> END
+            ];
+
+            const createSut = () => this.createSut(input).chunkBySum(LIMIT, sample => sample.score, {maxItemsInChunk: MAX});
+            for (const outerFirst of [false, true]) {
+              let actual: Iterable<Iterable<Sample>> = createSut();
+              if (outerFirst) actual = [...actual]
+
+              let chunkIndex = 0;
+              for (const actualChunk of actual) {
+                const expectedChunk = expected[chunkIndex++];
+                let itemIndex = 0;
+                for (const actualItem of actualChunk) assert.strictEqual(actualItem, expectedChunk[itemIndex++]);
+                assert.sameOrderedMembers([...actualChunk], expectedChunk);
+              }
+            }
+          });
+
+        this.it1('should return empty sequence if source sequence is empty', [], input => {
+          const sut = this.createSut(input).chunkBySum(0, {maxItemsInChunk: 1});
+          const actual = [...sut].map(x => [...x]);
+          assert.isEmpty(actual);
+        });
+
+        this.it1('should throw when maxItemsInChunk <= 0', [], input => {
+          assert.throw(()=> this.createSut(input).chunkBySum(0, {maxItemsInChunk: 0}));
+        });
       });
     });
 
@@ -216,7 +448,7 @@ export abstract class SeqBase_Deferred_Tests {
 
       this.it1('should have no effect when concatenating empty sequences', [1, 2], (input, inputArray) => {
         let sut = this.createSut(input);
-        const expected = inputArray;
+        const expected = inputArray.slice();
         let actual = [...sut.concat([], [], [])];
         assert.sameOrderedMembers(actual, expected);
       });
@@ -254,7 +486,7 @@ export abstract class SeqBase_Deferred_Tests {
 
         this.it1('when second sequence is empty, should return the first sequence', array.oneToTen, (input, inputArray) => {
           const second: number[] = [];
-          const expected = inputArray;
+          const expected = inputArray.slice();
 
           const sut = this.createSut(input);
           const actual = [...sut.diff(second)];
@@ -1503,7 +1735,7 @@ export abstract class SeqBase_Deferred_Tests {
           });
 
         this.it2('should return empty sequence if second sequence is empty',
-          array.grades, [] as { name: string; grade: number }[],  (first, second) => {
+          array.grades, [] as { name: string; grade: number }[], (first, second) => {
             const expected: { name: string; grade: number; }[] = [];
             let sut = this.createSut(first);
             let actual = [...sut.intersect(second, x => x.grade)];

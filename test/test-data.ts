@@ -269,15 +269,18 @@ export const iterables: ArraysOnly = new Proxy(array, {
 });
 
 export class TestableArray<T> extends Array<T> {
-  getIteratorCount: number = 0;
-
+  getIteratorCount = 0;
+  yieldCount = 0;
   constructor(...items: T[]) {
     super(...items);
   }
 
-  [Symbol.iterator](): IterableIterator<T> {
+  *[Symbol.iterator](): IterableIterator<T> {
     this.getIteratorCount++;
-    return super[Symbol.iterator]();
+    for(const item of super[Symbol.iterator]()) {
+      this.yieldCount++;
+      yield item;
+    }
   }
 }
 

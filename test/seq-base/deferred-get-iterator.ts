@@ -19,9 +19,9 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
       const iterable = {
         wasIterated: false,
-        [Symbol.iterator](): Iterator<any> {
+        *[Symbol.iterator](): Iterator<any> {
           this.wasIterated = true;
-          return [0][Symbol.iterator]();
+          yield 0;
         }
       };
 
