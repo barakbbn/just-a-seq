@@ -145,9 +145,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
             userData = chunkingResult.userData;
 
             if (chunkStatus === ChunkStatus.splitWithoutItem) {
-              if (itemNumber === 1) throw new Error('Cannot have empty chunk');
-              break;
+              if (itemNumber === 1) chunkStatus = ChunkStatus.splitWithItem;
+              else break;
             }
+
             yield next.value;
             next = iterator.next();
             index++;
@@ -184,7 +185,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       const reachedMaxItems = itemInfo.itemNumber === opts.maxItemsInChunk;
       const completeChunk = nextValue >= limit || reachedMaxItems;
       return {
-        chunkStatus: completeChunk ? nextValue === limit || itemInfo.itemNumber === 1 || reachedMaxItems ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
+        chunkStatus: completeChunk ? nextValue === limit || reachedMaxItems ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
         userData: completeChunk ? 0 : nextValue
       };
     });

@@ -1,6 +1,6 @@
 # just-a-seq
 
-This is just a **sequence** that provides LINQ functionalities (and more)</br> 
+This is just a **sequence** that provides LINQ functionalities (and more)</br>
 But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
 It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3])` , `asSeq(map.values())`)
 ___
@@ -10,7 +10,8 @@ ___
 * Fluent API - chain functions calls to simplify the code:  `seq.filter().map().sorted().toArray()`  
 * Lazy/Deferred functionalities, similar to .NET LINQ.
   
-  Instead of immediately producing a new Array from methods such as `map`, `filter`, it iterates the items only once when being consumed (i.e. `toArray()`, `foreach()`, `count()` ).
+  Instead of immediately producing a new Array from methods such as `map`, `filter`, it iterates the items only once
+  when being consumed (i.e. `toArray()`, `foreach()`, `count()` ).
 * Immutable - actions on the sequence won't change it, but return a new sequence with the changes
 
 * API that more resemble to JavaScript Array  
@@ -144,6 +145,30 @@ console.log(asSeq(layers)
 ```
 
 </details>
+<br>
+<!-- Example 4 -->
+<details>
+<summary><i>Example 4</i></summary>
+
+```typescript
+import {asSeq} from '@barakbbn/just-a-seq/optimized';
+
+const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
+
+const chunksOfFiles = asSeq(files)
+  .filter(file => file.ext === '.json')
+  .sortBy(file => file.size)
+  .chunkBySum(64 * 1024 * 1024 /* Max 64MB MEM */, file => file.size, {maxItemsInChunk: 100})
+  .map(chunk => chunk
+    .map(file => loadfileContent(file.name))
+    .map(json => JSON.parse(json))
+    .flatMap(obj => buildDbRecords(obj))
+  );
+
+chunksOfFiles.forEach(recordsSeq => saveToDatabase(recordsSeq));
+```
+
+</details>  
 
 ### Functionality summary
 
@@ -245,7 +270,7 @@ processStudents(students);
 import {random, Seq} from '@barakbbn/just-a-seq/optimized';
 
 class PointsComponent {
-  points: Seq<{ x: number; y: number; }> ;
+  points: Seq<{ x: number; y: number; }>;
   samePoints = 0;
 
   constructor() {

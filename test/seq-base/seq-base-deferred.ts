@@ -174,8 +174,8 @@ export abstract class SeqBase_Deferred_Tests {
           const createSut = () => this.createSut(input).chunkBy(itemInfo => {
             const completeChunk = itemInfo.itemNumber % 3 === 0;
             return {
-              chunkStatus: completeChunk ? itemInfo.index <= 5 ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
-              userData: completeChunk ? undefined : itemInfo.item.grade
+              chunkStatus: completeChunk? itemInfo.index <= 5? 'SplitWithItem': 'SplitWithoutItem': 'Continue',
+              userData: completeChunk? undefined: itemInfo.item.grade
             };
           });
 
@@ -197,7 +197,7 @@ export abstract class SeqBase_Deferred_Tests {
         array.grades, input => {
 
           const sut = TestHarness.monitorIteration(this.createSut(input)
-            .chunkBy(itemInfo => ({chunkStatus: itemInfo.itemNumber === 3 ? 'SplitWithItem' : 'Continue'}))
+            .chunkBy(itemInfo => ({chunkStatus: itemInfo.itemNumber === 3? 'SplitWithItem': 'Continue'}))
           );
 
           for (const chunk of sut) {
@@ -253,8 +253,8 @@ export abstract class SeqBase_Deferred_Tests {
             actual.push(itemInfo);
             const completeChunk = itemInfo.itemNumber % 3 === 0;
             return {
-              chunkStatus: completeChunk ? itemInfo.index <= 5 ? 'SplitWithItem' : 'SplitWithoutItem' : 'Continue',
-              userData: completeChunk ? -1 : itemInfo.item.grade
+              chunkStatus: completeChunk? itemInfo.index <= 5? 'SplitWithItem': 'SplitWithoutItem': 'Continue',
+              userData: completeChunk? -1: itemInfo.item.grade
             };
           });
 
@@ -262,9 +262,11 @@ export abstract class SeqBase_Deferred_Tests {
           assert.sameDeepOrderedMembers(actual, expected);
         });
 
-      this.it1('should throw when calling completeChunk function with false for the first item in chunk', array.grades, (input, inputArray) => {
+      this.it1('should force including first item in chunk even when chunking result is SplitWithoutItem', array.grades, (input, inputArray) => {
+        const expected = inputArray.map(g => [g]);
         const sut = this.createSut(input).chunkBy(() => ({chunkStatus: 'SplitWithoutItem'}));
-        assert.throw(() => TestHarness.materialize(sut));
+        const actual = [...sut].map(g => [...g]);
+        assert.deepEqual(actual, expected)
       });
 
     });
@@ -288,7 +290,6 @@ export abstract class SeqBase_Deferred_Tests {
       this.it1('should split into each chunk, items having their total sum less or equals the limit',
         array.samples, (input, inputArray) => {
           const LIMIT = 150;
-          let i = 0;
           const expected: Sample[][] = [
             inputArray.slice(0, 4), // 50 + 5 + 0 + 0 (?100) = 55
             inputArray.slice(4, 6), // 100 + 50 = 150
@@ -341,8 +342,6 @@ export abstract class SeqBase_Deferred_Tests {
           array.samples, (input, inputArray) => {
             const LIMIT = 150;
             const MAX = 3;
-
-            let i = 0;
             const expected: Sample[][] = [
               inputArray.slice(0, 3), // 50 + 5 + 0  -> |3|
               inputArray.slice(3, 6), // 0 + 100 + 50 = 150 -> |3|
@@ -373,8 +372,8 @@ export abstract class SeqBase_Deferred_Tests {
           assert.isEmpty(actual);
         });
 
-        this.it1('should throw when maxItemsInChunk <= 0', [], input => {
-          assert.throw(()=> this.createSut(input).chunkBySum(0, {maxItemsInChunk: 0}));
+        this.it1('should include first item in chunk even when chunking result is SkipWithoutItem', [], input => {
+          assert.throw(() => this.createSut(input).chunkBySum(0, {maxItemsInChunk: 0}));
         });
       });
     });
@@ -1096,7 +1095,7 @@ export abstract class SeqBase_Deferred_Tests {
 
       this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1145,7 +1144,7 @@ export abstract class SeqBase_Deferred_Tests {
       });
 
       this.it1('should call all selector callbacks with expected parameters', array.folders, (input) => {
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         let expectedSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
         const expectedIndexes = new Array<number>(9).fill(0);
         let actualSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
@@ -1231,7 +1230,7 @@ export abstract class SeqBase_Deferred_Tests {
 
       this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1535,8 +1534,8 @@ export abstract class SeqBase_Deferred_Tests {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1557,8 +1556,8 @@ export abstract class SeqBase_Deferred_Tests {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1615,8 +1614,8 @@ export abstract class SeqBase_Deferred_Tests {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1637,8 +1636,8 @@ export abstract class SeqBase_Deferred_Tests {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1902,7 +1901,7 @@ export abstract class SeqBase_Deferred_Tests {
         if (opts?.suffix != null || opts?.insideOut) expected.push(opts?.suffix ?? separator);
 
         const sut = this.createSut(input);
-        const actual = (opts?.insideOut) ? sut.intersperse(separator, true) : sut.intersperse(separator, opts);
+        const actual = (opts?.insideOut)? sut.intersperse(separator, true): sut.intersperse(separator, opts);
         assert.deepEqual([...actual], expected);
       };
 
@@ -2572,8 +2571,8 @@ export abstract class SeqBase_Deferred_Tests {
             let sutArray = this.createSut(input);
             let sutGenerator = this.createSut(generator.from(input));
             for (let index = -1; index < input.length + 1; index++) {
-              const expectedFirst = index < 1 ? [] : input.slice(0, index);
-              const expectedSecond = index < 1 ? input.slice() : input.slice(index);
+              const expectedFirst = index < 1? []: input.slice(0, index);
+              const expectedSecond = index < 1? input.slice(): input.slice(index);
               let actual = sutArray.split(index);
               assert.deepEqual([...actual[0]], expectedFirst);
               assert.deepEqual([...actual[1]], expectedSecond);
