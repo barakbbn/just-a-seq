@@ -64,9 +64,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   // TaggedSeq
-  get [SeqTags.$maxCount](): number {
-    return this.source.length;
-  }
+  // get [SeqTags.$maxCount](): number {
+  //   return this.source.length;
+  // }
 
   all(condition: Condition<T>): boolean {
     return this.every(condition);

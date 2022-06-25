@@ -8,11 +8,11 @@ export type Selector<T, U> = (x: T, index: number) => U;
 export type Comparer<T> = (a: T, b: T) => number;
 export type ComparableType = string | number | boolean | undefined | null;
 export type ToComparableKey<T> = (x: T) => ComparableType;
-export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest] ? Map<K1, KRest extends [infer K2, ...any[]] ? MapHierarchy<KRest, T> : T[]> : never;
+export type MapHierarchy<Ks extends any[], T> = Ks extends [infer K1, ...infer KRest]? Map<K1, KRest extends [infer K2, ...any[]]? MapHierarchy<KRest, T>: T[]>: never;
 
 export type ObjectHierarchy<Ks extends any[], T> =
-  Ks extends [infer K1, ...infer KRest] ?
-    { [key in K1 extends keyof any ? K1 : never]?: KRest extends [infer K2, ...any[]] ? ObjectHierarchy<KRest, T> : T }
+  Ks extends [infer K1, ...infer KRest]?
+    { [key in K1 extends keyof any? K1: never]?: KRest extends [infer K2, ...any[]]? ObjectHierarchy<KRest, T>: T }
     : never;
 
 
@@ -24,7 +24,7 @@ export type FlatSeq<Arr, Depth extends number> = {
   "recur": Arr extends Iterable<infer InnerArr>
     ? FlatSeq<InnerArr, [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20][Depth]>
     : Arr
-}[Depth extends 0 ? "done" : "recur"];
+}[Depth extends 0? "done": "recur"];
 
 export interface Seq<T> extends Iterable<T> {
   // same as every
@@ -41,9 +41,16 @@ export interface Seq<T> extends Iterable<T> {
 
   at(index: number, fallback?: T): T | undefined; //item at index
 
-  average(): T extends number ? number : never; // Overload
+  average(): T extends number? number: never; // Overload
 
   average(selector: Selector<T, number>): number;
+
+  bottom(count: number): T extends number | string | boolean? Seq<T>: never;
+
+  bottom(count: number, keySelector: ToComparableKey<T>): Seq<T>;
+
+  bottom(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
+
 
   cache(now?: boolean): CachedSeq<T>;
 
@@ -54,7 +61,7 @@ export interface Seq<T> extends Iterable<T> {
     userData?: U;
   }): Seq<Seq<T>>;
 
-  chunkBySum(limit: number, opts?: { maxItemsInChunk: number }): T extends number ? Seq<Seq<T>> : never;
+  chunkBySum(limit: number, opts?: { maxItemsInChunk: number }): T extends number? Seq<Seq<T>>: never;
 
   chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk: number }): Seq<Seq<T>>;
 
@@ -275,14 +282,14 @@ export interface Seq<T> extends Iterable<T> {
 
   matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
 
-  max(): T extends number ? number : never; // Overload
+  max(): T extends number? number: never; // Overload
   max(selector: Selector<T, number>): number;
 
   maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
 
   maxItem(options: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
 
-  min(): T extends number ? number : never; // Overload
+  min(): T extends number? number: never; // Overload
   min(selector: Selector<T, number>): number;
 
   minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
@@ -360,7 +367,7 @@ export interface Seq<T> extends Iterable<T> {
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
 
-  sorted(reverse?: boolean): Seq<T>;
+  sorted(reverse?: boolean): T extends ComparableType ? Seq<T>: never;
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
@@ -374,7 +381,7 @@ export interface Seq<T> extends Iterable<T> {
 
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
-  sum(): T extends number ? number : never; // Overload
+  sum(): T extends number? number: never; // Overload
   sum(selector: Selector<T, number>): number;
 
   take(count: number): Seq<T>; // negative count is like takeLast
@@ -397,6 +404,12 @@ export interface Seq<T> extends Iterable<T> {
   toMap<K, V = T>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   toMapOfOccurrences<K = T>(keySelector?: Selector<T, K>, toComparableKey?: ToComparableKey<K>): Map<K, number>;
+
+  top(count: number): T extends number | string | boolean? Seq<T>: never;
+
+  top(count: number, keySelector: ToComparableKey<T>): Seq<T>;
+
+  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
@@ -504,8 +517,8 @@ export type SubGroupedSeq<Ks extends any[], T> = Ks extends [infer K1, infer K2,
   : GroupedSeq<Ks[1], T>;
 
 export type SeqOfGroupsWithoutLast<Ks extends any[], T> = Ks extends [...infer KRest, infer KLast]
-  ? KRest extends [infer K1, infer K2, ...infer Rest] ?
-    SeqOfMultiGroups<[...KRest], T> :
+  ? KRest extends [infer K1, infer K2, ...infer Rest]?
+    SeqOfMultiGroups<[...KRest], T>:
     SeqOfGroups<Ks[0], T>
   : SeqOfGroups<Ks[0], T>;
 
@@ -513,11 +526,11 @@ export type Last<Ts extends any[]> = Ts extends [...infer Rest, infer Last]
   ? Last
   : Ts[0];
 
-export type Headless<Ts extends any[]> = Ts extends [infer Head, ...infer Rest] ? Rest : Ts;
+export type Headless<Ts extends any[]> = Ts extends [infer Head, ...infer Rest]? Rest: Ts;
 
-export type Tailless<Ts extends any[]> = Ts extends [...infer Rest, infer Last] ? Rest : Ts;
+export type Tailless<Ts extends any[]> = Ts extends [...infer Rest, infer Last]? Rest: Ts;
 
-export type Reverse<T extends any[], R extends any[] = []> = ReturnType<T extends [infer F, ...infer L] ? () => Reverse<L, [F, ...R]> : () => R>;
+export type Reverse<T extends any[], R extends any[] = []> = ReturnType<T extends [infer F, ...infer L]? () => Reverse<L, [F, ...R]>: () => R>;
 
 export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(

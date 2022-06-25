@@ -33,7 +33,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return new SortedSeqImpl(items, finalComparer)
   }
 
-  private static createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
+  static createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
                                           comparer: Comparer<K> | undefined,
                                           descending: boolean): ((a: any, b: any) => number) | undefined {
     if (comparer === LEGACY_COMPARER) return undefined;
@@ -248,10 +248,10 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.transferOptimizeTag(factories.SortedSeq(this.source, valueSelector, undefined, reverse));
   }
 
-  sorted(reverse = false): Seq<T> {
+  sorted(reverse?: boolean): T extends number | boolean | string | null | undefined ? Seq<T>: never {
     const optimize = SeqTags.optimize(this);
     if (this.tapCallbacks.length || !optimize) return super.sorted(reverse);
-    return this.transferOptimizeTag(factories.SortedSeq(this.source, undefined, undefined, reverse));
+    return this.transferOptimizeTag(factories.SortedSeq(this.source, undefined, undefined, reverse)) as any;
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer: Comparer<K> | undefined, descending: boolean ): SortedSeq<T> {
