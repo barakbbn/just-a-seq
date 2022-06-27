@@ -2,44 +2,11 @@ import {describe, it} from "mocha";
 import {Condition, Seq} from "../../lib";
 import {assert} from "chai";
 import {array, Folder, generator, Sample} from "../test-data";
-import {TestHarness} from "./test-harness";
+import {TestHarness, TestIt} from "../test-harness";
 
-export abstract class SeqBase_Deferred_Tests {
-  constructor(protected optimized: boolean) {
-  }
-
-  it1<T>(title: string, input: T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void) {
-    it(title + ' - array source', () => testFn(input, input));
-    it(title + ' - generator source', () => testFn(generator.from(input), input));
-    it(title + ' - sequence source', () => testFn(this.createSut(input), input));
-  }
-
-  it2<T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
-    it(title + ' - first array, second array', () => testFn(first, second));
-    it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
-    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
-
-    it(title + ' - first generator, second array', () => testFn(generator.from(first), second));
-    it(title + ' - first generator, second generator', () => testFn(generator.from(first), generator.from(second)));
-    it(title + ' - first generator, second sequence', () => testFn(generator.from(first), this.createSut(second)));
-
-    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second));
-    it(title + ' - first sequence, second generator', () => testFn(this.createSut(first), generator.from(second)));
-    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
-  }
-
-  itx<T, U = T>(title: string, input: readonly T[], others: readonly U[][], testFn: (input: Iterable<T>, others: readonly Iterable<U>[]) => void) {
-    it(title + ' - input array, others array', () => testFn(input, others));
-    it(title + ' - input array, others generator', () => testFn(input, others.map(x => generator.from(x))));
-    it(title + ' - input array, others sequence', () => testFn(input, others.map(x => this.createSut(x))));
-
-    it(title + ' - input generator, others array', () => testFn(generator.from(input), others));
-    it(title + ' - input generator, others generator', () => testFn(generator.from(input), others.map(x => generator.from(x))));
-    it(title + ' - input generator, others sequence', () => testFn(generator.from(input), others.map(x => this.createSut(x))));
-
-    it(title + ' - input sequence, others array', () => testFn(this.createSut(input), others));
-    it(title + ' - input sequence, others generator', () => testFn(this.createSut(input), others.map(x => generator.from(x))));
-    it(title + ' - input sequence, others sequence', () => testFn(this.createSut(input), others.map(x => this.createSut(x))));
+export abstract class SeqBase_Deferred_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Deferred Execution', () => {
@@ -3212,6 +3179,4 @@ export abstract class SeqBase_Deferred_Tests {
     });
 
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
 }

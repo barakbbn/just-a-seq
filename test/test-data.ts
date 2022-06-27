@@ -1,5 +1,5 @@
 import {SeqBase} from "../lib/seq-base";
-import {EMPTY_ARRAY, SeqTags} from "../lib/common";
+import {EMPTY_ARRAY, generate, SeqTags} from "../lib/common";
 
 export const array = new class {
   get falsyValues(): any[] {
@@ -177,6 +177,17 @@ export const array = new class {
   reverse<T>(value: T[]): T[] {
     return value.slice().reverse()
   }
+
+  random(count: number, min = 0, max = 1.0, seed?: number): number[] {
+    const values: number[] = [];
+    for (const n of generator.random(min, max, seed)) {
+      if (0 > count--) values.push(n);
+      else break;
+    }
+
+    return values;
+  }
+
 };
 
 export class Folder {
@@ -230,7 +241,7 @@ export const generator = new class {
     })
   };
 
-  from<T>(array:readonly T[]): Iterable<T>
+  from<T>(array: readonly T[]): Iterable<T>
   from(string: string): Iterable<string>
   from<T>(arrayOrString: Iterable<T>): Iterable<T> {
     return new ReusableGenerator<T>(function* from() {
@@ -247,7 +258,7 @@ export const generator = new class {
       let count = 0;
       while (true) {
         const value = from + step * count++;
-        if (!(step > 0 ? value <= to : to <= value)) break;
+        if (!(step > 0? value <= to: to <= value)) break;
         yield value;
       }
     })
@@ -258,9 +269,22 @@ export const generator = new class {
       while (count--) yield value;
     });
   }
+
+  random(min = 0, max = 1.0, seed?: number): Iterable<number> {
+    return new ReusableGenerator(function* range() {
+      if (seed == null) while (true) {
+        if (seed == null) yield Math.random() * (max - min) + min;
+        else {
+          const x = Math.sin(seed++) * Number.MIN_SAFE_INTEGER;
+          yield (x - Math.floor(x)) * (max - min) + min;
+        }
+      }
+
+    });
+  }
 };
 
-type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
+type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T>? Iterable<T>: never; };
 export const iterables: ArraysOnly = new Proxy(array, {
   get(target: any, p: PropertyKey, receiver: any): any {
     const array = Reflect.get(target, p, receiver);
@@ -271,13 +295,14 @@ export const iterables: ArraysOnly = new Proxy(array, {
 export class TestableArray<T> extends Array<T> {
   getIteratorCount = 0;
   yieldCount = 0;
+
   constructor(...items: T[]) {
     super(...items);
   }
 
-  *[Symbol.iterator](): IterableIterator<T> {
+  * [Symbol.iterator](): IterableIterator<T> {
     this.getIteratorCount++;
-    for(const item of super[Symbol.iterator]()) {
+    for (const item of super[Symbol.iterator]()) {
       this.yieldCount++;
       yield item;
     }

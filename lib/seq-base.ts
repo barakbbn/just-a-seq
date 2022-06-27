@@ -22,15 +22,12 @@ import {
   isArray,
   isIterable,
   IterationContext,
-  LEGACY_COMPARER,
   sameValueZero,
   SeqTags,
   TaggedSeq,
-  tapIterable,
-  binarySearch,
-  createComparer,
-  partialQuickSort
+  tapIterable
 } from "./common";
+import {binarySearch, getComparer, LEGACY_COMPARER, partialQuickSort} from "./sort-util";
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
@@ -86,38 +83,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     let count = 0;
     for (const value of this) sum += selector(value, count++);
     return count? (sum / count): Number.NaN;
-  }
-
-  bottom(count: number): T extends number | string | boolean? Seq<T>: never;
-  bottom(count: number, keySelector: ToComparableKey<T>): Seq<T>;
-  bottom(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-  bottom(count: number, keySelectorOrComparer?: ToComparableKey<T> | { comparer: Comparer<T> }): Seq<T> {
-    const reverse = count >= 0;
-    const comparer: Comparer<any> | undefined = typeof keySelectorOrComparer === 'function'?
-      createComparer(keySelectorOrComparer, undefined, reverse):
-      keySelectorOrComparer?
-        createComparer(undefined, keySelectorOrComparer.comparer, reverse):
-        createComparer(undefined, undefined, reverse);
-
-    console.assert(comparer);
-
-    return this.topInternal(Math.abs(count), comparer!);
-  }
-
-  top(count: number): T extends number | string | boolean? Seq<T>: never;
-  top(count: number, keySelector: (item: T) => unknown): Seq<T>;
-  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
-    const reverse = count < 0;
-    const comparer = typeof keySelectorOrComparer === 'function'?
-      createComparer(keySelectorOrComparer, undefined, reverse):
-      keySelectorOrComparer?
-        createComparer(undefined, keySelectorOrComparer.comparer, reverse):
-        createComparer(undefined, undefined, reverse);
-
-    console.assert(comparer);
-
-    return this.topInternal(Math.abs(count), comparer!);
   }
 
   cache(now?: boolean): CachedSeq<T> {
@@ -1535,6 +1500,15 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return map;
   }
 
+  top(count: number): T extends number | string | boolean? Seq<T>: never;
+  top(count: number, keySelector: (item: T) => unknown): Seq<T>;
+  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
+  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T>;
+  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
+    return this.topInternal(Math.abs(count), getComparer(keySelectorOrComparer, count < 0));
+  }
+
+
   toSet<K>(keySelector?: Selector<T, K>): Set<T> {
     if (!keySelector) return new Set<T>(this);
 
@@ -1616,49 +1590,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   toJSON(key: any): any {
     return this.toJsonOverride(key);
-  }
-
-  protected topInternal(count: number, comparer: Comparer<T>): Seq<T> {
-    const maxItems = SeqTags.maxCount(this);
-    if (count < 1 || maxItems === 0) return internalEmpty<T>();
-
-    if (maxItems && maxItems <= count) {
-      return this.sort(comparer);
-    }
-
-    const notAffectingNumberOfItems = SeqTags.notAffectingNumberOfItems(this);
-    return this.generate(function* top(items, iterationContext) {
-      if (isArray(items) && items.length <= count * 1.1 /* 10% extra */ && notAffectingNumberOfItems) {
-        const array = [...items];
-        partialQuickSort(array, count, comparer);
-        yield* array;
-        return;
-      }
-
-      const sorted: T[] = [];
-      let shouldSort = true;
-      for (const item of items) {
-
-        if (sorted.length < count) {
-          sorted.push(item);
-          continue;
-
-        } else if (shouldSort && sorted.length === count) {
-          sorted.sort(comparer);
-          shouldSort = false;
-        }
-
-        const bsIndex = binarySearch(sorted, item, comparer, {checkEdgesFirst: true});
-        const insetAtIndex = bsIndex < 0? ~bsIndex: bsIndex;
-
-        if (bsIndex >= 0 || insetAtIndex < count) {
-          if (sorted.length === count) sorted.length--;
-          sorted.splice(insetAtIndex, 0, item);
-        }
-      }
-
-      yield* sorted;
-    });
   }
 
   protected findSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, equals: (a: T, b: U) => unknown): [number, number] {
@@ -1942,6 +1873,69 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
     if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;
+  }
+
+  protected topInternal(count: number, comparer: Comparer<T>): Seq<T> {
+    if (count < 1) return internalEmpty<T>();
+
+    return this.generate(function* top(items, iterationContext) {
+      const sorted: T[] = [];
+      let shouldSort = true;
+      for (const item of items) {
+
+        if (sorted.length < count) {
+          sorted.push(item);
+          continue;
+
+        } else if (shouldSort && sorted.length === count) {
+          sorted.sort(comparer);
+          shouldSort = false;
+        }
+
+        const bsIndex = binarySearch(sorted, item, comparer, {checkEdgesFirst: true});
+        const insetAtIndex = bsIndex < 0? ~bsIndex: bsIndex;
+
+        if (bsIndex >= 0 || insetAtIndex < count) {
+          sorted.length--;
+          sorted.splice(insetAtIndex, 0, item);
+        }
+      }
+      if (shouldSort) sorted.sort(comparer);
+      yield* sorted;
+    });
+  }
+
+  protected topOptimized(source: Iterable<any>, count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
+    const reverse = count < 0;
+    count = Math.abs(count);
+    const comparer = getComparer(keySelectorOrComparer, reverse);
+    if (!SeqTags.optimize(this)) return this.topInternal(count, comparer);
+    const maxCount = SeqTags.maxCount(source);
+
+    if (maxCount === 0) return internalEmpty<T>();
+
+    if (maxCount != null && maxCount <= count) {
+      return this.sort(comparer);
+    }
+
+    const MAX_ARRAY_COPY_SIZE = 10 * 1024;
+    const notMappingItems = SeqTags.notMappingItems(this);
+    const self = this;
+    if (SeqTags.notAffectingNumberOfItems(this)) {
+      return this.generate(function* top(items) {
+        const maxItems = isArray(source)? source.length: maxCount;
+        if (maxItems != null && maxItems <= MAX_ARRAY_COPY_SIZE) {
+          const array = notMappingItems && isArray(source)? source.slice(): [...items];
+          if (array.length > count) partialQuickSort(array, count, comparer);
+          else array.sort(comparer);
+          yield* array;
+        } else {
+          yield* self.topInternal(count, comparer);
+        }
+      });
+    }
+
+    return this.topInternal(count, comparer);
   }
 
   protected toJsonOverride(key: any): any {

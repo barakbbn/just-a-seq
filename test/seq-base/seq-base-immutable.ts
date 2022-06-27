@@ -3,9 +3,11 @@ import {describe} from "mocha";
 import {Seq} from "../../lib";
 import {assert} from "chai";
 import {array} from "../test-data";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_Immutable_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_Immutable_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Immutable', () => {
@@ -110,6 +112,7 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     testImmutable('takeOnly()', array.zeroToTen, seq => seq.takeOnly(array.zeroToTen, n => n));
     testImmutable('tap()', array.zeroToTen, seq => seq.tap(n => n));
+    testImmutable('top()', array.zeroToTen, seq => seq.top(10,x => '' + x));
     testImmutable('toArray()', array.zeroToTen, seq => seq.toArray());
     testImmutable('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     testImmutable('toSet()', array.zeroToTen, seq => seq.toSet());
@@ -120,7 +123,4 @@ export abstract class SeqBase_Immutable_Tests {
     testImmutable('zipAll()', array.oneToTen, seq => seq.zipAll(array.zeroToTen));
     testImmutable('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): SeqBase<T>;
-
 }

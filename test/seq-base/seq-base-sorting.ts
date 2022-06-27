@@ -1,93 +1,15 @@
 import {describe, it} from "mocha";
 import {array, generator} from "../test-data";
 import {assert} from "chai";
-import {Seq} from "../../lib";
+import {ComparableType, Seq, ToComparableKey} from "../../lib";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_Sorting_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_Sorting_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Sorting functionality', () => {
-    // describe('orderBy', () => {
-    //   it('should sort sequence of objects by one of the properties', () => {
-    //     const unsorted = array.gradesFiftyAndAbove.concat(array.gradesFiftyAndBelow);
-    //     const expectedByGrade = unsorted.slice().sort((a, b) => a.grade - b.grade);
-    //     const expectedByName = unsorted.slice().sort((a, b) => a.name.localeCompare(b.name));
-    //     const sut = this.createSut(unsorted);
-    //     const sut2 = this.createSut(generator.from(unsorted));
-    //
-    //     let actual = [...sut.orderBy(x => x.grade)];
-    //     assert.deepEqual(actual, expectedByGrade);
-    //
-    //     actual = [...sut2.orderBy(x => x.grade)];
-    //     assert.deepEqual(actual, expectedByGrade);
-    //
-    //
-    //     actual = [...sut.orderBy(x => x.name)];
-    //     assert.deepEqual(actual, expectedByName);
-    //
-    //     actual = [...sut2.orderBy(x => x.name)];
-    //     assert.deepEqual(actual, expectedByName);
-    //   });
-    //   it('should sort sequence of objects by one of the properties and a comparer', () => {
-    //     const input1 = array.gradesFiftyAndAbove.map(x => ({...x, name: x.name.toUpperCase()}));
-    //     const input2 = array.gradesFiftyAndBelow.map(x => ({...x, name: x.name.toLowerCase()}));
-    //     const unsorted = input1.concat(input2);
-    //
-    //     const comparer: Comparer<string> = (a, b) => a.toUpperCase().localeCompare(b.toUpperCase());
-    //     const expected = unsorted.slice().sort((a, b) => comparer(a.name, b.name));
-    //
-    //     const sut = this.createSut(unsorted);
-    //     const sut2 = this.createSut(generator.from(unsorted));
-    //
-    //     let actual = [...sut.orderBy(x => x.name, comparer)];
-    //     assert.deepEqual(actual, expected);
-    //
-    //     actual = [...sut2.orderBy(x => x.name, comparer)];
-    //     assert.deepEqual(actual, expected);
-    //   });
-    // });
-    //
-    // describe('orderByDescending', () => {
-    //   it('should sort sequence of objects by one of the properties', () => {
-    //     const unsorted = array.gradesFiftyAndBelow.concat(array.gradesFiftyAndAbove);
-    //     const expectedByGrade = unsorted.slice().sort((a, b) => b.grade - a.grade);
-    //     const expectedByName = unsorted.slice().sort((a, b) => b.name.localeCompare(a.name));
-    //     const sut = this.createSut(unsorted);
-    //     const sut2 = this.createSut(generator.from(unsorted));
-    //
-    //     let actual = [...sut.orderByDescending(x => x.grade)];
-    //     assert.deepEqual(actual, expectedByGrade);
-    //
-    //     actual = [...sut2.orderByDescending(x => x.grade)];
-    //     assert.deepEqual(actual, expectedByGrade);
-    //
-    //
-    //     actual = [...sut.orderByDescending(x => x.name)];
-    //     assert.deepEqual(actual, expectedByName);
-    //
-    //     actual = [...sut2.orderByDescending(x => x.name)];
-    //     assert.deepEqual(actual, expectedByName);
-    //   });
-    //
-    //   it('should sort sequence of objects by one of the properties and a comparer', () => {
-    //     const input1 = array.gradesFiftyAndAbove.map(x => ({...x, name: x.name.toUpperCase()}));
-    //     const input2 = array.gradesFiftyAndBelow.map(x => ({...x, name: x.name.toLowerCase()}));
-    //     const unsorted = input2.concat(input1);
-    //
-    //     const comparer: Comparer<string> = (a, b) => a.toUpperCase().localeCompare(b.toUpperCase());
-    //     const expected = unsorted.slice().sort((a, b) => comparer(b.name, a.name));
-    //
-    //     const sut = this.createSut(unsorted);
-    //     const sut2 = this.createSut(generator.from(unsorted));
-    //
-    //     let actual = [...sut.orderByDescending(x => x.name, comparer)];
-    //     assert.deepEqual(actual, expected);
-    //
-    //     actual = [...sut2.orderByDescending(x => x.name, comparer)];
-    //     assert.deepEqual(actual, expected);
-    //   });
-    // });
 
     describe('sort()', () => {
       it('should return same result as Array.sort when not using comparer and values are not strings', () => {
@@ -109,7 +31,7 @@ export abstract class SeqBase_Sorting_Tests {
       });
     });
 
-    describe('sortBy', () => {
+    describe('sortBy()', () => {
       it('should sort sequence of objects by one of the properties', () => {
         const unsorted = array.gradesFiftyAndAbove.concat(array.gradesFiftyAndBelow);
         const expectedByGrade = unsorted.slice().sort((a, b) => a.grade - b.grade);
@@ -264,7 +186,171 @@ export abstract class SeqBase_Sorting_Tests {
         assert.sameOrderedMembers(actualByTypeThenByPeriod2, expectedByTypeThenByPeriod);
       });
     });
-  });
 
-  protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
+    describe('top()', () => {
+      const primitiveComparer = (a: any, b: any) => a === b? 0: a > b? 1: -1;
+
+      const test = <T>(title: string, input: readonly T[], getOpts: () => { top?: number; comparer?: (a: T, b: T) => number; selector?: ToComparableKey<T> }) => {
+        this.it1(title, input, (input, inputArray) => {
+          const opts = {top: inputArray.length >>> 2, ...getOpts()};
+
+          let expected = inputArray.slice();
+          if (opts.selector != null) expected.sort((a: T, b: T) => primitiveComparer(opts.selector!(a), opts.selector!(b)));
+          else expected.sort(opts.comparer ?? primitiveComparer);
+          if (opts.top < 0) expected.reverse();
+          expected = expected.slice(0, Math.abs(opts.top));
+
+          const sut = this.createSut(input);
+          const top = opts.selector != null?
+            sut.top(opts.top, opts.selector):
+            opts.comparer != null?
+              sut.top(opts.top, {comparer: opts.comparer}):
+              sut.top(opts.top);
+          const actual = [...top];
+          assert.deepEqual(actual, expected);
+        });
+      }
+
+      describe('without comparer', () => {
+        describe('should return sorted sequence with only the number of top items', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0), () => ({}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer), () => ({}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse(), () => ({}));
+            test('input size is more than 10k', array.random(10 * 1024 + 1, -10, 10, 0), () => ({top: 100}));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0), () => ({top: 9999999999}));
+            test('input is already sorted', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer), () => ({top: 9999999999}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer).reverse(), () => ({top: 9999999999}));
+          });
+        });
+        describe('should return sorted sequence with only the number of BOTTOM items, when count parameter is negative', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0), () => ({top: -10}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer), () => ({top: -10}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse(), () => ({top: -10}));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0), () => ({top: -9999999999}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer), () => ({top: -9999999999}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse(), () => ({top: -9999999999}));
+          });
+        });
+      });
+
+      describe('value-selector', () => {
+        const selector = (x: { value: number }) => x.value;
+        describe('should return sorted sequence with only the number of top items', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({selector}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({selector}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({selector}));
+            test('input size is more than 10k', array.random(10 * 1024 + 1, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: 100,
+              selector
+            }));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: 9999999999,
+              selector
+            }));
+            test('input is already sorted', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: 9999999999,
+              selector
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: 9999999999,
+              selector
+            }));
+          });
+        });
+        describe('should return sorted sequence with only the number of BOTTOM items, when count parameter is negative', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({top: -10, selector}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: -10,
+              selector
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: -10,
+              selector
+            }));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: -9999999999,
+              selector
+            }));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: -9999999999,
+              selector
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: -9999999999,
+              selector
+            }));
+          });
+        });
+      });
+
+      describe('comparer', () => {
+        const comparer = (a: { value: number }, b: { value: number }) => a.value - b.value;
+
+        describe('should return sorted sequence with only the number of top items', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({comparer}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({comparer}));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({comparer}));
+            test('input size is more than 10k', array.random(10 * 1024 + 1, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: 100,
+              comparer
+            }));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: 9999999999,
+              comparer
+            }));
+            test('input is already sorted', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: 9999999999,
+              comparer
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-10, 10), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: 9999999999,
+              comparer
+            }));
+          });
+        });
+        describe('should return sorted sequence with only the number of BOTTOM items, when count parameter is negative', () => {
+          describe('top count is less than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({top: -10, comparer}));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: -10,
+              comparer
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: -10,
+              comparer
+            }));
+          });
+          describe('top count is more than input sequence size', () => {
+            test('input is random', array.random(20, -10, 10, 0).map(n => ({value: n})), () => ({
+              top: -9999999999,
+              comparer
+            }));
+            test('input is already sorted', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).map(n => ({value: n})), () => ({
+              top: -9999999999,
+              comparer
+            }));
+            test('input is sorted in reverse', array.repeatConcat(array.range(-20, 20), 2).sort(primitiveComparer).reverse().map(n => ({value: n})), () => ({
+              top: -9999999999,
+              comparer
+            }));
+          });
+        });
+      });
+    });
+  });
 }

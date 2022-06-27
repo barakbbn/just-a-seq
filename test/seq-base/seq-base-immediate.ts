@@ -3,29 +3,11 @@ import {assert} from "chai";
 import {array, generator, Sample} from "../test-data"
 import {SeqBase} from "../../lib/seq-base";
 import {Seq, Selector} from "../../lib";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_Immediate_Tests {
-  constructor(protected optimized: boolean) {
-  }
-
-  it1<T>(title: string, input: readonly T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void) {
-    it(title + ' - array source', () => testFn(input, input));
-    it(title + ' - generator source', () => testFn(generator.from(input), input));
-    it(title + ' - sequence source', () => testFn(this.createSut(input), input));
-  }
-
-  it2<T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void) {
-    it(title + ' - first array, second array', () => testFn(first, second));
-    it(title + ' - first array, second generator', () => testFn(first, generator.from(second)));
-    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
-
-    it(title + ' - first generator, second array', () => testFn(generator.from(first), second));
-    it(title + ' - first generator, second generator', () => testFn(generator.from(first), generator.from(second)));
-    it(title + ' - first generator, second sequence', () => testFn(generator.from(first), this.createSut(second)));
-
-    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second));
-    it(title + ' - first sequence, second generator', () => testFn(this.createSut(first), generator.from(second)));
-    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
+export abstract class SeqBase_Immediate_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Immediate Execution', () => {
@@ -4339,6 +4321,4 @@ export abstract class SeqBase_Immediate_Tests {
         });
     });
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): SeqBase<T>;
 }

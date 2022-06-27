@@ -6,10 +6,11 @@ import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
-import {DONT_COMPARE, SeqTags, TaggedSeq} from "../lib/common";
+import {SeqTags, TaggedSeq} from "../lib/common";
 import {array, generator, iterables, Sample} from "./test-data";
 import {assert} from "chai";
 import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
+import {DONT_COMPARE} from "../lib/sort-util";
 
 function createSut<T>(optimized: boolean) {
   return <T>(input: Iterable<T>): SortedSeqImpl<T> => {
