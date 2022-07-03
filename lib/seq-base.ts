@@ -27,7 +27,7 @@ import {
   TaggedSeq,
   tapIterable
 } from "./common";
-import {binarySearch, getComparer, LEGACY_COMPARER, partialQuickSort} from "./sort-util";
+import {LEGACY_COMPARER} from "./sort-util";
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
@@ -1326,16 +1326,38 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.any(condition);
   }
 
-  sort(comparer?: Comparer<T>): Seq<T> {
-    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, comparer ?? LEGACY_COMPARER);
+  sort(comparer?: Comparer<T>): Seq<T>;
+  sort(comparer: Comparer<T>, top: number): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number): Seq<T> {
+    const reverse = top != null && top < 0;
+    const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
+    return this.sortInternal(this.getSourceForNewSequence(), undefined, comparer ?? LEGACY_COMPARER, reverse, count) as any;
   }
 
-  sortBy(valueSelector: (item: T) => unknown, reverse = false): SortedSeq<T> {
-    return factories.SortedSeq(this.getSourceForNewSequence(), valueSelector, undefined, reverse);
+  sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, top?: number): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T> {
+    const source = this.getSourceForNewSequence();
+    const [reverse, top] = typeof reverseOrTop === 'number'?
+      [reverseOrTop < 0, Math.abs(reverseOrTop)]:
+      [reverseOrTop, undefined];
+
+    return this.sortInternal(source, valueSelector, undefined, reverse, top) as any;
   }
 
-  sorted(reverse?: boolean): T extends ComparableType? Seq<T>: never {
-    return factories.SortedSeq(this.getSourceForNewSequence(), undefined, undefined, reverse) as any;
+  sorted(): T extends ComparableType ? Seq<T>: never;
+  sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
+  sorted(top: number): T extends ComparableType ? Seq<T>: never;
+  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never;
+  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never {
+    const source = this.getSourceForNewSequence();
+    const [reverse, top] = typeof reverseOrTop === 'number'?
+      [reverseOrTop < 0, Math.abs(reverseOrTop)]:
+      [reverseOrTop, undefined];
+
+    return this.sortInternal(source, undefined, undefined, reverse, top) as any;
   }
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
@@ -1500,15 +1522,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return map;
   }
 
-  top(count: number): T extends number | string | boolean? Seq<T>: never;
-  top(count: number, keySelector: (item: T) => unknown): Seq<T>;
-  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T>;
-  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
-    return this.topInternal(Math.abs(count), getComparer(keySelectorOrComparer, count < 0));
-  }
-
-
   toSet<K>(keySelector?: Selector<T, K>): Set<T> {
     if (!keySelector) return new Set<T>(this);
 
@@ -1590,6 +1603,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   toJSON(key: any): any {
     return this.toJsonOverride(key);
+  }
+
+  protected sortInternal<K = T>(source: Iterable<T>, keySelector: ((item: T) => K) | undefined, comparer: Comparer<K> | undefined, reverse: boolean | undefined, top: number | undefined): SortedSeq<T> {
+    if (top && top < 0) throw new Error(`parameter 'top' cannot be negative`);
+
+    const sortedSeq = factories.SortedSeq<T, K>(source, keySelector, comparer, reverse, top);
+    return this.transferOptimizeTag(sortedSeq);
   }
 
   protected findSubSequence<U = T>(subSequence: Iterable<U>, fromIndex: number, equals: (a: T, b: U) => unknown): [number, number] {
@@ -1873,69 +1893,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   protected tagAsOptimized<TSeq extends Seq<any>>(seq: TSeq, optimize: boolean = true): TSeq {
     if (optimize) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;
-  }
-
-  protected topInternal(count: number, comparer: Comparer<T>): Seq<T> {
-    if (count < 1) return internalEmpty<T>();
-
-    return this.generate(function* top(items, iterationContext) {
-      const sorted: T[] = [];
-      let shouldSort = true;
-      for (const item of items) {
-
-        if (sorted.length < count) {
-          sorted.push(item);
-          continue;
-
-        } else if (shouldSort && sorted.length === count) {
-          sorted.sort(comparer);
-          shouldSort = false;
-        }
-
-        const bsIndex = binarySearch(sorted, item, comparer, {checkEdgesFirst: true});
-        const insetAtIndex = bsIndex < 0? ~bsIndex: bsIndex;
-
-        if (bsIndex >= 0 || insetAtIndex < count) {
-          sorted.length--;
-          sorted.splice(insetAtIndex, 0, item);
-        }
-      }
-      if (shouldSort) sorted.sort(comparer);
-      yield* sorted;
-    });
-  }
-
-  protected topOptimized(source: Iterable<any>, count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
-    const reverse = count < 0;
-    count = Math.abs(count);
-    const comparer = getComparer(keySelectorOrComparer, reverse);
-    if (!SeqTags.optimize(this)) return this.topInternal(count, comparer);
-    const maxCount = SeqTags.maxCount(source);
-
-    if (maxCount === 0) return internalEmpty<T>();
-
-    if (maxCount != null && maxCount <= count) {
-      return this.sort(comparer);
-    }
-
-    const MAX_ARRAY_COPY_SIZE = 10 * 1024;
-    const notMappingItems = SeqTags.notMappingItems(this);
-    const self = this;
-    if (SeqTags.notAffectingNumberOfItems(this)) {
-      return this.generate(function* top(items) {
-        const maxItems = isArray(source)? source.length: maxCount;
-        if (maxItems != null && maxItems <= MAX_ARRAY_COPY_SIZE) {
-          const array = notMappingItems && isArray(source)? source.slice(): [...items];
-          if (array.length > count) partialQuickSort(array, count, comparer);
-          else array.sort(comparer);
-          yield* array;
-        } else {
-          yield* self.topInternal(count, comparer);
-        }
-      });
-    }
-
-    return this.topInternal(count, comparer);
   }
 
   protected toJsonOverride(key: any): any {

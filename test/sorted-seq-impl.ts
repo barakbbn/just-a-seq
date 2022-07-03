@@ -13,7 +13,7 @@ import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
 import {DONT_COMPARE} from "../lib/sort-util";
 
 function createSut<T>(optimized: boolean) {
-  return <T>(input: Iterable<T>): SortedSeqImpl<T> => {
+  return <T>(input?: Iterable<T>): SortedSeqImpl<T> => {
     const seq = SortedSeqImpl.create(input ?? [], undefined, DONT_COMPARE);
     if (optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
     return seq;

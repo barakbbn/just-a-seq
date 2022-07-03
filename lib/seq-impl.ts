@@ -226,13 +226,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
-  top(count: number): T extends number | string | boolean? Seq<T>: never;
-  top(count: number, keySelector: (item: T) => unknown): Seq<T>;
-  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
-    return super.topOptimized(this.source, count, keySelectorOrComparer);
-  }
-
   [Symbol.iterator](): Iterator<T> {
     return this.source[Symbol.iterator]();
   }
@@ -285,13 +278,6 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
     return SeqTags.isSeq(this.source)?
       this.source.isEmpty():
       super.isEmpty();
-  }
-
-  top(count: number): T extends number | string | boolean? Seq<T>: never;
-  top(count: number, keySelector: (item: T) => unknown): Seq<T>;
-  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-  top(count: number, keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }): Seq<T> {
-    return super.topOptimized(this.source, count, keySelectorOrComparer);
   }
 
   [Symbol.iterator](): Iterator<T> {

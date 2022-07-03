@@ -54,10 +54,10 @@ export class TestHarness {
 }
 
 export abstract class TestIt {
-  protected abstract createSut: (<T>(input: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> };
+  protected abstract createSut: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> };
   private asSeq: (input: Iterable<any>) => Seq<any>;
 
-  constructor(protected optimized: boolean) {
+  protected constructor(protected optimized: boolean) {
     this.asSeq = optimized? asSeq: asSeqOptimized;
   }
 

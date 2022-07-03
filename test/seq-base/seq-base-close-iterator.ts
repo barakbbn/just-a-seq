@@ -173,7 +173,6 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));
     test('tap()', array.zeroToTen, seq => seq.tap(n => n));
-    test('top()', array.zeroToTen, seq => seq.top(10,x => '' + x));
     test('toArray()', array.zeroToTen, seq => seq.toArray());
     test('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     test('toMapOfOccurrences()', array.zeroToTen, seq => seq.toMapOfOccurrences(n => n % 3));

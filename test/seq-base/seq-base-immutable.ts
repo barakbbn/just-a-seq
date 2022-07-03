@@ -112,7 +112,6 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     testImmutable('takeOnly()', array.zeroToTen, seq => seq.takeOnly(array.zeroToTen, n => n));
     testImmutable('tap()', array.zeroToTen, seq => seq.tap(n => n));
-    testImmutable('top()', array.zeroToTen, seq => seq.top(10,x => '' + x));
     testImmutable('toArray()', array.zeroToTen, seq => seq.toArray());
     testImmutable('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     testImmutable('toSet()', array.zeroToTen, seq => seq.toSet());

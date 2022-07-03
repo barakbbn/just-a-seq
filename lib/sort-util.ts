@@ -1,7 +1,20 @@
+const JAVASCRIPT_QUIRK_SORT = true;
+
 import {Comparer} from "./seq";
 import {sameValueZero} from "./common";
-export const LEGACY_COMPARER: any = {};
-export const DONT_COMPARE: any = {};
+
+export function LEGACY_COMPARER(a: any, b: any): number {
+
+  const [aIsNullOrUndefined, bIsNullOrUndefined] = [a == null, b == null];
+  if (aIsNullOrUndefined && bIsNullOrUndefined) return a === undefined? 1: -1; // undefined is bigger than null
+  else if (aIsNullOrUndefined || bIsNullOrUndefined) return aIsNullOrUndefined? 1: -1;
+
+  return a.toString().localeCompare(b.toString());
+}
+
+export function DONT_COMPARE(a: any, b: any): number {
+  throw new Error('CANNOT COMPARE');
+}
 
 export function binarySearch<T = any>(items: ArrayLike<T>, item: T, comparer: (a: T, b: T) => number, opts: { start?: number; end?: number; checkEdgesFirst?: boolean; } = {}): number {
 
@@ -42,10 +55,10 @@ export function binarySearch<T = any>(items: ArrayLike<T>, item: T, comparer: (a
 export function createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
                                          comparer: Comparer<K> | undefined,
                                          reverse: boolean): ((a: any, b: any) => number) | undefined {
-  if (comparer === LEGACY_COMPARER) return undefined;
+  if (comparer === LEGACY_COMPARER && !reverse) return undefined;
   if (comparer === DONT_COMPARE) return comparer;
 
-  let baseComparer: (a: any, b: any) => number = comparer ?? defaultCompare;
+  let baseComparer: (a: any, b: any) => number = comparer ?? DEFAULT_COMPARER;
   let finalComparer = baseComparer;
   if (keySelector) {
     finalComparer = reverse?
@@ -53,12 +66,12 @@ export function createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
       (a, b) => baseComparer(keySelector(a), keySelector(b));
 
   } else if (reverse) {
-    finalComparer = (a, b) => baseComparer(b, a);
+    finalComparer = (a, b) => -baseComparer(a, b);
   }
   return finalComparer;
 }
 
-export function defaultCompare(a: any, b: any): number {
+export function DEFAULT_COMPARER(a: any, b: any): number {
   if (sameValueZero(a, b)) return 0;
 
   const [aIsNullOrUndefined, bIsNullOrUndefined] = [a == null, b == null];
@@ -68,26 +81,50 @@ export function defaultCompare(a: any, b: any): number {
   return a > b? 1: -1;
 }
 
+export function safeComparer<T>(comparer: Comparer<T>) {
+  return function safeComparer(a: T, b: T,): number {
+    const [aIsNullOrUndefined, bIsNullOrUndefined] = [a == null, b == null];
+    if (aIsNullOrUndefined || bIsNullOrUndefined) {
+      if (!bIsNullOrUndefined) return 1;
+      else if (!aIsNullOrUndefined) return -1;
+
+      return a === b? 0: a === undefined? 1: -1;
+    }
+
+    return comparer(a, b);
+  }
+}
+
+export function safeSelector<T, U>(selector: (x: T) => U) {
+  return function (x: T): U {
+    return x == null? x as any: selector(x);
+  }
+}
 
 export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, b: T) => number, opts?: { start?: number; end?: number; }): T[] {
   const takeFromEnd = count < 0;
-  count = Math.abs(count);
+  count = Math.floor(Math.abs(count));
+
   if (count > items.length) count = items.length;
   const swap = (i1: number, i2: number) => [items[i1], items[i2]] = [items[i2], items[i1]];
 
   function partition(left: number, right: number): number {
     const pivotIndex = (right + left) >>> 1;
     const pivot = items[pivotIndex];
+    let indexOfSmallest = left - 1;
+
+    if (JAVASCRIPT_QUIRK_SORT && pivot === undefined) return right;
 
     if (pivotIndex < right) swap(pivotIndex, right);
 
 
-    let indexOfSmallest = left - 1;
     for (let i = left; i < right; i++) {
+      const item = items[i];
+      if (JAVASCRIPT_QUIRK_SORT && item === undefined) continue;
       const compared = comparer(items[i], pivot);
       if (compared <= 0) {
         indexOfSmallest++;
-        if (i - indexOfSmallest > 0) swap(i, indexOfSmallest);
+        if (i !== indexOfSmallest) swap(i, indexOfSmallest);
       }
     }
 
@@ -123,12 +160,41 @@ export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, 
   return items;
 }
 
-export function getComparer<T>(keySelectorOrComparer?: ((item: T) => unknown) | { comparer: Comparer<T> }, reverse = false): Comparer<T> {
-  const comparer = typeof keySelectorOrComparer === 'function'?
-    createComparer(keySelectorOrComparer, undefined, reverse):
-    keySelectorOrComparer?
-      createComparer(undefined, keySelectorOrComparer.comparer, reverse):
-      createComparer(undefined, undefined, reverse);
 
-  return comparer!;
+export function partialBinaryInsertionSort<T>(source: Iterable<T>, count: number, comparer: Comparer<T>): readonly T[] {
+  count = Math.floor(Math.max(0, count));
+
+  const sorted: T[] = [];
+  if (count === 0) return sorted;
+
+  let shouldSort = true;
+  let undefinedCount = 0;
+  for (const item of source) {
+
+    if (sorted.length < count) {
+      if (JAVASCRIPT_QUIRK_SORT && item === undefined) undefinedCount++;
+      else sorted.push(item);
+      continue;
+    }
+
+    if (shouldSort && sorted.length === count) {
+      sorted.sort(comparer);
+      shouldSort = false;
+    }
+
+    const bsIndex = JAVASCRIPT_QUIRK_SORT && item === undefined?
+      ~count:
+      binarySearch(sorted, item, comparer, {checkEdgesFirst: true});
+
+    const insetAtIndex = bsIndex < 0? ~bsIndex: bsIndex;
+
+    if (bsIndex >= 0 || insetAtIndex < count) {
+      sorted.length--;
+      sorted.splice(insetAtIndex, 0, item);
+    }
+  }
+  if (shouldSort) sorted.sort(comparer);
+  // pad at end with remaining undefined
+  sorted.length = Math.min(count, sorted.length + undefinedCount);
+  return sorted;
 }

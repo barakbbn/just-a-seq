@@ -255,7 +255,6 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('toArray()', array.zeroToTen, seq => seq.toArray());
     test('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     test('toMapOfOccurrences()', array.zeroToTen, seq => seq.toMapOfOccurrences(n => n % 3));
-    test('top()', array.zeroToTen, seq => seq.top(10, x => '' + x));
     test('toSet()', array.zeroToTen, seq => seq.toSet());
     test2('union()', array.oneToTen, array.zeroToNine, (seq, other) => seq.union(other));
     test2('unionRight()', array.oneToTen, array.zeroToNine, (seq, other) => seq.unionRight(other));

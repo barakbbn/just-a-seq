@@ -28,29 +28,22 @@ export type FlatSeq<Arr, Depth extends number> = {
 
 export interface Seq<T> extends Iterable<T> {
   // same as every
-  all(condition: Condition<T>): boolean; // C#
+  all(condition: Condition<T>): boolean;
 
   // same as some()
-  any(condition?: Condition<T>): boolean; // C#
+  any(condition?: Condition<T>): boolean;
 
   append(...items: T[]): Seq<T>;
 
-  as<U>(): Seq<U>; //Cast
+  as<U>(): Seq<U>;
 
   asSeq(): Seq<T>; // Wrap in basic Seq implementation
 
-  at(index: number, fallback?: T): T | undefined; //item at index
+  at(index: number, fallback?: T): T | undefined;
 
-  average(): T extends number? number: never; // Overload
+  average(): T extends number? number: never;
 
   average(selector: Selector<T, number>): number;
-
-  bottom(count: number): T extends number | string | boolean? Seq<T>: never;
-
-  bottom(count: number, keySelector: ToComparableKey<T>): Seq<T>;
-
-  bottom(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
-
 
   cache(now?: boolean): CachedSeq<T>;
 
@@ -364,10 +357,14 @@ export interface Seq<T> extends Iterable<T> {
   // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
   // So try to avoid it. prefer using sorted() or sortBy()
   sort(comparer?: Comparer<T>): Seq<T>;
+  sort(comparer: Comparer<T>, top: number): Seq<T>;
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, top?: number): SortedSeq<T>;
 
-  sorted(reverse?: boolean): T extends ComparableType ? Seq<T>: never;
+  sorted(): T extends ComparableType ? Seq<T>: never;
+  sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
+  sorted(top: number): T extends ComparableType ? Seq<T>: never;
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
@@ -404,12 +401,6 @@ export interface Seq<T> extends Iterable<T> {
   toMap<K, V = T>(keySelector: Selector<T, K>, valueSelector?: Selector<T, V>, toComparableKey?: ToComparableKey<K>): Map<K, V>;
 
   toMapOfOccurrences<K = T>(keySelector?: Selector<T, K>, toComparableKey?: ToComparableKey<K>): Map<K, number>;
-
-  top(count: number): T extends number | string | boolean? Seq<T>: never;
-
-  top(count: number, keySelector: ToComparableKey<T>): Seq<T>;
-
-  top(count: number, {comparer}: { comparer: Comparer<T> }): Seq<T>;
 
   toSet<K>(keySelector?: Selector<T, K>): Set<T>;
 
@@ -547,7 +538,8 @@ export interface SortedSeqFactory {
   <T, K = T>(items: Iterable<T>,
              keySelector?: (x: T) => K,
              comparer?: Comparer<K>,
-             descending?: boolean): SortedSeq<T>;
+             descending?: boolean,
+             top?: number): SortedSeq<T>;
 }
 
 export interface SeqOfGroupsFactory {

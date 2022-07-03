@@ -16,7 +16,7 @@ import {IterationContext, SeqTags, TaggedSeq} from "../lib/common";
 import {Seq} from "../lib";
 
 function createSut<T>(optimized: boolean) {
-  const factory: (<T>(input: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> } = <T>(input: Iterable<T>): SeqBase<T> => {
+  const factory: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> } = <T>(input?: Iterable<T>): SeqBase<T> => {
     const tags: [symbol, any][] = optimized? [[SeqTags.$optimize, true]]: [];
     return createSeq(input, undefined, tags);
   };
