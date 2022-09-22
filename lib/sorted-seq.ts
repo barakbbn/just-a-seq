@@ -21,7 +21,8 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
 
   constructor(protected readonly source: Iterable<T>,
               comparer?: (a: K, b: K) => number,
-              protected topCount = Number.POSITIVE_INFINITY) {
+              protected topCount = Number.POSITIVE_INFINITY,
+              protected opts?: { stable?: boolean; }) {
     super();
     this.topCount = Math.floor(topCount);
     this.comparer = comparer;
@@ -44,10 +45,11 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
                           keySelector?: (x: T) => K,
                           comparer?: Comparer<K>,
                           reverse = false,
-                          topCount = Number.POSITIVE_INFINITY): SortedSeqImpl<T, K> {
+                          topCount = Number.POSITIVE_INFINITY,
+                          opts?: { stable?: boolean; }): SortedSeqImpl<T, K> {
 
     let finalComparer = createComparer(keySelector, comparer, reverse);
-    return new SortedSeqImpl(items, finalComparer, topCount);
+    return new SortedSeqImpl(items, finalComparer, topCount, opts);
   }
 
   all(condition: Condition<T>): boolean {
@@ -84,7 +86,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       return super.distinct(keySelector);
     }
     const source = this.sourceToSeq().distinct(keySelector);
-    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount));
+    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
   filter(condition: Condition<T>): Seq<T> {
@@ -92,7 +94,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       return super.filter(condition);
     }
     const source = this.sourceToSeq().filter(condition);
-    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount));
+    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
   hasAtLeast(count: number): boolean {
@@ -158,7 +160,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       return super.remove(items, firstKeySelector, secondKeySelector);
     }
     const source = this.sourceToSeq().remove(items, firstKeySelector as (item: T) => K, secondKeySelector as (item: U) => K);
-    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount));
+    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
   removeAll<U, K>(items: Iterable<U>, firstKeySelector?: (item: T | U) => K, secondKeySelector?: (item: U) => K): Seq<T> {
@@ -166,7 +168,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       return super.removeAll(items, firstKeySelector, secondKeySelector);
     }
     const source = this.sourceToSeq().removeAll(items, firstKeySelector as (item: T) => K, secondKeySelector as (item: U) => K);
-    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount));
+    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
   sameItems<K>(second: Iterable<T>, keySelector?: (item: T) => K): boolean;
@@ -196,7 +198,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     if (this.tapCallbacks.length || this.topCount < 0) return super.take(count);
 
     if (this.topCount > count) {
-      return this.transferOptimizeTag(new SortedSeqImpl(this.source, this.comparer, count));
+      return this.transferOptimizeTag(new SortedSeqImpl(this.source, this.comparer, count, this.opts));
     }
     return this;
   }
@@ -206,7 +208,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     if (this.tapCallbacks.length || this.topCount > 0) return super.takeLast(count);
 
     if (this.topCount + count < 0) {
-      return this.transferOptimizeTag(new SortedSeqImpl(this.source, this.comparer, -count));
+      return this.transferOptimizeTag(new SortedSeqImpl(this.source, this.comparer, -count, this.opts));
     }
     return this;
   }
@@ -222,7 +224,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       return super.takeOnly(items, firstKeySelector as Selector<T, K>, secondKeySelector);
     }
     const source = this.sourceToSeq().takeOnly(items, firstKeySelector as Selector<T, K>, secondKeySelector);
-    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount));
+    return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
   thenSortBy<U>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
@@ -230,7 +232,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   }
 
   tap(callback: Selector<T, void>,): SortedSeq<T> {
-    const instance = this.transferOptimizeTag(new SortedSeqImpl<T, K>(this.source, this.comparer));
+    const instance = this.transferOptimizeTag(new SortedSeqImpl<T, K>(this.source, this.comparer, undefined, this.opts));
     instance.tapCallbacks.push(...this.tapCallbacks, callback);
 
     return instance;
@@ -247,64 +249,67 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   }
 
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number): Seq<T>;
-  sort(comparer?: Comparer<T>, top?: number): Seq<T> {
+  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T> {
     const optimize = SeqTags.optimize(this);
     const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
 
     if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(count)) {
-      return super.sort(comparer, top);
+      return super.sort(comparer, top, opts);
     }
 
     const reverse = top != null && top < 0;
-    return this.sortInternal(this.source, undefined, comparer ?? LEGACY_COMPARER, reverse, count);
+    return this.sortInternal(this.source, undefined, comparer ?? LEGACY_COMPARER, reverse, count, opts);
   }
 
   sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
 
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number): SortedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T>
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T>
 
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T> {
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T> {
     const optimize = SeqTags.optimize(this);
     const [reverse, top] = typeof reverseOrTop === 'number'?
       [reverseOrTop < 0, Math.abs(reverseOrTop)]:
       [reverseOrTop, Number.POSITIVE_INFINITY];
 
     if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
-      return super.sortBy(valueSelector, reverseOrTop);
+      return super.sortBy(valueSelector, reverseOrTop, opts);
     }
 
-    return this.sortInternal(this.source, valueSelector, undefined, reverse, top);
+    return this.sortInternal(this.source, valueSelector, undefined, reverse, top, opts);
   }
 
-  sorted(): T extends ComparableType ? Seq<T>: never;
-  sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
-  sorted(top: number): T extends ComparableType ? Seq<T>: never;
+  sorted(): T extends ComparableType? Seq<T>: never;
+  sorted(reverse: boolean): T extends ComparableType? Seq<T>: never;
+  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
 
-  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never;
+  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
 
-  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never {
+  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never {
     const optimize = SeqTags.optimize(this);
     const [reverse, top] = typeof reverseOrTop === 'number'?
       [reverseOrTop < 0, Math.abs(reverseOrTop)]:
       [reverseOrTop, Number.POSITIVE_INFINITY];
 
     if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
-      return super.sorted(reverseOrTop);
+      return super.sorted(reverseOrTop, opts);
     }
 
-    return this.sortInternal(this.source, undefined, undefined, reverse, top) as any;
+    return this.sortInternal(this.source, undefined, undefined, reverse, top, opts) as any;
   }
 
-  private thenByInternal<K>(keySelector: (x: T) => K, comparer: Comparer<K> | undefined, descending: boolean): SortedSeq<T> {
-    let nextComparer = createComparer(keySelector, comparer, descending)!;
+  private thenByInternal<K>(keySelector: (x: T) => K, comparer: Comparer<K> | undefined, reverse: boolean): SortedSeq<T> {
+    const nextComparer = createComparer(keySelector, comparer, reverse);
+
     const baseComparer = this.comparer;
-    let finalComparer = baseComparer?
-      (a: any, b: any) => baseComparer(a, b) || nextComparer(a, b):
-      (a: any, b: any) => nextComparer(a, b);
-    const instance = this.transferOptimizeTag(new SortedSeqImpl(this.source, finalComparer, this.topCount));
+    const finalComparer = nextComparer? baseComparer?
+        (a: any, b: any) => baseComparer(a, b) || nextComparer(a, b):
+        (a: any, b: any) => nextComparer(a, b):
+      baseComparer;
+
+    const instance = this.transferOptimizeTag(new SortedSeqImpl(this.source, finalComparer, this.topCount, this.opts));
     instance.tapCallbacks.push(...this.tapCallbacks);
 
     return instance;
@@ -359,7 +364,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
         createComparer<T>(undefined, comparer, true):
         comparer;
 
-      const sorted = partialBinaryInsertionSort(this.source, count, adaptedComparer ?? LEGACY_COMPARER);
+      const sorted = partialBinaryInsertionSort(this.source, count, adaptedComparer ?? LEGACY_COMPARER, this.opts);
       if (this.topCount > 0) return sorted;
 
       // take last
@@ -370,7 +375,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       }
     };
 
-    return (maxLength <= Math.max(MAX_ARRAY_OPTIMAL_SIZE, count))?
+    return (!this.opts?.stable && maxLength <= Math.max(MAX_ARRAY_OPTIMAL_SIZE, count))?
       topOptimized():
       topUnoptimized();
   }

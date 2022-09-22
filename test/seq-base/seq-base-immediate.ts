@@ -3585,7 +3585,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
         it('should return false if one of the sequences is empty', () => {
           let first: { name: string; grade: number }[] = [];
-          let second = array.grades;
+          let second: {name: string, grade: number}[] = array.grades;
 
           let sut = this.createSut(first);
           let actual = sut.sameOrderedItems(second);

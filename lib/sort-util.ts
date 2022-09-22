@@ -27,14 +27,15 @@ export function binarySearch<T = any>(items: ArrayLike<T>, item: T, comparer: (a
   if (left > right) left = right;
 
   if (opts?.checkEdgesFirst) {
-    let compared = comparer(item, items[left]);
+    let compared = comparer(item, items[right]);
+    if (compared > 0) return ~(right + 1);
+    if (compared === 0) return right + 1;
+
+    if (right > left) { // No need to compare if right item is also the left item
+      compared = comparer(item, items[left]);
+    }
     if (compared < 0) return ~left;
     if (compared === 0) return left;
-    if (right > left) { // No need to compare if right item is also the left item
-      compared = comparer(item, items[right]);
-    }
-    if (compared > 0) return ~(right + 1);
-    if (compared === 0) return right;
 
     // Skip edges
     left++;
@@ -81,26 +82,6 @@ export function DEFAULT_COMPARER(a: any, b: any): number {
   return a > b? 1: -1;
 }
 
-export function safeComparer<T>(comparer: Comparer<T>) {
-  return function safeComparer(a: T, b: T,): number {
-    const [aIsNullOrUndefined, bIsNullOrUndefined] = [a == null, b == null];
-    if (aIsNullOrUndefined || bIsNullOrUndefined) {
-      if (!bIsNullOrUndefined) return 1;
-      else if (!aIsNullOrUndefined) return -1;
-
-      return a === b? 0: a === undefined? 1: -1;
-    }
-
-    return comparer(a, b);
-  }
-}
-
-export function safeSelector<T, U>(selector: (x: T) => U) {
-  return function (x: T): U {
-    return x == null? x as any: selector(x);
-  }
-}
-
 export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, b: T) => number, opts?: { start?: number; end?: number; }): T[] {
   const takeFromEnd = count < 0;
   count = Math.floor(Math.abs(count));
@@ -121,7 +102,7 @@ export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, 
     for (let i = left; i < right; i++) {
       const item = items[i];
       if (JAVASCRIPT_QUIRK_SORT && item === undefined) continue;
-      const compared = comparer(items[i], pivot);
+      const compared = comparer(item, pivot);
       if (compared <= 0) {
         indexOfSmallest++;
         if (i !== indexOfSmallest) swap(i, indexOfSmallest);
@@ -161,7 +142,7 @@ export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, 
 }
 
 
-export function partialBinaryInsertionSort<T>(source: Iterable<T>, count: number, comparer: Comparer<T>): readonly T[] {
+export function partialBinaryInsertionSort<T>(source: Iterable<T>, count: number, comparer: Comparer<T>, opts?: { stable?: boolean; }): readonly T[] {
   count = Math.floor(Math.max(0, count));
 
   const sorted: T[] = [];
@@ -182,19 +163,27 @@ export function partialBinaryInsertionSort<T>(source: Iterable<T>, count: number
       shouldSort = false;
     }
 
-    const bsIndex = JAVASCRIPT_QUIRK_SORT && item === undefined?
+    let bsIndex = JAVASCRIPT_QUIRK_SORT && item === undefined?
       ~count:
       binarySearch(sorted, item, comparer, {checkEdgesFirst: true});
 
-    const insetAtIndex = bsIndex < 0? ~bsIndex: bsIndex;
+    const alreadyExists = bsIndex >= 0;
+    if (opts?.stable && alreadyExists && bsIndex < count) {
+      do bsIndex++;
+      while (comparer(item, sorted[bsIndex]) == 0);
+    }
+    const insetAtIndex = alreadyExists? bsIndex: ~bsIndex;
 
-    if (bsIndex >= 0 || insetAtIndex < count) {
+    if (bsIndex >= 0 && bsIndex < count || insetAtIndex < count) {
       sorted.length--;
       sorted.splice(insetAtIndex, 0, item);
     }
   }
   if (shouldSort) sorted.sort(comparer);
   // pad at end with remaining undefined
-  sorted.length = Math.min(count, sorted.length + undefinedCount);
+  const length = sorted.length;
+  sorted.length = Math.min(count, length + undefinedCount);
+  sorted.fill(undefined as unknown as any, length);
+
   return sorted;
 }

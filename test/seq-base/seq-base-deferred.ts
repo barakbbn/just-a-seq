@@ -763,14 +763,14 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           });
 
         this.it2('when second sequence is empty, should return the first sequence distinct values',
-          array.grades.concat(array.grades),
+          array.grades.x(2),
           [] as { name: string; grade: number; }[],
           (first, second) => {
 
-            const expected = array.grades;
+            const expected = array.grades.filter((value, index, self) => self.findIndex(g => g.grade === value.grade) === index);
 
-            const sut = this.createSut(first);
-            const actual = [...sut.diffDistinct(second, x => x.grade)];
+            const sut = this.createSut(first).diffDistinct(second, x => x.grade);
+            const actual = [...sut];
             assert.sameDeepMembers(actual, expected);
           });
 
@@ -779,7 +779,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           array.grades.concat(array.grades),
           (first, second) => {
 
-            const expected = array.grades;
+            const expected = array.grades.filter((value, index, self) => self.findIndex(g => g.grade === value.grade) === index);
 
             const sut = this.createSut(first);
             const actual = sut.diffDistinct(second, x => x.grade);
@@ -808,15 +808,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         assert.sameMembers([...actual], expected);
       });
 
-      this.it1('should return distinct values by key selector from non empty sequence', array.grades
-        .concat(array.grades.filter(x => x.grade > 50))
-        .concat(array.grades.reverse()), (input) => {
+      this.it1('should return distinct values by key selector from non empty sequence',
+        array.grades.concat(array.gradesAboveFifty).concat(array.grades.reverse()),
+        (input) => {
 
-        const expected = array.grades;
-        const sut = this.createSut(input);
-        const actual = sut.distinct(x => x.grade);
-        assert.sameDeepMembers([...actual], expected);
-      });
+          const expected = array.grades.filter((value, index, self) => self.findIndex(g => g.grade === value.grade) === index);
+          const sut = this.createSut(input);
+          const actual = sut.distinct(x => x.grade);
+          assert.sameDeepMembers([...actual], expected);
+        });
 
       this.it1('should return empty sequence when source sequence is empty', [], (input) => {
         const expected: number[] = [];

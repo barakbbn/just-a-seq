@@ -1,9 +1,9 @@
-import {describe, it} from "mocha";
-import {array} from "../test-data";
+import {describe} from "mocha";
+import {array, Grade, Sample} from "../test-data";
 import {assert} from "chai";
-import {Seq, ToComparableKey} from "../../lib";
+import {Comparer, Seq, ToComparableKey} from "../../lib";
 import {TestIt} from "../test-harness";
-import {DEFAULT_COMPARER, safeComparer, safeSelector} from "../../lib/sort-util";
+import {DEFAULT_COMPARER} from "../../lib/sort-util";
 
 export abstract class SeqBase_Sorting_Tests extends TestIt {
   constructor(optimized: boolean) {
@@ -14,8 +14,8 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
     const testTopSort = <T>(title: string,
                             input: readonly T[],
-                            opts: { top?: number; comparer?: (a: T, b: T) => number; selector?: ToComparableKey<T> },
-                            sortAndTestSut: (seq: Seq<T>, opts: { top: number; comparer?: (a: T, b: T) => number; selector?: ToComparableKey<T> }, test: (sut: Seq<T>) => void) => void) => {
+                            opts: { top?: number; comparer?: (a: T, b: T) => number; selector?: ToComparableKey<T>; stableSort?: boolean; },
+                            sortAndTestSut: (seq: Seq<T>, opts: { top: number; comparer?: (a: T, b: T) => number; selector?: ToComparableKey<T>; stableSort?: boolean; }, test: (sut: Seq<T>) => void) => void) => {
 
       if ((opts.top ?? 0) < 0) throw new Error('top value cannot be negative');
 
@@ -27,50 +27,70 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
       let expected = [...input].sort(comparer);
 
-      this.it1(title + ' - top count is less than the input length', input, (input, inputArray) => {
-        const optsTop = {...opts, top};
-        const expected1 = expected.slice(0, Math.abs(optsTop.top));
+      function assertUnstableSort(actual: T[], expected: T[]): void {
+        for (let i = 0; i < Math.max(actual.length, expected.length); i++) if (comparer(actual[i], expected[i]) !== 0) {
+          assert.sameOrderedMembers(actual, expected);
+          break;
+        }
+      }
+
+      const stableSort = opts.stableSort;
+
+      this.it1(title + ' - top count is less than the input length', input, input => {
+        const optsTop = {...opts, top, stableSort};
+        const expected1 = expected.slice(0, optsTop.top);
 
         const sut = this.createSut(input);
         sortAndTestSut(sut, optsTop, sortedSut => {
           const actual = [...sortedSut];
-          assert.deepEqual(actual, expected1);
+          if (stableSort) assert.sameOrderedMembers(actual, expected1);
+          else assertUnstableSort(actual, expected1);
         });
       });
 
       this.it1(title + ' - top count is more than the input length', input, (input, inputArray) => {
-        const optsTop = {...opts, top: inputArray.length * 2};
-        const expected1 = expected.slice(0, Math.abs(optsTop.top));
+        const optsTop = {...opts, top: inputArray.length * 2, stableSort};
+        const expected1 = expected.slice(0, optsTop.top);
 
         const sut = this.createSut(input);
         sortAndTestSut(sut, optsTop, sortedSut => {
           const actual = [...sortedSut];
-          assert.deepEqual(actual, expected1);
+          if (stableSort) assert.sameOrderedMembers(actual, expected1);
+          else assertUnstableSort(actual, expected1);
         });
       });
 
-      this.it1(title + ' - negative top count (BOTTOM) - top count is less than the input length', input, (input, inputArray) => {
-        const optsTop = {...opts, top: -top};
-        const expected1 = expected.slice().sort(reverseComparer).slice(0, Math.abs(optsTop.top));
+      this.it1(title + ' - negative top count (BOTTOM) - top count is less than the input length', input, input => {
+        const optsTop = {...opts, top: -top, stableSort};
+        const expected1 = expected.slice().sort(reverseComparer).slice(0, top);
 
         const sut = this.createSut(input);
         sortAndTestSut(sut, optsTop, sortedSut => {
           const actual = [...sortedSut];
-          assert.deepEqual(actual, expected1);
+          if (stableSort) assert.sameOrderedMembers(actual, expected1);
+          else assertUnstableSort(actual, expected1);
         });
       });
 
       this.it1(title + ' - negative top count (BOTTOM) - top count is more than the input length', input, (input, inputArray) => {
-        const optsTop = {...opts, top: inputArray.length * -2};
-        const expected1 = expected.slice().sort(reverseComparer).slice(0, Math.abs(optsTop.top));
+        const reverseTop = inputArray.length * 2;
+        const optsTop = {...opts, top: -reverseTop, stableSort};
+        const expected1 = expected.slice().sort(reverseComparer).slice(0, reverseTop);
 
         const sut = this.createSut(input);
         sortAndTestSut(sut, optsTop, sortedSut => {
           const actual = [...sortedSut];
-          assert.deepEqual(actual, expected1);
+          if (stableSort) assert.sameOrderedMembers(actual, expected1);
+          else assertUnstableSort(actual, expected1);
         });
       });
     }
+
+    const gradesWithDuplicatesAndNullAndUndefined = array.grades.randomize(0).pollute(1, 1).concat(array.grades.map(g => ({
+      ...g,
+      name: g.name + '+'
+    })));
+    const sampleByScoreComparer = (a: Sample, b: Sample) => (a?.score ?? Number.MAX_SAFE_INTEGER) - (b?.score ?? Number.MAX_SAFE_INTEGER);
 
     describe('sort()', () => {
 
@@ -85,7 +105,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
           });
 
 
-        this.it1('should return same result as Array.sort when values are not strings',
+        this.it1('should return same result as Array.sort when values are numbers',
           [3, 2, 8, undefined, 100, 6, 9, 0, 10, null, 7, 6, 4], (input, inputArray) => {
             const expected = inputArray.slice().sort();
             let sut = this.createSut(input);
@@ -106,7 +126,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
       describe('with comparer', () => {
 
         this.it1('should return same result as Array.sort when using a comparer on objects',
-          array.gradesFiftyAndAbove.concat(array.gradesFiftyAndBelow),
+          array.gradesFiftyAndAbove.x(2),
           (input, inputArray) => {
             const comparer = (a: { grade: number; }, b: { grade: number; }) => b.grade - a.grade;
             const expected = inputArray.slice().sort(comparer);
@@ -116,44 +136,45 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
           });
 
         describe('with top count', () => {
+          const runTopSortTests = (stableSort?: boolean) => {
+            if (!stableSort) stableSort = undefined;
 
-          testTopSort('should return expected sorted sequence when input is random numbers',
-            array.random(20, -10, 10, 0).x(2).pollute(2, 2),
-            {comparer: DEFAULT_COMPARER},
-            (seq, opts, test) => {
-              test(seq.sort(opts.comparer!, opts.top));
-            });
+            testTopSort('should return expected sorted sequence when input is random numbers',
+              array.random(20, -10, 10, 0).x(2).pollute(2, 2),
+              {comparer: DEFAULT_COMPARER, stableSort},
+              (seq, opts, test) => test(seq.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort('should return expected sorted sequence when input is random objects',
-            array.grades.selfZip(2).randomize(0).pollute(2, 2),
-            {comparer: safeComparer((a, b) => a.grade - b.grade)},
-            (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top)));
+            testTopSort(
+              'should return expected sorted sequence when input is already sorted numbers',
+              array.range(-20, 20,).selfZip(2).pollute(2, 2).sort(DEFAULT_COMPARER),
+              {comparer: DEFAULT_COMPARER, stableSort},
+              (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort(
-            'should return expected sorted sequence when input is already sorted numbers',
-            array.range(-20, 20,).selfZip(2),
-            {comparer: DEFAULT_COMPARER},
-            (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top)));
+            testTopSort('should return expected sorted sequence when input is sorted numbers in reverse',
+              array.range(20, -20).selfZip(2).prependNulldefined(0, 2).appendNulldefined(2),
+              {comparer: DEFAULT_COMPARER, stableSort},
+              (seq, opts, test) => test(seq.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort('should return expected sorted sequence when input is already sorted objects',
-            array.grades.selfZip(2),
-            {comparer: (a, b) => a.grade - b.grade},
-            (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top)));
+            testTopSort('should return expected sorted sequence when input size is more than 10k',
+              array.random(10 * 1024 + 1, -1000, 1000, 0),
+              {top: 100, comparer: DEFAULT_COMPARER, stableSort},
+              (seq, opts, test) => test(seq.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort('should return expected sorted sequence when input is sorted numbers in reverse',
-            array.range(20, -20).selfZip(2),
-            {comparer: DEFAULT_COMPARER},
-            (seq, opts, test) => test(seq.sort(opts.comparer!, opts.top)));
+            testTopSort('should return expected sorted sequence when input is random objects',
+              array.samples.selfZip(2).randomize(0).pollute(2, 2),
+              {comparer: sampleByScoreComparer, stableSort},
+              (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort('should return expected sorted sequence when input is already sorted objects in reverse',
-            array.grades.selfZip(2).reverse(),
-            {comparer: (a, b) => a.grade - b.grade},
-            (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top)));
+            testTopSort('should return expected sorted sequence when input is already sorted objects',
+              array.samples.selfZip(2).pollute(2, 2).sort(sampleByScoreComparer),
+              {comparer: sampleByScoreComparer, stableSort},
+              (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
 
-          testTopSort('should return expected sorted sequence when input size is more than 10k',
-            array.random(10 * 1024 + 1, -1000, 1000, 0),
-            {top: 100, comparer: DEFAULT_COMPARER},
-            (seq, opts, test) => test(seq.sort(opts.comparer!, opts.top)));
+            testTopSort('should return expected sorted sequence when input is already sorted objects in reverse',
+              array.samples.selfZip(2).pollute(2, 2).sort((a, b) => DEFAULT_COMPARER(b, a)),
+              {comparer: sampleByScoreComparer, stableSort},
+              (sut, opts, test) => test(sut.sort(opts.comparer!, opts.top, {stable: opts.stableSort})));
+          };
 
           this.it1('should return empty sequence when top count is zero',
             [] as number[], (input) => {
@@ -161,6 +182,9 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
               const actual = [...sut];
               assert.isEmpty(actual);
             });
+
+          describe('stable sort', () => runTopSortTests(true));
+          describe('unstable sort', () => runTopSortTests(false));
         });
       });
     });
@@ -193,34 +217,39 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
         });
 
       describe('with top count', () => {
+        const runTopSortTests = (stableSort?: boolean) => {
+          if (!stableSort) stableSort = undefined;
 
-        testTopSort('should return expected sorted sequence when input is random',
-          array.grades.selfZip(5).randomize(0).pollute(2, 2),
-          {selector: safeSelector(x => x.grade)},
-          (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top)));
+          testTopSort('should return expected sorted sequence when input is random',
+            array.samples.selfZip(5).randomize(0).pollute(2, 2),
+            {selector: x => x?.score ?? Number.MAX_SAFE_INTEGER, stableSort},
+            (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is already sorted',
-          array.grades.selfZip(2),
-          {selector: x => x.grade},
-          (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top)));
+          testTopSort('should return expected sorted sequence when input is already sorted',
+            array.samples.selfZip(2),
+            {selector: x => x.score, stableSort},
+            (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is already sorted in reverse',
-          array.grades.selfZip(2).reverse(),
-          {selector: x => x.grade},
-          (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top)));
+          testTopSort('should return expected sorted sequence when input is already sorted in reverse',
+            array.grades.selfZip(2).reverse(),
+            {selector: x => x.grade, stableSort},
+            (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top, {stable: opts.stableSort})));
 
-        const grades = array.grades;
-        testTopSort('should return expected sorted sequence when input size is more than 10k',
-          array.random(10 * 1024 + 1, 0, grades.length - 1, 0).pollute(3, 3).map(i => i != null? grades[i]: i),
-          {selector: safeSelector(x => x.grade)},
-          (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top)));
+          const grades = array.grades;
+          testTopSort('should return expected sorted sequence when input size is more than 10k',
+            array.random(10 * 1024 + 1, 0, grades.length - 1, 0).pollute(3, 3).map(i => i != null? grades[i]: i),
+            {selector: x => x?.grade ?? Number.MAX_SAFE_INTEGER, stableSort},
+            (sut, opts, test) => test(sut.sortBy(opts.selector!, opts.top, {stable: opts.stableSort})));
 
-        this.it1('should return empty sequence when top count is zero',
-          [] as { value: number }[], (input) => {
-            const sut = this.createSut(input).sortBy(x => x.value, 0);
-            const actual = [...sut];
-            assert.isEmpty(actual);
-          });
+          this.it1('should return empty sequence when top count is zero',
+            [] as { value: number }[], (input) => {
+              const sut = this.createSut(input).sortBy(x => x.value, 0);
+              const actual = [...sut];
+              assert.isEmpty(actual);
+            });
+        };
+        describe('stable sort', () => runTopSortTests(true));
+        describe('unstable sort', () => runTopSortTests(false));
       });
     });
 
@@ -243,9 +272,6 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
       });
 
       const unsortedStrings = ['ddd', null, 'a', 'd', 'cc', 'aaa', null, 'a', 'aa', undefined, 'b', 'c', 'abc', 'abb', undefined];
-      const stringComparer = (a: any, b: any): number => a === b
-        ? 0
-        : (+(a === undefined) * 2 + +(a === null)) - (+(b === undefined) * 2 + +(b === null)) || +(a > b) || -(b > a);
 
       this.it1('should sort sequence of strings', unsortedStrings, (input, inputArray) => {
         const expected = inputArray.slice().sort();
@@ -262,66 +288,71 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
       });
 
       describe('with top count', () => {
+        const runTopSortTests = (stableSort?: boolean) => {
+          if (!stableSort) stableSort = undefined;
 
-        testTopSort('should return expected sorted sequence when input is random numbers',
-          array.random(20, -10, 10, 0).x(2).pollute(2, 2),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input is random numbers',
+            array.random(20, -10, 10, 0).x(2).pollute(2, 2),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is random strings',
-          array.loremIpsum.x(5).randomize(0),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input is random strings',
+            array.loremIpsum.x(5).randomize(0),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort(
-          'should return expected sorted sequence when input is already sorted numbers',
-          array.range(-20, 20,).selfZip(2),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort(
+            'should return expected sorted sequence when input is already sorted numbers',
+            array.range(-20, 20,).selfZip(2),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is already sorted strings',
-          array.loremIpsum.x(5).sort(),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input is already sorted strings',
+            array.loremIpsum.x(5).sort(),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is sorted numbers in reverse',
-          array.range(20, -20).selfZip(2),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input is sorted numbers in reverse',
+            array.range(20, -20).selfZip(2),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input is already sorted strings in reverse',
-          array.loremIpsum.x(5).sort().reverse(),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input is already sorted strings in reverse',
+            array.loremIpsum.x(5).sort().reverse(),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        testTopSort('should return expected sorted sequence when input size is more than 10k',
-          array.random(10 * 1024 + 1, -100, 100, 0).pollute(3, 3),
-          {},
-          (seq, opts, test) => test(seq.sorted(opts.top)));
+          testTopSort('should return expected sorted sequence when input size is more than 10k',
+            array.random(10 * 1024 + 1, -100, 100, 0).pollute(3, 3),
+            {stableSort},
+            (seq, opts, test) => test(seq.sorted(opts.top, {stable: opts.stableSort})));
 
-        this.it1('should return empty sequence when top count is zero',
-          [] as number[], (input) => {
-            const sut = this.createSut(input).sorted(0);
-            const actual = [...sut];
-            assert.isEmpty(actual);
-          });
+          this.it1('should return empty sequence when top count is zero',
+            [] as number[], (input) => {
+              const sut = this.createSut(input).sorted(0);
+              const actual = [...sut];
+              assert.isEmpty(actual);
+            });
+        }
+        describe('stable sort', () => runTopSortTests(true));
+        describe('unstable sort', () => runTopSortTests(false));
+
       });
 
     });
 
     describe('Chaining', () => {
       describe('Sorting chain', () => {
-        it('sortBy().thenBy...', () => {
-          const unordered = array.samples;
+        this.it1('sortBy().thenBy...', array.samples, (input, inputArray) => {
 
-          const expectedByAscDescAscDesc = unordered.slice().sort((x, y) => {
+          const expectedByAscDescAscDesc = inputArray.slice().sort((x, y) => {
             return x.type.localeCompare(y.type) /* asc */ ||
               y.period - x.period /* desc */ ||
               x.score - y.score  /* asc */ ||
               +y.ok - +x.ok  /* desc */;
           });
 
-          const sut = this.createSut(unordered)
+          const sut = this.createSut(input)
             .sortBy(x => x.type)
             .thenSortBy(x => x.period, true)
             .thenSortBy(x => x.score)
@@ -331,16 +362,14 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
           assert.sameDeepOrderedMembers(actualByAscDescAscDesc, expectedByAscDescAscDesc);
         });
 
-        it('sortBy(reverse).thenBy...', () => {
-          const unordered = array.samples;
-
-          const expectedByDescDescAscAsc = unordered.slice().sort((x, y) => {
+        this.it1('sortBy(reverse).thenBy...', array.samples, (input, inputArray) => {
+          const expectedByDescDescAscAsc = inputArray.slice().sort((x, y) => {
             return y.type.localeCompare(x.type) /* desc */ ||
               y.period - x.period /* desc */ ||
               x.score - y.score  /* asc */ ||
               +x.ok - +y.ok  /* asc */;
           });
-          const sut = this.createSut(unordered)
+          const sut = this.createSut(input)
             .sortBy(x => x.type, true)
             .thenSortBy(x => x.period, true)
             .thenSortBy(x => x.score)
@@ -350,13 +379,12 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
         });
       });
 
-      it('Sorting chain - immutability', () => {
-        const unordered = array.samples;
+      this.it1('Sorting chain - immutability', array.samples, (input, inputArray) => {
 
-        const expectedByTypeThenByPeriod = unordered.slice().sort((a, b) => a.type.localeCompare(b.type) || (a.period - b.period));
-        const expectedByTypeThenByScoreDescending = unordered.slice().sort((a, b) => a.type.localeCompare(b.type) || (b.score - a.score));
+        const expectedByTypeThenByPeriod = inputArray.slice().sort((a, b) => a.type.localeCompare(b.type) || (a.period - b.period));
+        const expectedByTypeThenByScoreDescending = inputArray.slice().sort((a, b) => a.type.localeCompare(b.type) || (b.score - a.score));
 
-        const sut = this.createSut(unordered).sortBy(x => x.type);
+        const sut = this.createSut(input).sortBy(x => x.type);
         const actualByTypeThenByPeriod = [...sut.thenSortBy(x => x.period)];
         const actualByTypeThenByScoreDescending = [...sut.thenSortBy(x => x.score, true)];
 
@@ -364,7 +392,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
         assert.sameDeepOrderedMembers(actualByTypeThenByScoreDescending, expectedByTypeThenByScoreDescending);
 
         // Change order of execution
-        const sut2 = this.createSut(unordered).sortBy(x => x.type);
+        const sut2 = this.createSut(input).sortBy(x => x.type);
         const actualByTypeThenByScoreDescending2 = [...sut2.thenSortBy(x => x.score, true)];
         const actualByTypeThenByPeriod2 = [...sut2.thenSortBy(x => x.period)];
 
@@ -390,39 +418,209 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
             // TODO:
           });
         });
+
         describe('sortBy(top)', () => {
           describe('thenSortBy()', () => {
-            this.it1('should return expected sorted sequence with upto top-count items when performing thenSortBy()',
-              array.grades.x(2).randomize(0), (input, inputArray) => {
+            this.it1('should return expected sorted sequence with upto top-count items when top count is less than the input length',
+              gradesWithDuplicatesAndNullAndUndefined,
+              (input, inputArray) => {
+
                 const top = inputArray.length / 2;
-                const expected = inputArray.slice()
-                  .sort((a, b) => b.grade - a.grade || a.name.localeCompare(b.name))
+                const expected = [...inputArray]
+                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => -x.grade, top)
+                  .sortBy(x => -(x?.grade ?? Number.MAX_SAFE_INTEGER), top)
                   .thenSortBy(x => x.name);
+
                 const actual = [...sut];
                 assert.deepEqual(actual, expected);
+              });
+
+            this.it1('should return expected sorted sequence with all items when top count is more than the input length',
+              gradesWithDuplicatesAndNullAndUndefined,
+              (input, inputArray) => {
+
+                const top = inputArray.length * 2;
+                const expected = [...inputArray]
+                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => -(x?.grade ?? Number.MAX_SAFE_INTEGER), top)
+                  .thenSortBy(x => x.name);
+
+                const actual = [...sut];
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('should return expected reversed sorted sequence with upto top-count items when top count is negative (BOTTOM) and is less than the input length',
+              gradesWithDuplicatesAndNullAndUndefined,
+              (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+
+                const expectedBottom = [...inputArray]
+                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top);
+
+                const sutBottom = this.createSut(input)
+                  .sortBy(x => x?.grade ?? Number.MAX_SAFE_INTEGER, -top)
+                  .thenSortBy(x => x.name);
+
+                const actualBottom = [...sutBottom];
+                assert.deepEqual(actualBottom, expectedBottom);
+              });
+
+            this.it1('should return expected reversed sorted sequence with all items when top count is negative (BOTTOM) but is more than the input length',
+              gradesWithDuplicatesAndNullAndUndefined,
+              (input, inputArray) => {
+
+                const top = inputArray.length * 2;
+
+                const expectedBottom = [...inputArray]
+                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top);
+
+                const sutBottom = this.createSut(input)
+                  .sortBy(x => x?.grade ?? Number.MAX_SAFE_INTEGER, -top)
+                  .thenSortBy(x => x.name);
+
+                const actualBottom = [...sutBottom];
+                assert.deepEqual(actualBottom, expectedBottom);
+              });
+
+            this.it1('should return empty sequence when top count zero',
+              array.grades.randomize(0).pollute(1, 1).concat(array.grades.map(g => ({...g, name: g.name + '+'}))),
+              (input, inputArray) => {
+
+                const sut = this.createSut(input)
+                  .sortBy(x => -(x?.grade ?? Number.MAX_SAFE_INTEGER), 0)
+                  .thenSortBy(x => x.name);
+
+                const actual = [...sut];
+                assert.isEmpty(actual);
               });
 
           });
           describe('take()', () => {
 
+            this.it1('sortBy(stable: true).take() should return sorted sequence like Array.sort.slice()',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .take(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+
+            this.it1('sortBy(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top2);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sortBy(top1, stable: true).take(top2) should return same seq instance when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top2);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
           });
+
           describe('takeLast()', () => {
+            this.it1('sortBy(stable: true).takeLast() should return sorted sequence like Array.sort.slice()',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
 
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(top);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .takeLast(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
           });
-          describe('sort(top)', () => {
 
+          describe('sort(top)', () => {
+            this.it1('sortBy(stable: true).sort(top) should return sorted sequence like Array.sort(comparer).slice()',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+              const comparer:Comparer<{ name: string; grade: number; }> = (a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .sort(comparer, top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+            // TODO
           });
           describe('sortBy(top)', () => {
-
+            // TODO
           });
           describe('sorted(top)', () => {
-
+            // TODO
           });
         });
+
         describe('sorted(top)', () => {
           describe('take()', () => {
             // TODO:

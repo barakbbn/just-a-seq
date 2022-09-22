@@ -1327,37 +1327,37 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number): Seq<T>;
-  sort(comparer?: Comparer<T>, top?: number): Seq<T>;
-  sort(comparer?: Comparer<T>, top?: number): Seq<T> {
+  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T> {
     const reverse = top != null && top < 0;
     const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
-    return this.sortInternal(this.getSourceForNewSequence(), undefined, comparer ?? LEGACY_COMPARER, reverse, count) as any;
+    return this.sortInternal(this.getSourceForNewSequence(), undefined, comparer ?? LEGACY_COMPARER, reverse, count, opts) as any;
   }
 
   sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number): SortedSeq<T>;
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T>;
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number): SortedSeq<T> {
+  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T> {
     const source = this.getSourceForNewSequence();
     const [reverse, top] = typeof reverseOrTop === 'number'?
       [reverseOrTop < 0, Math.abs(reverseOrTop)]:
       [reverseOrTop, undefined];
 
-    return this.sortInternal(source, valueSelector, undefined, reverse, top) as any;
+    return this.sortInternal(source, valueSelector, undefined, reverse, top, opts) as any;
   }
 
   sorted(): T extends ComparableType ? Seq<T>: never;
   sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
-  sorted(top: number): T extends ComparableType ? Seq<T>: never;
-  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never;
-  sorted(reverseOrTop?: boolean | number): T extends ComparableType? Seq<T>: never {
+  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
+  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never {
     const source = this.getSourceForNewSequence();
     const [reverse, top] = typeof reverseOrTop === 'number'?
       [reverseOrTop < 0, Math.abs(reverseOrTop)]:
       [reverseOrTop, undefined];
 
-    return this.sortInternal(source, undefined, undefined, reverse, top) as any;
+    return this.sortInternal(source, undefined, undefined, reverse, top, opts) as any;
   }
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
@@ -1605,10 +1605,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.toJsonOverride(key);
   }
 
-  protected sortInternal<K = T>(source: Iterable<T>, keySelector: ((item: T) => K) | undefined, comparer: Comparer<K> | undefined, reverse: boolean | undefined, top: number | undefined): SortedSeq<T> {
+  protected sortInternal<K = T>(source: Iterable<T>, keySelector: ((item: T) => K) | undefined, comparer: Comparer<K> | undefined, reverse: boolean | undefined, top: number | undefined, opts?: { stable?: boolean; }): SortedSeq<T> {
     if (top && top < 0) throw new Error(`parameter 'top' cannot be negative`);
 
-    const sortedSeq = factories.SortedSeq<T, K>(source, keySelector, comparer, reverse, top);
+    const sortedSeq = factories.SortedSeq<T, K>(source, keySelector, comparer, reverse, top, opts);
     return this.transferOptimizeTag(sortedSeq);
   }
 

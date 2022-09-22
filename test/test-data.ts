@@ -43,6 +43,7 @@ export const array = new class {
   }
 
   get grades(): TestableArray<{ name: string; grade: number; }> {
+    // DON'T change number of items and order, since tests relies on it
     return new TestableArray(
       {name: "0", grade: 0},
       {name: "A", grade: 10},
@@ -70,8 +71,8 @@ export const array = new class {
     return this.grades.filter(x => x.grade <= 50) as TestableArray<{ name: string; grade: number; }>;
   }
 
-  get samples(): Sample[] {
-    return [
+  get samples(): TestableArray<Sample> {
+    return new TestableArray(
       {type: "C", period: 30, score: 50, ok: true},
       {type: "C", period: 30, score: 5, ok: false},
       {type: "C", period: 10, score: 0, ok: true},
@@ -88,7 +89,7 @@ export const array = new class {
       {type: "B", period: 20, score: 20, ok: false},
       {type: "B", period: 20, score: 20, ok: true},
       {type: "B", period: 20, score: 20, ok: true},
-    ];
+    );
   }
 
   get folders(): Folder[] {
@@ -223,6 +224,11 @@ export interface Sample {
   ok: boolean;
 }
 
+export interface Grade {
+  name: string;
+  grade: number;
+}
+
 export class ReusableGenerator<T> implements Iterable<T> {
   constructor(private readonly generatorFunc: (...args: any[]) => Generator<T>) {
   }
@@ -340,11 +346,22 @@ export class TestableArray<T> extends Array<T> {
     const uniqueRandomIndexes = new Set<number>();
     const maxIndexes = Math.min(undefineds + nulls, this.length);
 
-    while (uniqueRandomIndexes.size < maxIndexes) uniqueRandomIndexes.add(random.next(0, this.length - uniqueRandomIndexes.size- 1));
+    while (uniqueRandomIndexes.size < maxIndexes) uniqueRandomIndexes.add(random.next(0, this.length - uniqueRandomIndexes.size - 1));
     const randomIndexes = [...uniqueRandomIndexes];
     while (undefineds--) this[randomIndexes.pop()!] = undefined as any;
     while (nulls--) this[randomIndexes.pop()!] = null as any;
 
+    return this;
+  }
+
+  prependNulldefined(undefineds: number, nulls: number = 0): this {
+    while (nulls--) this.unshift(null as any);
+    while (undefineds--) this.unshift(undefined as any);
+    return this;
+  }
+  appendNulldefined(undefineds: number, nulls: number = 0): this {
+    while (nulls--) this.push(null as any);
+    while (undefineds--) this.push(undefined as any);
     return this;
   }
 }

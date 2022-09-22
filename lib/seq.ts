@@ -356,15 +356,22 @@ export interface Seq<T> extends Iterable<T> {
 
   // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
   // So try to avoid it. prefer using sorted() or sortBy()
+
+  /**
+   * Sort the sequence
+   * @param comparer - Optional comparer function.
+   * If omitted, sorting behaves like Array.sort() method, in which the items are converted to strings.
+   * @return Sorted sequence implementing SortedSeq interface
+   */
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number): Seq<T>;
+  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number): SortedSeq<T>;
+  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
   sorted(): T extends ComparableType ? Seq<T>: never;
   sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
-  sorted(top: number): T extends ComparableType ? Seq<T>: never;
+  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
@@ -539,7 +546,8 @@ export interface SortedSeqFactory {
              keySelector?: (x: T) => K,
              comparer?: Comparer<K>,
              descending?: boolean,
-             top?: number): SortedSeq<T>;
+             top?: number,
+             opts?: { stable?: boolean; }): SortedSeq<T>;
 }
 
 export interface SeqOfGroupsFactory {

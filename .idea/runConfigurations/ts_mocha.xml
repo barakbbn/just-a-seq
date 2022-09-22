@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ts-mocha" type="mocha-javascript-test-runner">
     <node-interpreter>project</node-interpreter>
-    <node-options>-p tsconfig-mocha.json test/index.ts</node-options>
+    <node-options />
     <mocha-package>$PROJECT_DIR$/node_modules/ts-mocha</mocha-package>
     <working-directory>$PROJECT_DIR$</working-directory>
     <pass-parent-env>true</pass-parent-env>
@@ -9,7 +9,7 @@
       <env name="TS_NODE_COMPILER_OPTIONS" value="{&quot;module&quot;:&quot;commonjs&quot;}" />
     </envs>
     <ui>bdd</ui>
-    <extra-mocha-options />
+    <extra-mocha-options>-p tsconfig-mocha.json test/index.ts</extra-mocha-options>
     <test-kind>DIRECTORY</test-kind>
     <test-directory>$PROJECT_DIR$/test</test-directory>
     <recursive>false</recursive>
