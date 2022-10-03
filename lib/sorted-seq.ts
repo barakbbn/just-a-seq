@@ -249,8 +249,9 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   }
 
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
   sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T> {
+    if (top) top = Math.trunc(top);
     const optimize = SeqTags.optimize(this);
     const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
 

@@ -296,7 +296,8 @@ class Random {
     if (this.seed == null) return Math.random() * (max - min) + min;
     this.seed = this.seed += Math.E;
     const x = Math.sin(this.seed += Math.E) * 2 ** 32;
-    return Math.floor((x - Math.floor(x)) * (max - min) + min);
+    const res = Math.floor((x - Math.floor(x)) * (max - min) + min);
+    return res;
   }
 }
 
@@ -365,6 +366,8 @@ export class TestableArray<T> extends Array<T> {
     return this;
   }
 }
+Object.defineProperty(TestableArray, 'getIteratorCount',{ enumerable: false});
+Object.defineProperty(TestableArray, 'yieldCount',{ enumerable: false});
 
 export class TestableDerivedSeq<T> extends SeqBase<T> {
   private _wasIterated = false;

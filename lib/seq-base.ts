@@ -53,6 +53,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   };
 
   at(index: number, fallback?: T): T | undefined {
+    index = Math.trunc(index);
     if (index < 0) {
       const buffer = new CyclicBuffer<T>(-index);
       for (const item of this) buffer.write(item);
@@ -90,6 +91,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   chunk(size: number): Seq<Seq<T>> {
+    size = Math.trunc(size);
     if (size < 1) return internalEmpty<Seq<T>>();
 
     return this.chunkBy(itemInfo => {
@@ -1183,6 +1185,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   repeat(count: number): Seq<T> {
+    count = Math.trunc(count);
     if (count <= 0) throw new Error('Count must be positive');
     if (count === 1) return this;
     return this.generate(function* repeat(self) {
@@ -1244,6 +1247,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   skip(count: number): Seq<T> {
+    count = Math.trunc(count);
     if (count <= 0) return this;
     return this.skipWhile((_, index) => index < count);
   }
@@ -1253,6 +1257,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   skipLast(count: number = 1): Seq<T> {
+    count = Math.trunc(count);
     if (count <= 0) return this;
     return this.generate(function* skipLast(items) {
       const array: T[] = Array.isArray(items)? items: [...items];
@@ -1274,6 +1279,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   slice(start: number, end: number): Seq<T> {
+    start = Math.trunc(start);
+    end = Math.trunc(end);
+
     if (end === 0 || end - start === 0) return internalEmpty<T>();
 
     // Both non negative
@@ -1327,8 +1335,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
-  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>; // needed by derived classes
   sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T> {
     const reverse = top != null && top < 0;
     const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
@@ -1432,6 +1440,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   takeLast(count: number): Seq<T> {
+    count = Math.trunc(count);
     if (count <= 0) return internalEmpty<T>();
     return this.generate(function* takeLast(items) {
       if (Array.isArray(items)) {
@@ -1708,6 +1717,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected hasAtLeastInternal(count: number): boolean {
+    count = Math.trunc(count);
     if (count <= 0) throw new RangeError('count must be positive');
     for (const item of this) {
       count--;
@@ -1738,6 +1748,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected takeInternal(count: number): Seq<T> {
+    count = Math.trunc(count);
     if (count <= 0) return internalEmpty<T>();
 
     return this.generate(function* take(items) {
@@ -1805,6 +1816,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected hasAtLeastOptimized(source: Iterable<any>, count: number): boolean {
+    count = Math.trunc(count);
     if (count <= 0) throw new RangeError('count must be positive');
     if (!SeqTags.optimize(this)) return this.hasAtLeastInternal(count);
     const maxCount = SeqTags.maxCount(this);
@@ -2060,6 +2072,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   private splitAtIndex(atIndex: number): [Seq<T>, Seq<T>] {
+    atIndex = Math.trunc(atIndex);
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
     const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {

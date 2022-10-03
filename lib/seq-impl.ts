@@ -83,12 +83,14 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   at(index: number, fallback?: T): T | undefined {
+    index = Math.trunc(index);
     if (index < 0) index = this.source.length + index;
     if (index < 0 || index >= this.source.length) return fallback;
     return this.source[index] ?? fallback;
   }
 
   chunk(size: number): Seq<Seq<T>> {
+    size = Math.trunc(size);
     if (size < 1) return internalEmpty<Seq<T>>();
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {

@@ -94,10 +94,7 @@ export function partialQuickSort<T>(items: T[], count: number, comparer: (a: T, 
     const pivot = items[pivotIndex];
     let indexOfSmallest = left - 1;
 
-    if (JAVASCRIPT_QUIRK_SORT && pivot === undefined) return right;
-
     if (pivotIndex < right) swap(pivotIndex, right);
-
 
     for (let i = left; i < right; i++) {
       const item = items[i];

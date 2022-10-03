@@ -1,7 +1,7 @@
 import {describe} from "mocha";
 import {array, Grade, Sample} from "../test-data";
 import {assert} from "chai";
-import {Comparer, Seq, ToComparableKey} from "../../lib";
+import {Comparer, Selector, Seq, ToComparableKey} from "../../lib";
 import {TestIt} from "../test-harness";
 import {DEFAULT_COMPARER} from "../../lib/sort-util";
 
@@ -90,7 +90,9 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
       ...g,
       name: g.name + '+'
     })));
+    const randomNumbersWithDuplicatesAndNullAndUndefined = array.random(20, -5, 15, 0).pollute(1, 1);
     const sampleByScoreComparer = (a: Sample, b: Sample) => (a?.score ?? Number.MAX_SAFE_INTEGER) - (b?.score ?? Number.MAX_SAFE_INTEGER);
+    const safeNumber = (v?: number) => v ?? Number.MAX_SAFE_INTEGER;
 
     describe('sort()', () => {
 
@@ -403,23 +405,359 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
       describe('with top count', () => {
         describe('sort(top)', () => {
           describe('take()', () => {
-            // TODO:
+            this.it1('sort(stable: true).take() should return sorted sequence like Array.sort.slice()',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, undefined, {stable: true})
+                  .take(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sort(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sort(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top1) when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+
+                const sut = this.createSut(input)
+                  .sort(comparer, top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sort(top1, stable: true).take(top2) should return same seq instance when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+
+                const expected = this.createSut(input).sort(comparer, top1, {stable: true});
+
+                const actual = expected.take(top2);
+
+                assert.equal(actual, expected);
+              }
+            );
           });
+
           describe('takeLast()', () => {
-            // TODO:
+            this.it1('sort(stable: true).takeLast() should return sorted sequence like Array.sort.slice()',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(-top);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, undefined, {stable: true})
+                  .takeLast(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sort(top1, stable: true).takeLast(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+                  .slice(-top2);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, top1, {stable: true})
+                  .takeLast(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sort(top1, stable: true).takeLast(top2) should return same seq instance when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+                  .slice(0 - top2);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, top1, {stable: true})
+                  .takeLast(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
           });
+
           describe('sort(top)', () => {
-            // TODO:
+            this.it1('sort(stable: true).sort(comparer2, top) should return sorted sequence like Array.sort(comparer2).slice(0, top)',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, undefined, {stable: true})
+                  .sort(byNameThenByGradeComparer, top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, top1, {stable: true})
+                  .sort(byNameThenByGradeComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, top1, {stable: true})
+                  .sort(byNameThenByGradeComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sortBy(top)', () => {
-            // TODO:
+            this.it1('sort(stable: true).sortBy(top) should return sorted sequence like Array.sort(comparer).slice(0, top)',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, undefined, {stable: true})
+                  .sortBy(x => x?.name, top)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, top1, {stable: true})
+                  .sortBy(x => x?.name, top2)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer);
+
+                const sut = this.createSut(input)
+                  .sort(byGradeThenByNameComparer, top1, {stable: true})
+                  .sortBy(x => x?.name, top2)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sorted(top)', () => {
-            // TODO:
+            this.it1('sort(stable: true).sorted(top) should return sorted sequence like Array.sort.slice(0, top)',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const comparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sort(comparer, undefined, {stable: true})
+                  .sorted(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sort(descComparer, top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sort(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer);
+
+                const sut = this.createSut(input)
+                  .sort(descComparer, top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
         });
 
         describe('sortBy(top)', () => {
+
           describe('thenSortBy()', () => {
             this.it1('should return expected sorted sequence with upto top-count items when top count is less than the input length',
               gradesWithDuplicatesAndNullAndUndefined,
@@ -427,7 +765,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
                 const top = inputArray.length / 2;
                 const expected = [...inputArray]
-                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(b?.grade) - safeNumber(a?.grade) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
                 const sut = this.createSut(input)
@@ -444,7 +782,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
                 const top = inputArray.length * 2;
                 const expected = [...inputArray]
-                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(b?.grade) - safeNumber(a?.grade) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
                 const sut = this.createSut(input)
@@ -462,7 +800,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                 const top = inputArray.length / 2;
 
                 const expectedBottom = [...inputArray]
-                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(b?.grade) - safeNumber(a?.grade) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
                 const sutBottom = this.createSut(input)
@@ -480,7 +818,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                 const top = inputArray.length * 2;
 
                 const expectedBottom = [...inputArray]
-                  .sort((a, b) => (b?.grade ?? Number.MAX_SAFE_INTEGER) - (a?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(b?.grade) - safeNumber(a?.grade) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
                 const sutBottom = this.createSut(input)
@@ -504,6 +842,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
               });
 
           });
+
           describe('take()', () => {
 
             this.it1('sortBy(stable: true).take() should return sorted sequence like Array.sort.slice()',
@@ -512,12 +851,13 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                 const top = inputArray.length / 2;
                 const expected = inputArray
                   .slice()
-                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
                   .slice(0, top);
 
 
                 const sut = this.createSut(input)
-                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .thenSortBy(x => x?.name)
                   .take(top);
 
                 const actual = [...sut];
@@ -526,7 +866,6 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
               }
             );
 
-
             this.it1('sortBy(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
               gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
 
@@ -534,12 +873,37 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                 const top2 = top1 / 2;
                 const expected = inputArray
                   .slice()
-                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top1)
                   .slice(0, top2);
 
 
                 const sut = this.createSut(input)
-                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, top1, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sortBy(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top1) when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top1)
+                  .slice(0, top2);
+
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
                   .take(top2);
 
                 const actual = [...sut];
@@ -552,20 +916,16 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
               gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
 
                 const top1 = inputArray.length / 2;
-                const top2 = top1 / 2;
-                const expected = inputArray
-                  .slice()
-                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
-                  .slice(0, top2);
+                const top2 = top1 + 1;
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
 
+                const expected = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
 
-                const sut = this.createSut(input)
-                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, top1, {stable: true})
-                  .take(top2);
+                const actual = expected.take(top2);
 
-                const actual = [...sut];
-
-                assert.deepEqual(actual, expected);
+                assert.equal(actual, expected);
               }
             );
           });
@@ -577,13 +937,57 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                 const top = inputArray.length / 2;
                 const expected = inputArray
                   .slice()
-                  .sort((a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name))
-                  .slice(top);
-
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(-top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .thenSortBy(x => x?.name)
                   .takeLast(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sortBy(top1, stable: true).takeLast(top2) should return sorted sequence like Array.sort.slice(0, top1).slice(top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top1)
+                  .slice(-top2);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .takeLast(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sortBy(top1, stable: true).takeLast(top2) should return same seq instance when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const expected = inputArray
+                  .slice()
+                  .sort((a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name))
+                  .slice(0, top1)
+                  .slice(-top2);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .takeLast(top2);
 
                 const actual = [...sut];
 
@@ -593,49 +997,555 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
           });
 
           describe('sort(top)', () => {
-            this.it1('sortBy(stable: true).sort(top) should return sorted sequence like Array.sort(comparer).slice()',
+            this.it1('sortBy(stable: true).sort(comparer, top) should return sorted sequence like Array.sort(comparer).slice(0, top)',
               gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
-              const comparer:Comparer<{ name: string; grade: number; }> = (a, b) => (a?.grade ?? Number.MAX_SAFE_INTEGER) - (b?.grade ?? Number.MAX_SAFE_INTEGER) || ('' + a?.name).localeCompare('' + b?.name);
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
                 const top = inputArray.length / 2;
                 const expected = inputArray
                   .slice()
                   .sort(comparer)
                   .slice(0, top);
 
-
                 const sut = this.createSut(input)
-                  .sortBy(x => ('000' + (x?.grade ?? Number.MAX_SAFE_INTEGER)).slice(-3) + '|' + x?.name, undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .thenSortBy(x => x?.name)
                   .sort(comparer, top);
 
                 const actual = [...sut];
 
                 assert.deepEqual(actual, expected);
               });
-            // TODO
+
+            this.it1('sortBy(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .sort(byNameThenByGradeComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sortBy(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .sort(byNameThenByGradeComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sortBy(top)', () => {
-            // TODO
+            this.it1('sortBy(stable: true).sortBy(top) should return sorted sequence like Array.sort(comparer).slice(0, top)',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .sortBy(x => x?.name, top)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sortBy(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .sortBy(x => x?.name, top2)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sortBy(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              gradesWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const byGradeThenByNameComparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
+                const byNameThenByGradeComparer: Comparer<{ name: string; grade: number; }> = (a, b) => ('' + a?.name).localeCompare('' + b?.name) || safeNumber(a?.grade) - safeNumber(b?.grade);
+                const expected = inputArray
+                  .slice()
+                  .sort(byGradeThenByNameComparer)
+                  .slice(0, top1)
+                  .sort(byNameThenByGradeComparer);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x?.grade), top1, {stable: true})
+                  .thenSortBy(x => x?.name)
+                  .sortBy(x => x?.name, top2)
+                  .thenSortBy(x => safeNumber(x?.grade));
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sorted(top)', () => {
-            // TODO
+            this.it1('sortBy(stable: true).sorted(top) should return sorted sequence like Array.sort.slice(0, top)',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const comparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => safeNumber(x), undefined, {stable: true})
+                  .sorted(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sortBy(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => -safeNumber(x), top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sortBy(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer);
+
+                const sut = this.createSut(input)
+                  .sortBy(x => -safeNumber(x), top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
         });
 
         describe('sorted(top)', () => {
           describe('take()', () => {
-            // TODO:
+            this.it1('sorted().take() should return sorted sequence like Array.sort.slice()',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sorted()
+                  .take(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sorted(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sorted(top1, stable: true).take(top2) should return sorted sequence like Array.sort.slice(top1) when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top1)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .take(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sorted(top1, stable: true).take(top2) should return same seq instance when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+
+                const expected = this.createSut(input).sorted(top1, {stable: true});
+
+                const actual = expected.take(top2);
+
+                assert.equal(actual, expected);
+              }
+            );
           });
+
           describe('takeLast()', () => {
-            // TODO:
+            this.it1('sorted(stable: true).takeLast() should return sorted sequence like Array.sort.slice()',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top = inputArray.length / 2;
+                const comparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(-top);
+
+                const sut = this.createSut(input)
+                  .sorted()
+                  .takeLast(top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sorted(top1, stable: true).takeLast(top2) should return sorted sequence like Array.sort.slice(top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const comparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+                  .slice(-top2);
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .takeLast(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
+
+            this.it1('sorted(top1, stable: true).takeLast(top2) should return same seq instance when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const comparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+
+                const expected = inputArray
+                  .slice()
+                  .sort(comparer)
+                  .slice(0, top1)
+                  .slice(-top2);
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .takeLast(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              }
+            );
           });
+
           describe('sort(top)', () => {
-            // TODO:
+            this.it1('sorted(stable: true).sort(comparer2, top) should return sorted sequence like Array.sort(comparer2).slice(0, top)',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .sort(descComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sorted()
+                  .sort(descComparer, top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top1)
+                  .sort(descComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .sort(descComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sort(comparer2, top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top1)
+                  .sort(descComparer)
+
+                const sut = this.createSut(input)
+                  .sorted(top1, {stable: true})
+                  .sort(descComparer, top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sortBy(top)', () => {
-            // TODO:
+            this.it1('sorted(stable: true).sortBy(top) should return sorted sequence like Array.sort(comparer2).slice(0, top)',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sorted()
+                  .sortBy(x => -safeNumber(x), top, {stable: true});
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top1)
+                  .sort(descComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sorted( top1, {stable: true})
+                  .sortBy(x => -safeNumber(x), top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sortBy(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(ascComparer)
+                  .slice(0, top1)
+                  .sort(descComparer);
+
+                const sut = this.createSut(input)
+                  .sorted( top1, {stable: true})
+                  .sortBy(x => -safeNumber(x), top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
+
           describe('sorted(top)', () => {
-            // TODO:
+            this.it1('sorted(stable: true).sorted(top) should return sorted sequence like Array.sort.slice(0, top)',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+                const revComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const top = inputArray.length / 2;
+                const expected = inputArray
+                  .slice()
+                  .sort(revComparer)
+                  .slice(0, top);
+
+                const sut = this.createSut(input)
+                  .sorted()
+                  .sorted(-top);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort.slice(0, top2) when top2 is less than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 / 2;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer)
+                  .slice(0, top2);
+
+                const sut = this.createSut(input)
+                  .sorted(-top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
+
+            this.it1('sorted(top1).sorted(top2) should return sorted sequence like Array.sort.slice(0, top1).sort when top2 is more than top1',
+              randomNumbersWithDuplicatesAndNullAndUndefined, (input, inputArray) => {
+
+                const top1 = inputArray.length / 2;
+                const top2 = top1 + 1;
+                const ascComparer: Comparer<number> = (a, b) => safeNumber(a) - safeNumber(b);
+                const descComparer: Comparer<number> = (a, b) => safeNumber(b) - safeNumber(a);
+                const expected = inputArray
+                  .slice()
+                  .sort(descComparer)
+                  .slice(0, top1)
+                  .sort(ascComparer);
+
+                const sut = this.createSut(input)
+                  .sorted(-top1, {stable: true})
+                  .sorted(top2);
+
+                const actual = [...sut];
+
+                assert.deepEqual(actual, expected);
+              });
           });
         });
       });

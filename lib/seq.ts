@@ -364,7 +364,7 @@ export interface Seq<T> extends Iterable<T> {
    * @return Sorted sequence implementing SortedSeq interface
    */
   sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
 
   sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
   sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
