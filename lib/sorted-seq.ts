@@ -227,7 +227,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.transferOptimizeTag(new SortedSeqImpl(source, this.comparer, this.topCount, this.opts));
   }
 
-  thenSortBy<U>(valueSelector: (item: T) => U, reverse = false): SortedSeq<T> {
+  thenSortBy(valueSelector: (item: T) => unknown, reverse = false): SortedSeq<T> {
     return this.thenByInternal(valueSelector, undefined, reverse);
   }
 
@@ -264,8 +264,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
   }
 
   sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
-
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
   sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T>
 

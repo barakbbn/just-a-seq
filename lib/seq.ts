@@ -366,8 +366,8 @@ export interface Seq<T> extends Iterable<T> {
   sort(comparer?: Comparer<T>): Seq<T>;
   sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
 
-  sortBy<U = T>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
   sorted(): T extends ComparableType ? Seq<T>: never;
   sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
@@ -435,7 +435,7 @@ export namespace Seq {
 export interface SortedSeq<T> extends Seq<T> {
   tap(callback: Selector<T, void>): SortedSeq<T>;
 
-  thenSortBy<U>(valueSelector: (item: T) => U, reverse?: boolean): SortedSeq<T>;
+  thenSortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
 }
 
 export interface CachedSeq<T> extends Seq<T> {

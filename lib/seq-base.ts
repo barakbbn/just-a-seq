@@ -1344,7 +1344,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
-  sortBy<U = T>(valueSelector: (item: T) => U, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
   sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T>;
   sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T> {
     const source = this.getSourceForNewSequence();
