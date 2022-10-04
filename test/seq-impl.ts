@@ -13,12 +13,19 @@ import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {SeqBase} from "../lib/seq-base";
 import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
 import {IterationContext, SeqTags, TaggedSeq} from "../lib/common";
+import {Seq} from "../lib";
 
 function createSut<T>(optimized: boolean) {
-  return <T>(input: Iterable<T>): SeqBase<T> => {
-    const tags: [symbol, any][] = optimized ? [[SeqTags.$optimize, true]] : [];
+  const factory: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> } = <T>(input?: Iterable<T>): SeqBase<T> => {
+    const tags: [symbol, any][] = optimized? [[SeqTags.$optimize, true]]: [];
     return createSeq(input, undefined, tags);
-  }
+  };
+  factory.fromGenerator = <T>(generator: () => Iterator<T>): SeqBase<T> => {
+    const tags: [symbol, any][] = optimized? [[SeqTags.$optimize, true]]: [];
+    return createSeq(undefined, generator, tags);
+  };
+
+  return factory;
 }
 
 class SeqImpl_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {

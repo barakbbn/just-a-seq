@@ -1,7 +1,13 @@
 import {internalEmpty} from "./internal";
-import {CloseableIterator, EMPTY_ARRAY, IterationContext, SeqTags, TaggedSeq} from './common'
+import {
+  CloseableIterator,
+  EMPTY_ARRAY,
+  IterationContext,
+  SeqTags,
+  TaggedSeq
+} from './common'
 
-import {Condition, Seq} from './seq'
+import {Comparer, Condition, Seq} from './seq'
 import {SeqBase} from './seq-base';
 
 export function createSeq<TSource = any, T = TSource>(
@@ -9,10 +15,10 @@ export function createSeq<TSource = any, T = TSource>(
   generator?: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>,
   tags?: readonly [symbol, any][]): SeqBase<T> {
 
-  return !generator ?
-    Array.isArray(source) ?
-      new ArraySeqImpl<T>(source, tags) :
-      new IterableSeqImpl(source as unknown as Iterable<T>, tags) :
+  return !generator?
+    Array.isArray(source)?
+      new ArraySeqImpl<T>(source, tags):
+      new IterableSeqImpl(source as unknown as Iterable<T>, tags):
     new GeneratorSeqImpl(source, generator, tags);
 }
 
@@ -64,25 +70,27 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   // TaggedSeq
-  get [SeqTags.$maxCount](): number {
-    return this.source.length;
-  }
+  // get [SeqTags.$maxCount](): number {
+  //   return this.source.length;
+  // }
 
   all(condition: Condition<T>): boolean {
     return this.every(condition);
   }
 
   any(condition?: Condition<T>): boolean {
-    return condition ? this.source.some(condition) : this.source.length > 0;
+    return condition? this.source.some(condition): this.source.length > 0;
   }
 
   at(index: number, fallback?: T): T | undefined {
+    index = Math.trunc(index);
     if (index < 0) index = this.source.length + index;
     if (index < 0 || index >= this.source.length) return fallback;
     return this.source[index] ?? fallback;
   }
 
   chunk(size: number): Seq<Seq<T>> {
+    size = Math.trunc(size);
     if (size < 1) return internalEmpty<Seq<T>>();
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
@@ -122,12 +130,12 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
 
   last(fallback?: T): T | undefined {
     const items = this.source;
-    return items.length ? items[items.length - 1] : fallback;
+    return items.length? items[items.length - 1]: fallback;
   }
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number {
-    return fromIndex == null ?
-      this.source.lastIndexOf(itemToFind) :
+    return fromIndex == null?
+      this.source.lastIndexOf(itemToFind):
       this.source.lastIndexOf(itemToFind, fromIndex);
   }
 
@@ -269,8 +277,8 @@ export class IterableSeqImpl<T = any> extends SeqBase<T> implements TaggedSeq {
   }
 
   isEmpty(): boolean {
-    return SeqTags.isSeq(this.source) ?
-      this.source.isEmpty() :
+    return SeqTags.isSeq(this.source)?
+      this.source.isEmpty():
       super.isEmpty();
   }
 

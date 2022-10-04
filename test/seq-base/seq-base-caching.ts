@@ -2,10 +2,13 @@ import {Seq} from "../../lib";
 import {assert} from "chai";
 import {describe, it} from "mocha";
 import {array, TestableArray} from "../test-data";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_CachedSeq_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_CachedSeq_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
+
   readonly run = () => describe('SeqBase - cache()', () => {
     const it1 = (title: string, testFn: (input: Iterable<any> & { getIteratorCount: number; }) => void) => {
       const iterable = {
@@ -257,6 +260,4 @@ export abstract class SeqBase_CachedSeq_Tests {
       });
     });
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
 }

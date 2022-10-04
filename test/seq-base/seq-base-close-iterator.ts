@@ -3,9 +3,11 @@ import {describe} from "mocha";
 import {Seq} from "../../lib";
 import {assert} from "chai";
 import {array} from "../test-data";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_Close_Iterator_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Close Iterator', () => {
@@ -182,7 +184,4 @@ export abstract class SeqBase_Close_Iterator_Tests {
     test2('zipAll()', array.oneToTen, array.zeroToTen, (seq, other) => seq.zipAll(other));
     test('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): SeqBase<T>;
-
 }

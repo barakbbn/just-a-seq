@@ -1,4 +1,4 @@
-import {CachedSeq, ComparableType, KeyedSeq, Seq, SortedSeq} from "./seq";
+import {CachedSeq, ComparableType, Comparer, KeyedSeq, Seq, SortedSeq} from "./seq";
 
 export interface IterationContext {
   closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
@@ -43,7 +43,7 @@ export class CloseableIterator<T, U = T, TSeq extends Iterable<T> = Iterable<T>>
     if (this.done) return {done: true, value: undefined};
     if (!this.iterator) this.iterator = this.generator(this.source, this.iterationContext);
     const {value, done} = this.iterator.next();
-    return done ? this.return(value) : {value};
+    return done? this.return(value): {value};
   }
 }
 
@@ -114,8 +114,6 @@ export function consume(iterable: Iterable<any>): void {
 }
 
 export const IGNORED_ITEM: any = {};
-export const LEGACY_COMPARER: any = {};
-export const DONT_COMPARE: any = {};
 export const EMPTY_ARRAY: readonly any[] = []
 
 export function isArray<T>(iterable: Iterable<T>): iterable is Array<T> {
@@ -135,7 +133,7 @@ export class SeqTags {
 
   static getTag<Tag extends keyof TaggedSeq>(seq: object, tag: Tag): TaggedSeq[Tag] {
     const guard = (seq: any): seq is TaggedSeq => seq;
-    return guard(seq) ? seq[tag] : undefined;
+    return guard(seq)? seq[tag]: undefined;
   }
 
   static optimize<T>(seq: Iterable<T>): boolean {
@@ -303,3 +301,4 @@ export class Dict<K = any, V = any> extends Map<K, V> {
     return this.comparableKeySelector(key) as unknown as AS;
   }
 }
+

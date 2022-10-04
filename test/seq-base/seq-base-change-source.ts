@@ -3,6 +3,7 @@ import {describe, it} from "mocha";
 import {array, generator} from "../test-data";
 import {Seq} from "../../lib";
 import {assert} from "chai";
+import {TestIt} from "../test-harness";
 
 class TestHarness<T> {
   expected: { longer: any; empty: any; shorter: any };
@@ -18,10 +19,10 @@ class TestHarness<T> {
     }
 
     function* deepToArray(iterable: Iterable<any>): Generator<any> {
-      for (const item of iterable) yield isIterable(item) ? [...deepToArray(item)] : item;
+      for (const item of iterable) yield isIterable(item)? [...deepToArray(item)]: item;
     }
 
-    return isIterable(value) ? [...deepToArray(value)] : value;
+    return isIterable(value)? [...deepToArray(value)]: value;
   }
 
   makeShort(source: T[]) {
@@ -51,8 +52,9 @@ class TestHarness<T> {
   }
 }
 
-export abstract class SeqBase_Change_Source_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_Change_Source_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Change source', () => {
@@ -261,7 +263,4 @@ export abstract class SeqBase_Change_Source_Tests {
     test2('zipAll()', array.oneToTen, array.zeroToTen, (seq, other) => seq.zipAll(other));
     test('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): SeqBase<T>;
-
 }

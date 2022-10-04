@@ -1,5 +1,5 @@
 import {SeqBase} from "../lib/seq-base";
-import {EMPTY_ARRAY, SeqTags} from "../lib/common";
+import {EMPTY_ARRAY, generate, SeqTags} from "../lib/common";
 
 export const array = new class {
   get falsyValues(): any[] {
@@ -34,16 +34,17 @@ export const array = new class {
     return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
   }
 
-  get abc(): string[] {
-    return ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+  get abc(): TestableArray<string> {
+    return new TestableArray<string>(...array.range(97, 122).map(c => String.fromCharCode(c)));
   }
 
   get strings(): string[] {
     return ['boolean', 'string', 'number', 'symbol', 'null', 'undefined', '', 'object', 'array', ' '];
   }
 
-  get grades(): { name: string; grade: number; }[] {
-    return [
+  get grades(): TestableArray<{ name: string; grade: number; }> {
+    // DON'T change number of items and order, since tests relies on it
+    return new TestableArray(
       {name: "0", grade: 0},
       {name: "A", grade: 10},
       {name: "B", grade: 20},
@@ -55,23 +56,23 @@ export const array = new class {
       {name: "H", grade: 80},
       {name: "I", grade: 90},
       {name: "J", grade: 100}
-    ];
+    );
   }
 
-  get gradesFiftyAndAbove(): { name: string; grade: number; }[] {
-    return this.grades.filter(x => x.grade >= 50);
+  get gradesFiftyAndAbove(): TestableArray<{ name: string; grade: number; }> {
+    return this.grades.filter(x => x.grade >= 50) as TestableArray<{ name: string; grade: number; }>;
   }
 
-  get gradesAboveFifty(): { name: string; grade: number; }[] {
-    return this.grades.filter(x => x.grade > 50);
+  get gradesAboveFifty(): TestableArray<{ name: string; grade: number; }> {
+    return this.grades.filter(x => x.grade > 50) as TestableArray<{ name: string; grade: number; }>;
   }
 
-  get gradesFiftyAndBelow(): { name: string; grade: number; }[] {
-    return this.grades.filter(x => x.grade <= 50);
+  get gradesFiftyAndBelow(): TestableArray<{ name: string; grade: number; }> {
+    return this.grades.filter(x => x.grade <= 50) as TestableArray<{ name: string; grade: number; }>;
   }
 
-  get samples(): Sample[] {
-    return [
+  get samples(): TestableArray<Sample> {
+    return new TestableArray(
       {type: "C", period: 30, score: 50, ok: true},
       {type: "C", period: 30, score: 5, ok: false},
       {type: "C", period: 10, score: 0, ok: true},
@@ -88,7 +89,7 @@ export const array = new class {
       {type: "B", period: 20, score: 20, ok: false},
       {type: "B", period: 20, score: 20, ok: true},
       {type: "B", period: 20, score: 20, ok: true},
-    ];
+    );
   }
 
   get folders(): Folder[] {
@@ -162,8 +163,14 @@ export const array = new class {
   //
   // }
 
-  range(from: number, to: number, step: number = 1) {
-    return [...generator.range(from, to, step)];
+  get loremIpsum(): TestableArray<string> {
+    return new TestableArray(...
+      "Lorem ipsum dolor sit amet consectetur adipiscing elit Sed ut nibh diam Morbi leo erat porta congue facilisis vitae hendrerit ac dolor Nunc et nisl sit amet tortor pellentesque auctor Morbi sit amet arcu risus Ut efficitur purus turpis id egestas massa rhoncus a Donec imperdiet eros ut mollis posuere Mauris at tellus turpis Mauris in felis nec sapien condimentum interdum Fusce vulputate libero a finibus sollicitudin Donec aliquam est at nibh condimentum semper convallis diam porta Nulla ut eros id turpis fermentum condimentum Etiam fringilla magna sit amet odio blandit vitae porta eros posuere Integer at ligula auctor bibendum dui sit amet venenatis libero Proin convallis eros et arcu dapibus sodales Vivamus maximus ultricies libero ac mattis justo euismod eu".split(' ')
+    );
+  }
+
+  range(from: number, to: number, step: number = 1): TestableArray<number> {
+    return new TestableArray(...generator.range(from, to, step));
   };
 
   repeat<T>(value: T, count: number) {
@@ -176,6 +183,15 @@ export const array = new class {
 
   reverse<T>(value: T[]): T[] {
     return value.slice().reverse()
+  }
+
+  random(count: number, min = 0, max = 1.0, seed?: number): TestableArray<number> {
+    const values = new TestableArray<number>();
+    for (const n of generator.random(min, max, seed)) {
+      if (count--) values.push(n);
+      else break;
+    }
+    return values;
   }
 };
 
@@ -208,6 +224,11 @@ export interface Sample {
   ok: boolean;
 }
 
+export interface Grade {
+  name: string;
+  grade: number;
+}
+
 export class ReusableGenerator<T> implements Iterable<T> {
   constructor(private readonly generatorFunc: (...args: any[]) => Generator<T>) {
   }
@@ -230,7 +251,7 @@ export const generator = new class {
     })
   };
 
-  from<T>(array:readonly T[]): Iterable<T>
+  from<T>(array: readonly T[]): Iterable<T>
   from(string: string): Iterable<string>
   from<T>(arrayOrString: Iterable<T>): Iterable<T> {
     return new ReusableGenerator<T>(function* from() {
@@ -247,7 +268,7 @@ export const generator = new class {
       let count = 0;
       while (true) {
         const value = from + step * count++;
-        if (!(step > 0 ? value <= to : to <= value)) break;
+        if (!(step > 0? value <= to: to <= value)) break;
         yield value;
       }
     })
@@ -258,9 +279,29 @@ export const generator = new class {
       while (count--) yield value;
     });
   }
+
+  random(min = 0, max = 2 ** 31 - 1, seed?: number): Iterable<number> {
+    return new ReusableGenerator(function* random() {
+      const random = new Random(seed);
+      while (true) yield random.next(min, max);
+    });
+  }
 };
 
-type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
+class Random {
+  constructor(private seed?: number) {
+  }
+
+  next(min = 0, max = 2 ** 31 - 1): number {
+    if (this.seed == null) return Math.random() * (max - min) + min;
+    this.seed = this.seed += Math.E;
+    const x = Math.sin(this.seed += Math.E) * 2 ** 32;
+    const res = Math.floor((x - Math.floor(x)) * (max - min) + min);
+    return res;
+  }
+}
+
+type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T>? Iterable<T>: never; };
 export const iterables: ArraysOnly = new Proxy(array, {
   get(target: any, p: PropertyKey, receiver: any): any {
     const array = Reflect.get(target, p, receiver);
@@ -271,18 +312,62 @@ export const iterables: ArraysOnly = new Proxy(array, {
 export class TestableArray<T> extends Array<T> {
   getIteratorCount = 0;
   yieldCount = 0;
+
   constructor(...items: T[]) {
     super(...items);
   }
 
-  *[Symbol.iterator](): IterableIterator<T> {
+  * [Symbol.iterator](): IterableIterator<T> {
     this.getIteratorCount++;
-    for(const item of super[Symbol.iterator]()) {
+    for (const item of super[Symbol.iterator]()) {
       this.yieldCount++;
       yield item;
     }
   }
+
+  x(multiplyBy: number): TestableArray<T> {
+    return new TestableArray<T>().concat(...Array.from({length: multiplyBy}, _ => this)) as TestableArray<T>;
+  }
+
+  randomize(seed?: number): this {
+    const random = new Random(seed);
+    for (let i = this.length - 1; i > 0; i--) {
+      const rnd = random.next(0, i);
+      [this[i], this[rnd]] = [this[rnd], this[i]];
+    }
+    return this;
+  }
+
+  selfZip(count: number): TestableArray<T> {
+    return new TestableArray<T>().concat(...this.map(x => Array.from({length: count}, _ => x))) as TestableArray<T>;
+  }
+
+  pollute(undefineds: number, nulls: number = 0): this {
+    const random = new Random(undefineds + nulls);
+    const uniqueRandomIndexes = new Set<number>();
+    const maxIndexes = Math.min(undefineds + nulls, this.length);
+
+    while (uniqueRandomIndexes.size < maxIndexes) uniqueRandomIndexes.add(random.next(0, this.length - uniqueRandomIndexes.size - 1));
+    const randomIndexes = [...uniqueRandomIndexes];
+    while (undefineds--) this[randomIndexes.pop()!] = undefined as any;
+    while (nulls--) this[randomIndexes.pop()!] = null as any;
+
+    return this;
+  }
+
+  prependNulldefined(undefineds: number, nulls: number = 0): this {
+    while (nulls--) this.unshift(null as any);
+    while (undefineds--) this.unshift(undefined as any);
+    return this;
+  }
+  appendNulldefined(undefineds: number, nulls: number = 0): this {
+    while (nulls--) this.push(null as any);
+    while (undefineds--) this.push(undefined as any);
+    return this;
+  }
 }
+Object.defineProperty(TestableArray, 'getIteratorCount',{ enumerable: false});
+Object.defineProperty(TestableArray, 'yieldCount',{ enumerable: false});
 
 export class TestableDerivedSeq<T> extends SeqBase<T> {
   private _wasIterated = false;

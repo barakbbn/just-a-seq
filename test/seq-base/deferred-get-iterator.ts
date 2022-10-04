@@ -1,9 +1,11 @@
 import {Seq} from "../../lib";
 import {assert} from "chai";
 import {TestableArray, TestableDerivedSeq} from "../test-data";
+import {TestIt} from "../test-harness";
 
-export abstract class SeqBase_Deferred_GetIterator_Tests {
-  constructor(protected optimized: boolean) {
+export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('SeqBase - Deferred functionality should not perform immediate execution', () => {
@@ -19,7 +21,7 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
 
       const iterable = {
         wasIterated: false,
-        *[Symbol.iterator](): Iterator<any> {
+        * [Symbol.iterator](): Iterator<any> {
           this.wasIterated = true;
           yield 0;
         }
@@ -66,10 +68,10 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
     }))));
 
     describe('groupBy()', () => testGetIterator(sut => sut.groupBy(() => 1,)));
-    describe('groupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2)));
-    describe('groupBy().thanGroupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).thenGroupBy(()=>3)));
-    describe('groupBy().thanGroupBy().ungroup()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).ungroup(g => g.first())));
-    describe('groupBy().thanGroupBy().aggregate()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(()=>2).aggregate(g => g.first())));
+    describe('groupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2)));
+    describe('groupBy().thanGroupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).thenGroupBy(() => 3)));
+    describe('groupBy().thanGroupBy().ungroup()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).ungroup(g => g.first())));
+    describe('groupBy().thanGroupBy().aggregate()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).aggregate(g => g.first())));
 
     describe('groupJoin()', () => testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1)));
 
@@ -164,6 +166,4 @@ export abstract class SeqBase_Deferred_GetIterator_Tests {
     describe('zipWithIndex()', () => testGetIterator(sut => sut.zipWithIndex()));
 
   });
-
-  protected abstract createSut<T>(input?: Iterable<T>): Seq<T>;
 }
