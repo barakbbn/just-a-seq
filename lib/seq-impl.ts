@@ -7,7 +7,7 @@ import {
   TaggedSeq
 } from './common'
 
-import {Comparer, Condition, Seq} from './seq'
+import {Condition, Seq} from './seq'
 import {SeqBase} from './seq-base';
 
 export function createSeq<TSource = any, T = TSource>(

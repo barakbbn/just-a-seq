@@ -226,7 +226,7 @@ export class Dict<K = any, V = any> extends Map<K, V> {
   }
 
   static caseInsensitive<V = any>(): Dict<string, V> {
-    return new Dict<string, V>(k => k.toLocaleLowerCase())
+    return new Dict<string, V>(k => k?.toLocaleLowerCase() ?? k);
   }
 
   [Symbol.iterator](): IterableIterator<[K, V]> {

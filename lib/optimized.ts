@@ -14,6 +14,8 @@ export function asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]):
 export type Seq<T> = ISeq<T>;
 
 export namespace Seq {
+  export let stablePartialSoring = false;
+
   export function range(start: number, end?: number, step: number = 1): ISeq<number> {
     const seq = factory.range(start, end, step);
     (seq as TaggedSeq)[SeqTags.$optimize] = true;

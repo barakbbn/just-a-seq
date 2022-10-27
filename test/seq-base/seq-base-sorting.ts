@@ -416,7 +416,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sort(comparer, undefined, {stable: true})
+                  .sort(comparer, {stable: true})
                   .take(top);
 
                 const actual = [...sut];
@@ -498,7 +498,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(-top);
 
                 const sut = this.createSut(input)
-                  .sort(comparer, undefined, {stable: true})
+                  .sort(comparer, {stable: true})
                   .takeLast(top);
 
                 const actual = [...sut];
@@ -567,7 +567,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sort(byGradeThenByNameComparer, undefined, {stable: true})
+                  .sort(byGradeThenByNameComparer, {stable: true})
                   .sort(byNameThenByGradeComparer, top);
 
                 const actual = [...sut];
@@ -633,7 +633,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sort(byGradeThenByNameComparer, undefined, {stable: true})
+                  .sort(byGradeThenByNameComparer, {stable: true})
                   .sortBy(x => x?.name, top)
                   .thenSortBy(x => safeNumber(x?.grade));
 
@@ -701,7 +701,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sort(comparer, undefined, {stable: true})
+                  .sort(comparer, {stable: true})
                   .sorted(top);
 
                 const actual = [...sut];
@@ -856,7 +856,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
 
                 const sut = this.createSut(input)
-                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), {stable: true})
                   .thenSortBy(x => x?.name)
                   .take(top);
 
@@ -941,7 +941,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(-top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), {stable: true})
                   .thenSortBy(x => x?.name)
                   .takeLast(top);
 
@@ -1007,7 +1007,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), {stable: true})
                   .thenSortBy(x => x?.name)
                   .sort(comparer, top);
 
@@ -1075,7 +1075,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => safeNumber(x?.grade), undefined, {stable: true})
+                  .sortBy(x => safeNumber(x?.grade), {stable: true})
                   .thenSortBy(x => x?.name)
                   .sortBy(x => x?.name, top)
                   .thenSortBy(x => safeNumber(x?.grade));
@@ -1146,7 +1146,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
                   .slice(0, top);
 
                 const sut = this.createSut(input)
-                  .sortBy(x => safeNumber(x), undefined, {stable: true})
+                  .sortBy(x => safeNumber(x), {stable: true})
                   .sorted(top);
 
                 const actual = [...sut];

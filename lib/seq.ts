@@ -363,14 +363,16 @@ export interface Seq<T> extends Iterable<T> {
    * If omitted, sorting behaves like Array.sort() method, in which the items are converted to strings.
    * @return Sorted sequence implementing SortedSeq interface
    */
-  sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(): Seq<T>;
+  sort(comparer: Comparer<T>, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
 
-  sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
-  sortBy(valueSelector: (item: T) => unknown, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverse: boolean, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, top: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
-  sorted(): T extends ComparableType ? Seq<T>: never;
-  sorted(reverse: boolean): T extends ComparableType ? Seq<T>: never;
+  sorted(opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
+  sorted(reverse: boolean, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
   sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
@@ -430,6 +432,7 @@ export interface Seq<T> extends Iterable<T> {
 
 export namespace Seq {
   export let enableOptimization = false;
+  export let stablePartialSoring = false;
 }
 
 export interface SortedSeq<T> extends Seq<T> {

@@ -289,7 +289,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       describe('with maxItemsInChunk', () => {
 
-        this.it1('should split number sequence into each chunk, numbers having their total sum less or equals the limit and no more than specifiex max items in chunk',
+        this.it1('should split number sequence into each chunk, numbers having their total sum less or equals the limit and no more than specified max items in chunk',
           [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], input => {
             const LIMIT = 6;
             const MAX = 4;

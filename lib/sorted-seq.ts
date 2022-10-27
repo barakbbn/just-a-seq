@@ -193,6 +193,65 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
     return this.sourceToSeq().sum(selector as any);
   }
 
+  sort(): Seq<T>;
+  sort(comparer: Comparer<T>, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
+  sort(comparer?: Comparer<T>, topOrOpts?: number | { stable?: boolean; }, opts?: { stable?: boolean; }): Seq<T> {
+    let [top, actualOpts] = topOrOpts == null?
+      [undefined, opts]:
+      typeof topOrOpts === 'number'?
+        [topOrOpts, opts]:
+        [undefined, topOrOpts];
+    if (top) top = Math.trunc(top);
+    const optimize = SeqTags.optimize(this);
+    const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
+
+    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(count)) {
+      return super.sort(comparer, top, actualOpts);
+    }
+
+    const reverse = top != null && top < 0;
+    return this.sortInternal(this.source, undefined, comparer ?? LEGACY_COMPARER, reverse, count, actualOpts);
+  }
+
+  sortBy(valueSelector: (item: T) => unknown, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverse: boolean, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, top: number, opts?: { stable?: boolean; }): SortedSeq<T>;
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTopOrOpts?: boolean | number | { stable?: boolean; }, opts?: { stable?: boolean; }): SortedSeq<T>; // needed by derived classes
+  sortBy(valueSelector: (item: T) => unknown, reverseOrTopOrOpts?: boolean | number | { stable?: boolean; }, opts?: { stable?: boolean; }): SortedSeq<T> {
+    const optimize = SeqTags.optimize(this);
+    const [reverse, top, actualOpts] = typeof reverseOrTopOrOpts === 'number'?
+      [reverseOrTopOrOpts < 0, Math.abs(reverseOrTopOrOpts), opts]:
+      typeof reverseOrTopOrOpts === 'boolean'?
+        [reverseOrTopOrOpts, Number.POSITIVE_INFINITY, opts]:
+        [false, Number.POSITIVE_INFINITY, reverseOrTopOrOpts];
+
+    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
+      return super.sortBy(valueSelector, reverseOrTopOrOpts, actualOpts);
+    }
+
+    return this.sortInternal(this.source, valueSelector, undefined, reverse, top, actualOpts);
+  }
+
+  sorted(opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+  sorted(reverse: boolean, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+  sorted(reverseOrTopOrOpts?: boolean | number | { stable?: boolean; }, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never; // needed by derived classes
+  sorted(reverseOrTopOrOpts?: boolean | number | { stable?: boolean; }, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never {
+    const optimize = SeqTags.optimize(this);
+    const [reverse, top, actualOpts] = typeof reverseOrTopOrOpts === 'number'?
+      [reverseOrTopOrOpts < 0, Math.abs(reverseOrTopOrOpts), opts]:
+      typeof reverseOrTopOrOpts === 'boolean'?
+        [reverseOrTopOrOpts, Number.POSITIVE_INFINITY, opts]:
+        [false, Number.POSITIVE_INFINITY, reverseOrTopOrOpts];
+
+    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
+      return super.sorted(reverseOrTopOrOpts, actualOpts);
+    }
+
+    return this.sortInternal(this.source, undefined, undefined, reverse, top, actualOpts) as any;
+  }
+
   take(count: number): Seq<T> {
     if (count < 0) count = 0;
     if (this.tapCallbacks.length || this.topCount < 0) return super.take(count);
@@ -246,58 +305,6 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       yield entry.value;
     }
     else yield* items;
-  }
-
-  sort(comparer?: Comparer<T>): Seq<T>;
-  sort(comparer: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T>;
-  sort(comparer?: Comparer<T>, top?: number, opts?: { stable?: boolean; }): Seq<T> {
-    if (top) top = Math.trunc(top);
-    const optimize = SeqTags.optimize(this);
-    const count = Math.abs(top ?? Number.POSITIVE_INFINITY);
-
-    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(count)) {
-      return super.sort(comparer, top, opts);
-    }
-
-    const reverse = top != null && top < 0;
-    return this.sortInternal(this.source, undefined, comparer ?? LEGACY_COMPARER, reverse, count, opts);
-  }
-
-  sortBy(valueSelector: (item: T) => unknown, reverse?: boolean): SortedSeq<T>;
-  sortBy(valueSelector: (item: T) => unknown, top?: number, opts?: { stable?: boolean; }): SortedSeq<T>;
-
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T>
-
-  sortBy(valueSelector: (item: T) => unknown, reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): SortedSeq<T> {
-    const optimize = SeqTags.optimize(this);
-    const [reverse, top] = typeof reverseOrTop === 'number'?
-      [reverseOrTop < 0, Math.abs(reverseOrTop)]:
-      [reverseOrTop, Number.POSITIVE_INFINITY];
-
-    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
-      return super.sortBy(valueSelector, reverseOrTop, opts);
-    }
-
-    return this.sortInternal(this.source, valueSelector, undefined, reverse, top, opts);
-  }
-
-  sorted(): T extends ComparableType? Seq<T>: never;
-  sorted(reverse: boolean): T extends ComparableType? Seq<T>: never;
-  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
-
-  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
-
-  sorted(reverseOrTop?: boolean | number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never {
-    const optimize = SeqTags.optimize(this);
-    const [reverse, top] = typeof reverseOrTop === 'number'?
-      [reverseOrTop < 0, Math.abs(reverseOrTop)]:
-      [reverseOrTop, Number.POSITIVE_INFINITY];
-
-    if (this.tapCallbacks.length || !optimize || Number.isFinite(this.topCount) || Number.isFinite(top)) {
-      return super.sorted(reverseOrTop, opts);
-    }
-
-    return this.sortInternal(this.source, undefined, undefined, reverse, top, opts) as any;
   }
 
   private thenByInternal<K>(keySelector: (x: T) => K, comparer: Comparer<K> | undefined, reverse: boolean): SortedSeq<T> {
@@ -375,7 +382,8 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       }
     };
 
-    return (!this.opts?.stable && maxLength <= Math.max(MAX_ARRAY_OPTIMAL_SIZE, count))?
+    const stable = this.opts?.stable ?? Seq.stablePartialSoring;
+    return (!stable && maxLength <= Math.max(MAX_ARRAY_OPTIMAL_SIZE, count))?
       topOptimized():
       topUnoptimized();
   }
