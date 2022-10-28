@@ -354,14 +354,14 @@ export interface Seq<T> extends Iterable<T> {
 
   some(condition?: Condition<T>): boolean;
 
-  // Behaves like Array.sort, which unless comparer specified, perform toString for comparing items
-  // So try to avoid it. prefer using sorted() or sortBy()
-
   /**
    * Sort the sequence
    * @param comparer - Optional comparer function.
    * If omitted, sorting behaves like Array.sort() method, in which the items are converted to strings.
    * @return Sorted sequence implementing SortedSeq interface
+   * @desc
+   * Avoid using, since it behaves like Array.sort() which converts the items to strings and compares them.
+   * Checkout the simplifies versions for sorting sorted(), sortBy()
    */
   sort(): Seq<T>;
   sort(comparer: Comparer<T>, opts?: { stable?: boolean; }): Seq<T>;
