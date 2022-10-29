@@ -171,7 +171,11 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('at()', array.oneToTen, seq => seq.at(-1));
     test('average()', array.oneToTen, seq => seq.average());
     test('append()', array.oneToTen, seq => seq.append(-1));
-    test('chunk()', array.oneToTen, seq => seq.chunk(5));
+    test('chunk()', array.oneToTen, seq => seq.chunkBy(() => {
+    }));
+    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {
+    }));
+    test('chunkBySum()', array.oneToTen, seq => seq.chunkBySum(5));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
     test('count(condition)', array.oneToTen, seq => seq.count(n => n > 5));

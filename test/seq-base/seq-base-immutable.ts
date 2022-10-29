@@ -28,6 +28,8 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('average()', array.oneToTen, seq => seq.average());
     testImmutable('append()', array.oneToTen, seq => seq.append(-1));
     testImmutable('chunk()', array.oneToTen, seq => seq.chunk(5));
+    testImmutable('chunkBySum()', array.oneToTen, seq => seq.chunkBySum(5));
+    testImmutable('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {}));
     testImmutable('concat()', array.oneToTen, seq => seq.concat(array.tenZeros));
     testImmutable('concat$()', array.oneToTen, seq => seq.concat$(array.tenZeros));
     testImmutable('consume()', array.oneToTen, seq => seq.consume());

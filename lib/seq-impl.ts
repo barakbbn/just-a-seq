@@ -89,12 +89,18 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return this.source[index] ?? fallback;
   }
 
-  chunk(size: number): Seq<Seq<T>> {
+  chunk(size: number, maxChunks: number = Number.MAX_SAFE_INTEGER): Seq<Seq<T>> {
     size = Math.trunc(size);
-    if (size < 1) return internalEmpty<Seq<T>>();
+    maxChunks = Math.trunc(maxChunks);
+    if (size <= 0) {
+      throw new Error('size parameter must be positive value')
+    }
+
+    if (maxChunks < 1) return internalEmpty<Seq<T>>();
+
     const self = this;
     return this.generateForSource(this.source, function* chunk(source: T[]) {
-      for (let skip = 0; skip < source.length; skip += size) {
+      for (let skip = 0, chunk = 0; skip < source.length && chunk < maxChunks; skip += size, chunk++) {
         yield self.slice(skip, skip + size);
       }
     });

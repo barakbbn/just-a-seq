@@ -47,16 +47,26 @@ export interface Seq<T> extends Iterable<T> {
 
   cache(now?: boolean): CachedSeq<T>;
 
-  chunk(count: number): Seq<Seq<T>>;
+  chunk(size: number, maxChunks?: number): Seq<Seq<T>>;
 
-  chunkBy<U>(processor: (itemInfo: { item: T; index: number; itemNumber: number; chunkNumber: number; userData?: U; }) => {
-    chunkStatus: 'Continue' | 'SplitWithItem' | 'SplitWithoutItem';
-    userData?: U;
-  }): Seq<Seq<T>>;
+  chunkBy<U>(processor: (itemInfo: {
+               item: T;
+               index: number;
+               itemNumber: number;
+               chunkNumber: number;
+               userData?: U;
+               next(userData?: U): void;
+               done(includeItemInChunk: boolean, isLastChunk: boolean, userData?: U): void;
+             }) => void,
+             shouldStartNewChunk?: (info: {
+               chunkNumber: number;
+               processedItemsCount: number;
+               userData?: U;
+             }) => boolean): Seq<Seq<T>>;
 
-  chunkBySum(limit: number, opts?: { maxItemsInChunk: number }): T extends number? Seq<Seq<T>>: never;
+  chunkBySum(limit: number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): T extends number? Seq<Seq<T>>: never;
 
-  chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk: number }): Seq<Seq<T>>;
+  chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): Seq<Seq<T>>;
 
   concat(...items: Iterable<T>[]): Seq<T>;
 
@@ -364,16 +374,22 @@ export interface Seq<T> extends Iterable<T> {
    * Checkout the simplifies versions for sorting sorted(), sortBy()
    */
   sort(): Seq<T>;
+
   sort(comparer: Comparer<T>, opts?: { stable?: boolean; }): Seq<T>;
+
   sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
 
   sortBy(valueSelector: (item: T) => unknown, opts?: { stable?: boolean; }): SortedSeq<T>;
+
   sortBy(valueSelector: (item: T) => unknown, reverse: boolean, opts?: { stable?: boolean; }): SortedSeq<T>;
+
   sortBy(valueSelector: (item: T) => unknown, top: number, opts?: { stable?: boolean; }): SortedSeq<T>;
 
-  sorted(opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
-  sorted(reverse: boolean, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
-  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType ? Seq<T>: never;
+  sorted(opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+
+  sorted(reverse: boolean, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
+
+  sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
 
   split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
   split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };

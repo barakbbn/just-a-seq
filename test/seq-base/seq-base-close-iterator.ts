@@ -34,7 +34,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
             if (!this.iterator) this.iterator = self.source[Symbol.iterator]();
             self.iterated = true;
             const {value, done} = this.iterator.next();
-            return done ? this.return(value) : {value};
+            return done? this.return(value): {value};
           }
         };
       }
@@ -85,6 +85,9 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('average()', array.oneToTen, seq => seq.average());
     test('append()', array.oneToTen, seq => seq.append(-1));
     test('chunk()', array.oneToTen, seq => seq.chunk(5));
+    test('chunkBySum()', array.oneToTen, seq => seq.chunkBySum(5));
+    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {
+    }));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
     test('consume()', array.oneToTen, seq => seq.consume());

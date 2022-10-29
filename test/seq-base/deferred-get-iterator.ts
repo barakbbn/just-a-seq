@@ -42,6 +42,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('cache()', () => testGetIterator(sut => sut.cache()));
 
     describe('chunk()', () => testGetIterator(sut => sut.chunk(2)));
+    describe('chunkBy()', () => testGetIterator(sut => sut.chunkBy(()=>{})));
+    describe('chunkBySum()', () => testGetIterator(sut => sut.chunkBySum(2)));
 
     describe('concat()', () => testGetIterator(sut => sut.concat([2])));
 
