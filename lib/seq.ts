@@ -128,7 +128,8 @@ export interface Seq<T> extends Iterable<T> {
 
   findLastIndex(tillIndex: number, condition: Condition<T>): number;
 
-  first(defaultIfEmpty?: T): T | undefined;
+  first(): T | undefined;
+  first(defaultIfEmpty: T): T;
 
   firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>] & { first: T; rest: Seq<T>; };
 

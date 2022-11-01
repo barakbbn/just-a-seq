@@ -25,31 +25,26 @@ ___
 ```typescript
 import {asSeq} from '@barakbbn/just-a-seq/optimized';
 
-const graphA = [
-  {x: 0, y: 0}, {x: 1, y: 2}, {x: 2, y: 4}, {x: 3, y: 6}, {x: 4, y: 8}, {x: 5, y: 10}
-];
-const graphB = [
-  {x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 4}, {x: 3, y: 7}, {x: 4, y: 6}, {x: 5, y: 8}
-];
+const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
 
-const averageDiff = asSeq(graphA)
-  // Match points with same x value, return object with matching points from graphA and graphB {a,b}
-  .innerJoin(graphB, a => a.x, b => b.x, (a, b) => ({a, b})) 
-              // -> {a: {x: 0, y: 0 }, b: {x: 0, y: 0}},
-              //    {a: {x: 1, y: 2 }, b: {x: 1, y: 1}},
-              //    {a: {x: 2, y: 4 }, b: {x: 2, y: 4}},
-              //    {a: {x: 3, y: 6 }, b: {x: 3, y: 7}},
-              //    {a: {x: 4, y: 8 }, b: {x: 4, y: 6}},
-              //    {a: {x: 5, y: 10}, b: {x: 5, y: 8}}
-  // Map each matching item to the absolute difference between y value of points {a,b}
-  .map(({a, b}) => Math.abs(a.y - b.y)) // -> 0, 1, 0, 1, 2, 2
-  // Calculate average on all the values
-  .average(); // -> 1
-
-console.log('Average difference', averageDiff);
-// Output: Average difference 1
+asSeq(files)
+  .filter(file => file.ext === '.json')
+  .chunkBySum(64 * 1024 * 1024 /* 64MB */, file => file.size, {maxItemsInChunk: 100})
+  .forEach((chunk, i) => {
+    saveZipFile(`chunk-${i+1}.zip`, chunk.map(files => file.name));
+  });
 ```
 
+```typescript
+  const extensions = new Set(['.txt', '.docx', '.xlsx', '.csv']);
+  const countOfEachFileType = asSeq(getListOfFiles())
+    .filter( file => extensions.has(file.ext))
+    .toMapOfOccurrences(file => file.ext)
+
+  console.log('count of each file type:', countOfEachFileType);
+  // Output:
+  // count of each file type: Map(3) { '.txt' => 24, '.docx' => 28, '.csv' => 24 }
+```
 <!-- Example 2 -->
 <details>
 <summary><i>Example 2</i></summary>
@@ -153,22 +148,56 @@ console.log(asSeq(layers)
 ```typescript
 import {asSeq} from '@barakbbn/just-a-seq/optimized';
 
-const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
+const graphA = [
+  {x: 0, y: 0}, {x: 1, y: 2}, {x: 2, y: 4}, {x: 3, y: 6}, {x: 4, y: 8}, {x: 5, y: 10}
+];
+const graphB = [
+  {x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 4}, {x: 3, y: 7}, {x: 4, y: 6}, {x: 5, y: 8}
+];
 
-const chunksOfFiles = asSeq(files)
-  .filter(file => file.ext === '.json')
-  .sortBy(file => file.size)
-  .chunkBySum(64 * 1024 * 1024 /* Max 64MB MEM */, file => file.size, {maxItemsInChunk: 100})
-  .map(chunk => chunk
-    .map(file => loadfileContent(file.name))
-    .map(json => JSON.parse(json))
-    .flatMap(obj => buildDbRecords(obj))
-  );
+const averageDiff = asSeq(graphA)
+  // Match points with same x value, return object with matching points from graphA and graphB {a,b}
+  .innerJoin(graphB, a => a.x, b => b.x, (a, b) => ({a, b})) 
+              // -> {a: {x: 0, y: 0 }, b: {x: 0, y: 0}},
+              //    {a: {x: 1, y: 2 }, b: {x: 1, y: 1}},
+              //    {a: {x: 2, y: 4 }, b: {x: 2, y: 4}},
+              //    {a: {x: 3, y: 6 }, b: {x: 3, y: 7}},
+              //    {a: {x: 4, y: 8 }, b: {x: 4, y: 6}},
+              //    {a: {x: 5, y: 10}, b: {x: 5, y: 8}}
+  // Map each matching item to the absolute difference between y value of points {a,b}
+  .map(({a, b}) => Math.abs(a.y - b.y)) // -> 0, 1, 0, 1, 2, 2
+  // Calculate average on all the values
+  .average(); // -> 1
 
-chunksOfFiles.forEach(recordsSeq => saveToDatabase(recordsSeq));
+console.log('Average difference', averageDiff);
+// Output: Average difference 1
 ```
 
 </details>  
+<br>
+<!-- Example 5 -->
+<details>
+<summary><i>Example 5</i></summary>
+
+```typescript
+import {asSeq} from '@barakbbn/just-a-seq/optimized';
+
+const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
+
+const chunksOfFiles = asSeq(files)
+  .filter(file => file.ext === '.ndjson')
+  .sortBy(file => file.size)
+  .chunkBySum(64 * 1024 * 1024 /* Max 64MB MEM */, file => file.size, {maxItemsInChunk: 100});
+const chunksOfRecords = chunksOfFiles.map(chunk => chunk
+  .map(file => loadfileContent(file.name))
+  .map(json => JSON.parse(json))
+  .flatMap(obj => buildDbRecords(obj))
+);
+
+chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
+```
+
+</details>
 
 ### Functionality summary
 

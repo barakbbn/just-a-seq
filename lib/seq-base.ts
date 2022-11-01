@@ -414,6 +414,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.findLastByCondition(tillIndex, condition)[0];
   }
 
+  first(defaultIfEmpty: T): T;
+  first(defaultIfEmpty?: T): T | undefined;
   first(defaultIfEmpty?: T): T | undefined {
     // noinspection LoopStatementThatDoesntLoopJS
     for (const value of this) {
