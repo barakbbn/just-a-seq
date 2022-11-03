@@ -29,7 +29,7 @@ const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
 
 asSeq(files)
   .filter(file => file.ext === '.json')
-  .chunkBySum(64 * 1024 * 1024 /* 64MB */, file => file.size, {maxItemsInChunk: 100})
+  .chunkByLimit(64 * 1024 * 1024 /* 64MB */, file => file.size, {maxItemsInChunk: 100})
   .forEach((chunk, i) => {
     saveZipFile(`chunk-${i+1}.zip`, chunk.map(files => file.name));
   });
@@ -187,7 +187,7 @@ const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
 const chunksOfFiles = asSeq(files)
   .filter(file => file.ext === '.ndjson')
   .sortBy(file => file.size)
-  .chunkBySum(64 * 1024 * 1024 /* Max 64MB MEM */, file => file.size, {maxItemsInChunk: 100});
+  .chunkByLimit(64 * 1024 * 1024 /* Max 64MB MEM */, file => file.size, {maxItemsInChunk: 100});
 const chunksOfRecords = chunksOfFiles.map(chunk => chunk
   .map(file => loadfileContent(file.name))
   .map(json => JSON.parse(json))
@@ -224,7 +224,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 |              |              |              |                   |                 |
 |--------------|--------------|--------------|-------------------|-----------------|
 | append       |              |              |                   |                 |
-| cache        | chunk        | chunkBy      | chunkBySum        | concat          |
+| cache        | chunk        | chunkBy      | chunkByLimit      | concat          |
 | diff         | diffDistinct | distinct     |                   |                 |
 | entries      |              |              |                   |                 |
 | filter       |              |              |                   |                 |

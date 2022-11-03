@@ -1,12 +1,11 @@
 {
   "name": "@barakbbn/just-a-seq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resembles JavaScript Array.",
   "scripts": {
     "build": "tsc",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
-    "pack": "pushd dist && npm pack || popd",
-    "deploy": "npm install && npm run build && npm test && npm run pack",
+    "deploy": "npm install && npm run build && npm test && npm publish",
     "coverage": "nyc --reporter=lcov npm test",
     "_test_old": "mocha -r ts-node/register test/**/*.ts",
     "_deleteDist": "rm -rf ./dist 2> .err || rd /S /Q dist 2> .err"

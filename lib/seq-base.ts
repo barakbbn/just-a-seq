@@ -189,9 +189,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  chunkBySum(limit: number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): T extends number? Seq<Seq<T>>: never;
-  chunkBySum(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): Seq<Seq<T>>;
-  chunkBySum(limit: number, selectorOrOpts?: ((item: T, index: number, itemNumber: number) => number) | { maxItemsInChunk?: number; maxChunks?: number; }, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): Seq<Seq<T>> {
+  chunkByLimit(limit: number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): T extends number? Seq<Seq<T>>: never;
+  chunkByLimit(limit: number, selector: (item: T, index: number, itemNumber: number) => number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): Seq<Seq<T>>;
+  chunkByLimit(limit: number, selectorOrOpts?: ((item: T, index: number, itemNumber: number) => number) | { maxItemsInChunk?: number; maxChunks?: number; }, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): Seq<Seq<T>> {
     const selector = typeof selectorOrOpts !== 'function'?
       IDENTITY:
       selectorOrOpts;

@@ -316,7 +316,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             [3]
           ];
 
-          const sut = this.createSut(input).chunkBySum(LIMIT);
+          const sut = this.createSut(input).chunkByLimit(LIMIT);
           const actual = [...sut].map(x => [...x]);
           assert.deepEqual(actual, expected);
         });
@@ -333,7 +333,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             inputArray.slice(15) // 20
           ];
 
-          const createSut = () => this.createSut(input).chunkBySum(LIMIT, sample => sample.score);
+          const createSut = () => this.createSut(input).chunkByLimit(LIMIT, sample => sample.score);
           for (const outerFirst of [false, true]) {
             let actual: Iterable<Iterable<Sample>> = createSut();
             if (outerFirst) actual = [...actual]
@@ -349,7 +349,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should return empty sequence if source sequence is empty', [], input => {
-        const sut = this.createSut(input).chunkBySum(0);
+        const sut = this.createSut(input).chunkByLimit(0);
         const actual = [...sut].map(x => [...x]);
         assert.isEmpty(actual);
       });
@@ -367,7 +367,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               [3, 3]
             ];
 
-            const sut = this.createSut(input).chunkBySum(LIMIT, {maxItemsInChunk: MAX});
+            const sut = this.createSut(input).chunkByLimit(LIMIT, {maxItemsInChunk: MAX});
             const actual = [...sut].map(x => [...x]);
             assert.deepEqual(actual, expected);
           });
@@ -385,7 +385,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               inputArray.slice(14) // 20 + 20 -> END
             ];
 
-            const createSut = () => this.createSut(input).chunkBySum(LIMIT, sample => sample.score, {maxItemsInChunk: MAX});
+            const createSut = () => this.createSut(input).chunkByLimit(LIMIT, sample => sample.score, {maxItemsInChunk: MAX});
             for (const outerFirst of [false, true]) {
               let actual: Iterable<Iterable<Sample>> = createSut();
               if (outerFirst) actual = [...actual]
@@ -401,20 +401,20 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           });
 
         this.it1('should return empty sequence if source sequence is empty', [], input => {
-          const sut = this.createSut(input).chunkBySum(0, {maxItemsInChunk: 1});
+          const sut = this.createSut(input).chunkByLimit(0, {maxItemsInChunk: 1});
           const actual = [...sut].map(x => [...x]);
           assert.isEmpty(actual);
         });
 
         this.it1('should throw when maxItemsInChunk is not positive', [], input => {
-          assert.throw(() => this.createSut(input).chunkBySum(0, {maxItemsInChunk: 0}));
+          assert.throw(() => this.createSut(input).chunkByLimit(0, {maxItemsInChunk: 0}));
         });
       });
 
       describe('with maxChunks', () => {
         this.it1('should return number of chunks as specified in maxChunks', array.oneToTen, input => {
           const maxChunks = 3;
-          const sut = this.createSut(input).chunkBySum(10, {maxChunks});
+          const sut = this.createSut(input).chunkByLimit(10, {maxChunks});
           const actual = [...sut];
           assert.lengthOf(actual, maxChunks);
         });
@@ -423,13 +423,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           (input, inputArray) => {
             const moreChunksThenPossible = inputArray.length * 2;
             const expected = 1;
-            const sut = this.createSut(input).chunkBySum(Number.MAX_SAFE_INTEGER, {maxChunks: moreChunksThenPossible});
+            const sut = this.createSut(input).chunkByLimit(Number.MAX_SAFE_INTEGER, {maxChunks: moreChunksThenPossible});
             const actual = [...sut];
             assert.lengthOf(actual, expected);
           });
 
         this.it1('should return empty sequence if maxChunks not positive', array.oneToTen, input => {
-          const sut = this.createSut(input).chunkBySum(10, {maxChunks: 0});
+          const sut = this.createSut(input).chunkByLimit(10, {maxChunks: 0});
           const actual = [...sut];
           assert.isEmpty(actual);
         });

@@ -175,7 +175,7 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     }));
     test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {
     }));
-    test('chunkBySum()', array.oneToTen, seq => seq.chunkBySum(5));
+    test('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
     test('count(condition)', array.oneToTen, seq => seq.count(n => n > 5));
