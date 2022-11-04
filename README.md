@@ -233,7 +233,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | ifEmpty      | innerJoin    | insert       | insertAfter       | insertBefore    |
 | intersect    | intersectBy  | intersperse  |                   |                 |
 | join         |              |              |                   |                 |
-| map          | **matchBy**  |              |                   |                 |
+| map          | partition    |              |                   |                 |
 | ofType       |              |              |                   |                 |
 | prepend      | push         |              |                   |                 |
 | reduce       | reduceRight  | remove       | removeAll         | removeFalsy     |

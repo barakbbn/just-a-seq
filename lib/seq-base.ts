@@ -935,11 +935,19 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return factories.FilterMapSeq<T, U>(this.getSourceForNewSequence(), map);
   }
 
-  matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
-
-  matchBy<S extends T, U = T>(condition: (item: T, index: number) => item is S, unmatchedSelector?: Selector<T, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U>; } {
+  partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
+  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
+  partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+  partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
+  partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(condition: (item: T, index: number) => item is S, resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U {
+    if(!resultSelector) resultSelector=(matched: CachedSeq<S>, unmatched: CachedSeq<T>) => {
+      const result: any = [matched, unmatched];
+      result.matched = matchedSeq;
+      result.unmatched = unmatchedSeq;
+      return result;
+    }
     const matched: S[] = [];
-    const unmatched: U[] = [];
+    const unmatched: T[] = [];
 
     const sourceIterator = new class {
       private _done: boolean | undefined = false;
@@ -965,13 +973,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         this.index++;
         if (!done) {
           if (condition(value, this.index)) matched.push(value);
-          else {
-            let unmatchedValue = unmatchedSelector?
-              unmatchedSelector(value, this.index):
-              value as unknown as U;
-
-            unmatched.push(unmatchedValue);
-          }
+          else unmatched.push(value);
         }
       }
 
@@ -986,28 +988,31 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       }
     }(this.getSourceForNewSequence());
 
-    function* yieldNext<U>(array: U[]) {
+    function* yieldNext(array: any[]): Generator<any, any, any> {
       while (!sourceIterator.done) {
-        if (array.length) yield* array.splice(0);
+        if (array.length) {
+          yield* array;
+          array.length=0;
+        }
         sourceIterator.iterateNext();
       }
     }
 
-    const matchedGen = new Gen(matched, function* (array, iterationContext) {
+    const matchedGen = new Gen<S, S, S[]>(matched, function* (array, iterationContext) {
       iterationContext.onClose(() => sourceIterator.release())
       yield* yieldNext(array)
     });
-    const unmatchedGen = new Gen(unmatched, function* (array, iterationContext) {
+
+    const unmatchedGen = new Gen<T, T, T[]>(unmatched, function* (array, iterationContext) {
       iterationContext.onClose(() => sourceIterator.release())
       yield* yieldNext(array)
     });
+
     const matchedSeq = factories.CachedSeq(matchedGen);
     const unmatchedSeq = factories.CachedSeq(unmatchedGen);
 
-    const result: any = [matchedSeq, unmatchedSeq];
-    result.matched = matchedSeq;
-    result.unmatched = unmatchedSeq;
-    return result as ([matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U> });
+    const result = resultSelector!(matchedSeq, unmatchedSeq);
+    return result;
   }
 
   max(): T extends number? number: never;

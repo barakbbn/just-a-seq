@@ -2027,12 +2027,12 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
-    describe('matchBy()', () => {
+    describe('partition()', () => {
       describe("matched sequence", () => {
         this.it1('should return only items that meet the condition - numbers', array.oneToTen, (input) => {
           const expectedEvens = [...input].filter(x => x % 2 == 0);
           let sut = this.createSut(input);
-          const matchResults = sut.matchBy(x => x % 2 == 0);
+          const matchResults = sut.partition(x => x % 2 == 0);
           const actual = [...matchResults.matched];
           assert.sameOrderedMembers(actual, expectedEvens);
         });
@@ -2040,21 +2040,21 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         this.it1('should return only items that meet the condition - objects', array.grades, (input) => {
           const expectedAboveFifty = [...input].filter(x => x.grade > 50);
           let sut2 = this.createSut(input);
-          let actual2 = [...sut2.matchBy(x => x.grade > 50).matched];
+          let actual2 = [...sut2.partition(x => x.grade > 50).matched];
           assert.sameOrderedMembers(actual2, expectedAboveFifty);
         });
 
         this.it1('should return empty sequence if non of the items meet the condition - numbers', array.oneToTen, (input) => {
           const expectedEmpty: any[] = [];
           let sut = this.createSut(input);
-          let actual = [...sut.matchBy(() => false).matched];
+          let actual = [...sut.partition(() => false).matched];
           assert.sameOrderedMembers(actual, expectedEmpty);
         });
 
         this.it1('should return empty sequence if non of the items meet the condition - objects', array.grades, (input) => {
           const expectedEmpty: any[] = [];
           const sut = this.createSut(input);
-          const actual = [...sut.matchBy(() => false).matched];
+          const actual = [...sut.partition(() => false).matched];
           assert.sameOrderedMembers(actual, expectedEmpty);
         });
       });
@@ -2063,7 +2063,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         this.it1('should return only items that do not meet the condition - numbers', array.oneToTen, (input) => {
           const expectedOdds = [...input].filter(x => x % 2 == 1);
           let sut = this.createSut(input);
-          const matchResults = sut.matchBy(x => x % 2 == 0);
+          const matchResults = sut.partition(x => x % 2 == 0);
           const actual = [...matchResults.unmatched];
           assert.sameOrderedMembers(actual, expectedOdds);
         });
@@ -2071,21 +2071,21 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         this.it1('should return only items that do not meet the condition - objects', array.grades, (input) => {
           const expectedFiftyAndBelow = [...input].filter(x => x.grade <= 50);
           let sut2 = this.createSut(input);
-          let actual2 = [...sut2.matchBy(x => x.grade > 50).unmatched];
+          let actual2 = [...sut2.partition(x => x.grade > 50).unmatched];
           assert.sameOrderedMembers(actual2, expectedFiftyAndBelow);
         });
 
         this.it1('should return empty sequence if all of the items meet the condition - numbers', array.oneToTen, (input) => {
           const expectedEmpty: any[] = [];
           let sut = this.createSut(input);
-          let actual = [...sut.matchBy(() => true).unmatched];
+          let actual = [...sut.partition(() => true).unmatched];
           assert.sameOrderedMembers(actual, expectedEmpty);
         });
 
         this.it1('should return empty sequence if all of the items meet the condition - objects', array.grades, (input) => {
           const expectedEmpty: any[] = [];
           const sut = this.createSut(input);
-          const actual = [...sut.matchBy(() => true).unmatched];
+          const actual = [...sut.partition(() => true).unmatched];
           assert.sameOrderedMembers(actual, expectedEmpty);
         });
 
@@ -2097,22 +2097,21 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               .map(x => x.y);
 
             const sut = this.createSut(input);
-            const matchResult = sut.matchBy(
+            const actual = sut.partition(
               (x): x is { x: number; } => 'x' in x,
-              x => x.y);
-            const unmatched = [...matchResult.unmatched];
-            assert.deepEqual(unmatched, expected);
+              (matched, unmatched) => unmatched.map(_ => _.y!).toArray());
+            assert.deepEqual(actual, expected);
           });
       });
 
       this.it1('should have the items in .matched property exactly the same as result tuple at index 0', array.oneToTen, (input) => {
         let sut = this.createSut(input);
-        const matchResults = sut.matchBy(x => x % 2 == 0);
+        const matchResults = sut.partition(x => x % 2 == 0);
         assert.sameOrderedMembers([...matchResults.matched], [...matchResults[0]]);
       })
       this.it1('should have the items in .unmatched property exactly the same as result tuple at index 1', array.oneToTen, (input) => {
         let sut = this.createSut(input);
-        const matchResults = sut.matchBy(x => x % 2 == 0);
+        const matchResults = sut.partition(x => x % 2 == 0);
         assert.sameOrderedMembers([...matchResults.unmatched], [...matchResults[1]]);
       })
 

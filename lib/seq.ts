@@ -282,9 +282,10 @@ export interface Seq<T> extends Iterable<T> {
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
-  matchBy<S extends T, U = T>(typeGuard: (item: T, index: number) => item is S, unmatchedSelector?: Selector<T, U>): [matched: CachedSeq<S>, unmatched: CachedSeq<U>] & { matched: CachedSeq<S>, unmatched: CachedSeq<U>; };
-
-  matchBy(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+  partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
+  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
+  partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+  partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
 
   max(): T extends number? number: never; // Overload
   max(selector: Selector<T, number>): number;
