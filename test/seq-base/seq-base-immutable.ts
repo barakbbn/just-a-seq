@@ -29,7 +29,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('append()', array.oneToTen, seq => seq.append(-1));
     testImmutable('chunk()', array.oneToTen, seq => seq.chunk(5));
     testImmutable('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
-    testImmutable('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {}));
+    testImmutable('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => ({})));
     testImmutable('concat()', array.oneToTen, seq => seq.concat(array.tenZeros));
     testImmutable('concat$()', array.oneToTen, seq => seq.concat$(array.tenZeros));
     testImmutable('consume()', array.oneToTen, seq => seq.consume());
@@ -103,7 +103,8 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('sort()', array.zeroToTen, seq => seq.sort());
     testImmutable('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     testImmutable('sorted()', array.zeroToTen, seq => seq.sorted());
-    testImmutable('split()', array.zeroToTen, seq => seq.split(4).reduce((a, b) => [...a, ...b], [1]));
+    testImmutable('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
+    testImmutable('splitAt()', array.zeroToTen, seq => seq.splitAt(4).reduce((a, b) => [...a, ...b], [1]));
     testImmutable('startsWith()', array.zeroToTen, seq => seq.startsWith(array.zeroToTen));
     testImmutable('sum()', array.zeroToTen, seq => seq.sum());
     testImmutable('take()', array.zeroToTen, seq => seq.take(10));

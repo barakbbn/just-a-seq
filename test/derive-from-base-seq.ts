@@ -16,7 +16,7 @@ import {array, TestableDerivedSeq} from "./test-data";
 
 
 function createSut<T>(optimized: boolean) {
-  return <T>(input: Iterable<T>, ...tags: [tag: symbol, value: any][]): SeqBase<T> => {
+  return <T>(input?: Iterable<T>, ...tags: [tag: symbol, value: any][]): SeqBase<T> => {
     if (optimized) tags.push([SeqTags.$optimize, true]);
     return new TestableDerivedSeq(input, tags);
   }

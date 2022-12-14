@@ -86,8 +86,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('append()', array.oneToTen, seq => seq.append(-1));
     test('chunk()', array.oneToTen, seq => seq.chunk(5));
     test('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
-    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {
-    }));
+    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => ({})));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
     test('consume()', array.oneToTen, seq => seq.consume());
@@ -163,7 +162,8 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('sort()', array.zeroToTen, seq => seq.sort());
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
-    test('split()', array.zeroToTen, seq => seq.split(4).reduce((a, b) => [...a, ...b], [1]));
+    test('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
+    test('splitAt()', array.zeroToTen, seq => seq.splitAt(4).reduce((a, b) => [...a, ...b], [1]));
     test2('startsWith()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test2('startsWith() => first is longer', array.zeroToTen, array.zeroToNine, (seq, other) => seq.startsWith(other));
     test2('startsWith() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.startsWith(other));

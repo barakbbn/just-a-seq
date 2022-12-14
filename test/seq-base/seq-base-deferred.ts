@@ -155,9 +155,11 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             [inputArray[10]]
           ];
           //chunk every 3 items, when absolute item index is greater than 5, move item to next chunk
-          const createSut = () => this.createSut(input).chunkBy(itemInfo => itemInfo.itemNumber % 3 === 0?
-            itemInfo.done(itemInfo.index <= 5, false):
-            itemInfo.next(itemInfo.item.grade));
+          const createSut = () => this.createSut(input).chunkBy(info => ({
+            endOfChunk: info.itemNumber % 3 === 0,
+            whatAboutTheItem: info.index <= 5 || info.itemNumber === 1 ? 'KeepIt' : 'MoveToNextChunk',
+            userData: info.item.grade
+          }));
 
           for (const outerFirst of [false, true]) {
             let actual: Iterable<Iterable<{ name: string; grade: number; }>> = createSut();
@@ -177,9 +179,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         array.grades, input => {
 
           const sut = TestHarness.monitorIteration(this.createSut(input)
-            .chunkBy(itemInfo => itemInfo.itemNumber === 3?
-              itemInfo.done(true, false):
-              itemInfo.next()));
+            .chunkBy(itemInfo => ({endOfChunk: itemInfo.itemNumber === 3})));
 
           for (const chunk of sut) {
             assert.isFalse(TestHarness.$$consumed(sut));
@@ -193,21 +193,20 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should return empty sequence if source sequence is empty', [], input => {
-        const sut = this.createSut(input).chunkBy(itemInfo => itemInfo.done(true, false));
+        const sut = this.createSut(input).chunkBy(itemInfo => ({endOfChunk: true}));
         const actual = [...sut].map(x => [...x]);
         assert.isEmpty(actual);
       });
 
       this.it1('should create only one chunk if never calling endChunk method',
         array.grades, (input, inputArray) => {
-          const sut = this.createSut(input).chunkBy(() => {
-          });
+          const sut = this.createSut(input).chunkBy(() => ({}));
           const expected = [inputArray.slice()];
           const actual = [...sut].map(x => [...x]);
           assert.sameDeepOrderedMembers(actual, expected);
         });
 
-      this.it1('should call processor function with correct arguments values',
+      this.it1('should call splitLogic function with correct arguments values',
         array.grades, (input, inputArray) => {
 
           const expected = [ //chunk every 3 items, when absolute item index is greater than 5, move item to next chunk
@@ -231,36 +230,30 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           ];
 
           const actual: unknown[] = [];
-          const sut = this.createSut(input).chunkBy(itemInfo => {
-            const {item, index, itemNumber, chunkNumber, userData} = itemInfo;
+          const sut = this.createSut(input).chunkBy(info => {
+            const {item, index, itemNumber, chunkNumber, userData} = info;
             actual.push({item, index, itemNumber, chunkNumber, userData});
-            if (itemInfo.itemNumber % 3 === 0) {
-              itemInfo.done(itemInfo.index <= 5, false, -1);
-            } else {
-              itemInfo.next(itemInfo.item.grade);
-            }
+            const endOfChunk = info.itemNumber % 3 === 0;
+            return {
+              endOfChunk,
+              whatAboutTheItem: info.index <= 5 || info.itemNumber === 1 ? 'KeepIt' : 'MoveToNextChunk',
+              userData: endOfChunk ? -1 : info.item.grade
+            };
           });
 
           TestHarness.materialize(sut);
           assert.sameDeepOrderedMembers(actual, expected);
         });
 
-      this.it1('should force including first item in chunk when completing a chunk without including first item', array.grades,
-        (input, inputArray) => {
-          const expected = inputArray.map(g => [g]);
-          const sut = this.createSut(input).chunkBy(itemInfo => itemInfo.done(false, false));
-          const actual = [...sut].map(g => [...g]);
-          assert.deepEqual(actual, expected)
-        });
-
       this.it1('should stop creating more chunks after calling endChunk with isLastCheck=true',
         array.grades, (input, inputArray) => {
           const sut = this.createSut(input);
           for (let maxChunks = 1; maxChunks < 3; maxChunks++) {
-            const chunkBy = sut.chunkBy(itemInfo => {
-              const isLastChunk = itemInfo.chunkNumber === maxChunks;
-              itemInfo.done(true, isLastChunk);
-            });
+            const chunkBy = sut.chunkBy(info => ({
+
+              isLastChunk: info.chunkNumber === maxChunks,
+              endOfChunk: true
+            }));
 
             const actual = [...chunkBy];
             assert.lengthOf(actual, maxChunks);
@@ -272,11 +265,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
           const sut = this.createSut(input);
           for (let maxChunks = 0; maxChunks < 3; maxChunks++) {
-            const chunkBy = sut.chunkBy(itemInfo => {
-              itemInfo.done(true, false);
-            }, info => {
-              return info.chunkNumber <= maxChunks;
-            });
+            const chunkBy = sut.chunkBy(info => ({endOfChunk: true}),
+              info => info.chunkNumber <= maxChunks);
 
             const actual = [...chunkBy];
             assert.lengthOf(actual, maxChunks);
@@ -292,9 +282,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           }));
 
           const actual: unknown[] = [];
-          const sut = this.createSut(input).chunkBy(itemInfo => {
-            itemInfo.done(true, false, itemInfo.item.grade);
-          }, info => {
+          const sut = this.createSut(input).chunkBy(info => ({
+            endOfChunk: true,
+            userData: info.item.grade
+          }), info => {
             actual.push({...info});
             return true;
           });
@@ -305,7 +296,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
     });
 
-    describe('chunkBySum()', () => {
+    describe('chunkByLimit()', () => {
       this.it1('should split number sequence into each chunk, numbers having their total sum less or equals the limit',
         [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], input => {
           const LIMIT = 6;
@@ -1154,7 +1145,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1203,7 +1194,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
       this.it1('should call all selector callbacks with expected parameters', array.folders, (input) => {
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
         let expectedSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
         const expectedIndexes = new Array<number>(9).fill(0);
         let actualSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
@@ -1289,7 +1280,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1593,8 +1584,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1615,8 +1606,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1673,8 +1664,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1695,8 +1686,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
+            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1960,7 +1951,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         if (opts?.suffix != null || opts?.insideOut) expected.push(opts?.suffix ?? separator);
 
         const sut = this.createSut(input);
-        const actual = (opts?.insideOut)? sut.intersperse(separator, true): sut.intersperse(separator, opts);
+        const actual = (opts?.insideOut) ? sut.intersperse(separator, true) : sut.intersperse(separator, opts);
         assert.deepEqual([...actual], expected);
       };
 
@@ -2620,61 +2611,144 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
-    describe('split()', () => {
-      describe('at index', () => {
-        it('should return two sequences, first one with items before the split index and the second with the rest', () => {
-          const source = array.oneToTen;
-          for (let size = 0; size <= 10; size++) {
-            const input = source.slice(size);
-            let sutArray = this.createSut(input);
-            let sutGenerator = this.createSut(generator.from(input));
-            for (let index = -1; index < input.length + 1; index++) {
-              const expectedFirst = index < 1? []: input.slice(0, index);
-              const expectedSecond = index < 1? input.slice(): input.slice(index);
-              let actual = sutArray.split(index);
-              assert.deepEqual([...actual[0]], expectedFirst);
-              assert.deepEqual([...actual[1]], expectedSecond);
-              // Second first
-              actual = sutArray.split(index);
-              assert.deepEqual([...actual[1]], expectedSecond);
-              assert.deepEqual([...actual[0]], expectedFirst);
+    describe('splitAt', () => {
+      this.it1('should return two sequences, first one with items before the split index and the second with the rest', array.oneToTen, (input, inputArray) => {
+        let sut = this.createSut(input);
 
-              actual = sutGenerator.split(index);
-              assert.deepEqual([...actual[0]], expectedFirst);
-              assert.deepEqual([...actual[1]], expectedSecond);
-              // Second first
-              actual = sutGenerator.split(index);
-              assert.deepEqual([...actual[1]], expectedSecond);
-              assert.deepEqual([...actual[0]], expectedFirst);
-            }
+        for (let index = -1; index < inputArray.length + 1; index++) {
+          const expectedFirst = index < 1 ? [] : inputArray.slice(0, index);
+          const expectedSecond = index < 1 ? inputArray.slice() : inputArray.slice(index);
+
+          let actual = sut.splitAt(index);
+          assert.deepEqual([...actual[0]], expectedFirst);
+          assert.deepEqual([...actual[1]], expectedSecond);
+          // Second first
+          actual = sut.splitAt(index);
+          assert.deepEqual([...actual[1]], expectedSecond);
+          assert.deepEqual([...actual[0]], expectedFirst);
+        }
+      });
+    });
+
+    describe('split()', () => {
+      this.it1('should split the sequence into expected number of sub sequences with expected items in each',
+        Array<string>().concat(...array.loremIpsum.map(w => [w, ' '])), (input, inputArray) => {
+
+          const expected: string[][] = [];
+          let indexOfSpace = -2;
+          const inputData = inputArray.slice();
+          while (true) {
+            indexOfSpace = inputData.findIndex(w => w === ' ');
+            if (indexOfSpace > -1) {
+              expected.push(inputData.splice(0, indexOfSpace));
+              inputData.shift();
+            } else break;
           }
+
+          const sut = this.createSut(input).split(w => w === ' ');
+          const split = [...sut];
+          const actual = split.map(seq => [...seq]);
+          assert.deepEqual(actual, expected);
         });
+
+      this.it1('should return an empty first sub-sequence if condition meets on the first item', array.oneToTen, (input, inputArray) => {
+        const expected: number[][] = [[], inputArray.slice(1)];
+        const sut = this.createSut(input).split(n => n === inputArray[0]);
+        const actual = [...sut].map(seq => [...seq]);
+        assert.deepEqual(actual, expected);
       });
 
-      describe('by condition', () => {
-        this.it1('should return two sequences, first one with items while the condition met and the second with the rest', array.oneToTen, (input) => {
-          const expected = [[...input].filter(n => n < 5), [...input].filter(n => n >= 5)];
-          const sut = this.createSut(input);
-          const split = sut.split(n => n < 5);
-          const actual = [[...split[0]], [...split[1]]];
+      this.it1('should return only one sub-sequence with all items, if condition never meets', array.oneToTen, (input, inputArray) => {
+        const expected = [inputArray.slice()];
+        const NUN_EXISTING_VALUE = -1;
+        const sut = this.createSut(input).split(n => n === NUN_EXISTING_VALUE);
+        const actual = [...sut].map(seq => [...seq]);
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should return empty sequence if source sequence is empty', [] as number[], (input) => {
+        const expected = [] as number[][];
+        const sut = this.createSut(input).split(n => true);
+        const actual = [...sut].map(seq => [...seq]);
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should included the "separator" item in a separated sub-sequence when opts.keepSeparator = SeparateChunk',
+        array.oneToTen, (input, inputArray) => {
+          const expected = [[1, 2, 3, 4], [5], [6, 7, 8, 9, 10]];
+          const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'SeparateChunk'});
+          const actual = [...sut].map(x => [...x]);
           assert.deepEqual(actual, expected);
         });
 
-        this.it1('should return first sequence with all items and second empty, if all items match a condition', array.oneToTen, (input) => {
-          const expected = [[...input].filter(n => n > 0), []];
-          const sut = this.createSut(input);
-          const split = sut.split(n => n > 0);
-          const actual = [[...split[0]], [...split[1]]];
+      this.it1('should included "separator" item, appended to the left chunk when opts.keepSeparator = LeftChunk',
+        array.oneToTen, (input, inputArray) => {
+          const expected = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+          const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'LeftChunk'});
+          const actual = [...sut].map(x => [...x]);
           assert.deepEqual(actual, expected);
         });
 
-        this.it1('should return first sequence empty and second with all items, if none of the items match a condition', array.oneToTen, (input) => {
-          const expected = [[], [...input].filter(n => n > 0)];
-          const sut = this.createSut(input);
-          const split = sut.split(() => false);
-          const actual = [[...split[0]], [...split[1]]];
+
+      this.it1('should included the "separator" item, prepend to the next chunk when opts.keepSeparator = RightChunk',
+        array.oneToTen, (input, inputArray) => {
+          const expected = [[1, 2, 3, 4], [5, 6, 7, 8, 9, 10]];
+          const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'RightChunk'});
+          const actual = [...sut].map(x => [...x]);
           assert.deepEqual(actual, expected);
         });
+
+      describe('with {opts.maxChunks: 2}', () => {
+        const maxChunks = 2;
+        this.it1('should split the sequence into number of sub sequences as specified in {opts.maxChunks}, when source sequence can be split to more',
+          array.oneToTen, (input, inputArray) => {
+
+            const expected = [[1], [3]] as number[][];
+
+            const sut = this.createSut(input).split(n => n % 2 == 0, {maxChunks});
+            const split = [...sut];
+            const actual = split.map(seq => [...seq]);
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it1('should return only one sub-sequence with all items, if condition never meets', array.oneToTen, (input, inputArray) => {
+          const expected = [inputArray.slice()];
+          const NONE_EXISTING_VALUE = -1;
+          const sut = this.createSut(input).split(n => n === NONE_EXISTING_VALUE, {maxChunks});
+          const actual = [...sut].map(seq => [...seq]);
+          assert.deepEqual(actual, expected);
+        });
+
+        this.it1('should return empty sequence if source sequence is empty', [] as number[], (input) => {
+          const expected = [] as number[][];
+          const sut = this.createSut(input).split(n => true, {maxChunks});
+          const actual = [...sut].map(seq => [...seq]);
+          assert.deepEqual(actual, expected);
+        });
+
+        this.it1('should included the "separator" item in a separated sub-sequence when opts.keepSeparator = SeparateChunk',
+          array.oneToTen, (input, inputArray) => {
+            const expected = [[1, 2, 3, 4], [5]];
+            const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'SeparateChunk', maxChunks});
+            const actual = [...sut].map(x => [...x]);
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it1('should included "separator" item, appended to the left chunk when opts.keepSeparator = LeftChunk',
+          array.oneToTen, (input, inputArray) => {
+            const expected = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+            const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'LeftChunk', maxChunks});
+            const actual = [...sut].map(x => [...x]);
+            assert.deepEqual(actual, expected);
+          });
+
+        this.it1('should included the "separator" item, prepend to the next chunk when opts.keepSeparator = RightChunk',
+          array.oneToTen, (input, inputArray) => {
+            const expected = [[1, 2, 3, 4], [5, 6, 7, 8, 9]];
+            const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'RightChunk', maxChunks});
+            const actual = [...sut].map(x => [...x]);
+            assert.deepEqual(actual, expected);
+          });
       });
     });
 

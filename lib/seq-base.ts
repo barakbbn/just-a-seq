@@ -1,6 +1,7 @@
-import {internalEmpty} from "./internal";
+import {internalEmpty} from './internal';
 import {
-  CachedSeq, ComparableType,
+  CachedSeq,
+  ComparableType,
   Comparer,
   Condition,
   factories,
@@ -11,13 +12,15 @@ import {
   SeqOfGroups,
   SortedSeq,
   ToComparableKey
-} from "./seq";
+} from './seq';
 import {
   closeIterator,
-  consume, Dict,
+  consume,
+  Dict,
   entries,
   Gen,
-  getIterator, IDENTITY,
+  getIterator,
+  IDENTITY,
   IGNORED_ITEM,
   isArray,
   isIterable,
@@ -26,8 +29,8 @@ import {
   SeqTags,
   TaggedSeq,
   tapIterable
-} from "./common";
-import {LEGACY_COMPARER} from "./sort-util";
+} from './common';
+import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
@@ -98,60 +101,47 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     if (maxChunks < 1) return internalEmpty<Seq<T>>();
 
-    return this.chunkBy(itemInfo => itemInfo.itemNumber < size?
-      itemInfo.next():
-      itemInfo.done(true, itemInfo.chunkNumber === maxChunks));
+    return this.chunkBy(info => ({
+      endOfChunk: info.itemNumber === size,
+      isLastChunk: info.chunkNumber === maxChunks,
+      whatAboutTheItem: 'KeepIt'
+    })) as unknown as Seq<Seq<T>>;
   }
 
-  chunkBy<U>(processor: (itemInfo: {
-               item: T;
-               index: number;
-               itemNumber: number;
-               chunkNumber: number;
-               userData?: U;
-               next(userData?: U): void;
-               done(includeItemInChunk: boolean, isLastChunk: boolean, userData?: U): void;
-             }) => void,
-             shouldStartNewChunk: (info: {
-               chunkNumber: number;
-               processedItemsCount: number;
-               userData?: U;
-             }) => boolean = () => true): Seq<Seq<T>> {
+  chunkBy<U>(
+    splitLogic: (info: {
+      item: T;
+      index: number;
+      itemNumber: number;
+      chunkNumber: number;
+      userData?: U;
+    }) => {
+      endOfChunk?: boolean;
+      isLastChunk?: boolean;
+      whatAboutTheItem?: 'KeepIt' | 'SkipIt' | 'MoveToNextChunk';
+      userData?: U;
+    },
+    shouldStartNewChunk: (info: {
+      chunkNumber: number;
+      processedItemsCount: number;
+      userData?: U;
+    }) => boolean = () => true
+  ): Seq<CachedSeq<T>> {
+
     const self = this;
     const optimize = SeqTags.optimize(this);
-
     return this.generate(function* chunkBy(items, iterationContext) {
-      class ItemInfo {
-        nextUserData?: U;
-        includeItemInChunk: boolean = true;
-        endOfChunk: boolean;
-        isLastChunk: boolean;
-
-        constructor(public readonly item: T, public readonly index: number, public readonly itemNumber: number, public readonly chunkNumber: number, public readonly userData?: U) {
-        }
-
-        next(userData?: U) {
-          this.nextUserData = userData;
-        }
-
-        done(includeItemInChunk: boolean, isLastChunk: boolean, userData?: U) {
-          this.endOfChunk = true;
-          this.includeItemInChunk = this.itemNumber == 1? true: includeItemInChunk;
-          this.isLastChunk = isLastChunk;
-          this.nextUserData = userData;
-        }
-      }
 
       iterationContext.onClose(() => innerSeq?.consume())
       const iterator = iterationContext.closeWhenDone(getIterator(items));
 
-      let innerSeq: Seq<T> | undefined;
+      let innerSeq: CachedSeq<T> | undefined;
       let index = 0;
       let chunkNumber = 0;
       let userData: U | undefined = undefined;
 
       let next = iterator.next();
-      let isLastChunk = false;
+      let isLastChunk: boolean | undefined;
       while (!next.done) {
         innerSeq?.consume();
         if (next.done || isLastChunk) break;
@@ -164,22 +154,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
         innerSeq = self.tagAsOptimized(factories.CachedSeq<T>(new Gen(items, function* innerChunkCache() {
           let itemNumber = 1;
-          let endOfChunk = false;
+          let endOfChunk: boolean | undefined;
 
           while (!endOfChunk && !next.done) {
-            const itemInfo = new ItemInfo(next.value, index, itemNumber, chunkNumber, userData);
+            const itemInfo = {item: next.value, index, itemNumber, chunkNumber, userData};
 
-            processor(itemInfo);
-            userData = itemInfo.nextUserData;
-
-            if (itemInfo.includeItemInChunk) {
+            const resolution = splitLogic(itemInfo);
+            ({endOfChunk, isLastChunk, userData} = resolution);
+            let whatAboutTheItem = resolution.whatAboutTheItem ?? 'KeepIt';
+            if(!endOfChunk && whatAboutTheItem === 'MoveToNextChunk') whatAboutTheItem = 'KeepIt';
+            if (whatAboutTheItem === 'KeepIt') {
               yield next.value;
-              next = iterator.next();
-              index++;
               itemNumber++;
             }
 
-            ({endOfChunk, isLastChunk} = itemInfo);
+            const shouldStop = isLastChunk && endOfChunk
+            if (!shouldStop && whatAboutTheItem !== 'MoveToNextChunk') {
+              next = iterator.next();
+              index++;
+            }
           }
 
         })), optimize);
@@ -203,19 +196,22 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }
     if (actualOpts.maxChunks < 1) return internalEmpty<Seq<T>>();
 
-    return this.chunkBy<number>(itemInfo => {
-      const value = selector(itemInfo.item, itemInfo.index, itemInfo.itemNumber);
-      const nextValue = (itemInfo.userData ?? 0) + value;
-      const reachedMaxItems = itemInfo.itemNumber === actualOpts.maxItemsInChunk;
+    return this.chunkBy<number>(info => {
+      const value = selector(info.item, info.index, info.itemNumber);
+      const nextValue = (info.userData ?? 0) + value;
+      const reachedMaxItems = info.itemNumber === actualOpts.maxItemsInChunk;
       const endOfChunk = nextValue >= limit || reachedMaxItems;
-      const includeItemInChunk = nextValue <= limit || reachedMaxItems;
-      const isLastChunk = itemInfo.chunkNumber === actualOpts.maxChunks;
-
-      endOfChunk?
-        itemInfo.done(includeItemInChunk, isLastChunk, 0):
-        itemInfo.next(nextValue)
-    });
+      const takeItem = nextValue <= limit || reachedMaxItems || info.itemNumber === 1;
+      const isLastChunk = info.chunkNumber === actualOpts.maxChunks;
+      return {
+        endOfChunk,
+        isLastChunk,
+        whatAboutTheItem: takeItem? 'KeepIt': 'MoveToNextChunk',
+        userData: endOfChunk? 0: nextValue
+      };
+    }) as unknown as Seq<Seq<T>>;
   }
+
 
   concat(...items: Iterable<T>[]): Seq<T> {
     if (!items.length) return this;
@@ -344,11 +340,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     let equals: (t: T, u: U) => unknown = isEqualsFunc(firstKeySelector)? firstKeySelector.equals: sameValueZero;
 
     const first = firstKeySelector && !isEqualsFunc(firstKeySelector)?
-      Array.from(this, (item: T, index: number) => firstKeySelector(item /*, index, false */)):
+      Array.from(this, (item: T) => firstKeySelector(item)):
       Array.from(this) as unknown as K[];
 
     const second = (!secondKeySelector && Array.isArray(items))? items as K[]: secondKeySelector && !isEqualsFunc(firstKeySelector)?
-      Array.from(items, (item: U, index: number) => secondKeySelector(item /*, index, true */)):
+      Array.from(items, (item: U) => secondKeySelector(item)):
       Array.from(items) as unknown as K[];
 
     let offset = first.length - second.length;
@@ -940,7 +936,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
   partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
   partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(condition: (item: T, index: number) => item is S, resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U {
-    if(!resultSelector) resultSelector=(matched: CachedSeq<S>, unmatched: CachedSeq<T>) => {
+    if (!resultSelector) resultSelector = (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => {
       const result: any = [matched, unmatched];
       result.matched = matchedSeq;
       result.unmatched = unmatchedSeq;
@@ -992,7 +988,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       while (!sourceIterator.done) {
         if (array.length) {
           yield* array;
-          array.length=0;
+          array.length = 0;
         }
         sourceIterator.iterateNext();
       }
@@ -1011,8 +1007,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const matchedSeq = factories.CachedSeq(matchedGen);
     const unmatchedSeq = factories.CachedSeq(unmatchedGen);
 
-    const result = resultSelector!(matchedSeq, unmatchedSeq);
-    return result;
+    return resultSelector!(matchedSeq, unmatchedSeq);
   }
 
   max(): T extends number? number: never;
@@ -1411,19 +1406,64 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.sortInternal(source, undefined, undefined, reverse, top, actualOpts) as any;
   }
 
-  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(condition: Condition<T>, opts?: { keepSeparator?: 'LeftChunk' | 'SeparateChunk' | 'RightChunk'; maxChunks?: number }): Seq<Seq<T>> {
 
-  split(condition: Condition<T>): [irst: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+    return this.chunkBy<{ keepSeparator?: 'LeftChunk' | 'SeparateChunk' | 'RightChunk'; }>(info => {
+      let userData: any;
+      let whatAboutTheItem: 'KeepIt' | 'SkipIt' | 'MoveToNextChunk';
 
-  split(atIndexOrCondition: number | Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
-    const result: any = (typeof atIndexOrCondition === 'number')?
-      this.splitAtIndex(atIndexOrCondition):
-      this.splitByCondition(atIndexOrCondition);
+      const hitCondition = !!condition(info.item, info.index);
+      const endOfChunk = hitCondition && info.userData?.keepSeparator !== 'RightChunk';
+      const isLastChunk = opts?.maxChunks === info.chunkNumber;
 
+      if (info.userData?.keepSeparator !== undefined) whatAboutTheItem = 'KeepIt';
+      else if (!endOfChunk) whatAboutTheItem = 'KeepIt';
+      else if (opts?.keepSeparator === undefined) whatAboutTheItem = 'SkipIt';
+      else if (opts?.keepSeparator === 'LeftChunk') whatAboutTheItem = 'KeepIt';
+      else {
+        userData = {keepSeparator: opts?.keepSeparator!};
+        whatAboutTheItem = 'MoveToNextChunk';
+      }
+
+      return {
+        endOfChunk,
+        whatAboutTheItem,
+        isLastChunk,
+        userData
+      };
+    }) as unknown as Seq<Seq<T>>;
+  }
+
+  splitAt(index: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+    index = Math.trunc(index);
+    let iterator: Iterator<T>;
+    let next: IteratorResult<T>;
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
+      iterator = getIterator(source);
+      next = iterator.next();
+      let i = 0;
+      while (!next.done && i < index) {
+        yield next.value;
+        i++;
+        next = iterator.next();
+      }
+    }));
+
+    const second = this.generate(function* splitAtIndexSecond() {
+      // apply cache
+      first.cache(true);
+      while (!next.done) {
+        yield next.value;
+        next = iterator.next();
+      }
+
+    });
+
+    const result = [first, second] as unknown as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
     result.first = result[0];
     result.second = result[0];
 
-    return result as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
+    return result;
   }
 
   startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
@@ -1453,9 +1493,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     const secondIterator = getIterator(items);
     let secondNext = secondIterator.next();
-    for (const {value: first, index: firstIndex} of entries(this)) {
+    for (const first of this) {
       if (secondNext.done) return true;
-      const firstKey = firstKeySelector?.(first /* , firstIndex, false */);
+      const firstKey = firstKeySelector?.(first);
       const secondKey = secondKeySelector(secondNext.value);
       const same = equals(firstKey as unknown as T, secondKey as unknown as U);
       if (!same) return false;
@@ -1653,6 +1693,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   abstract [Symbol.iterator](): Iterator<T>;
 
+  /**
+   * Used by JSON.stringify
+   * @see {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#tojson_behavior}
+   * @param key
+   */
   toJSON(key: any): any {
     return this.toJsonOverride(key);
   }
@@ -1809,7 +1854,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
-    // then the order of items is not important and we optimize by working on the source
+    // then the order of items is not important, and we optimize by working on the source
     if (condition.length > 1 || !SeqTags.notAffectingNumberOfItems(this) || !SeqTags.notMappingItems(this)) {
       return this.allInternal(condition);
     }
@@ -1825,7 +1870,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const affectsCount = !SeqTags.notAffectingNumberOfItems(this);
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
-    // then the order of items is not important and we optimize by working on the source
+    // then the order of items is not important, and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) {
       return this.anyInternal(condition);
     }
@@ -1849,7 +1894,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
-    // then the order of items is not important and we optimize by working on the source
+    // then the order of items is not important, and we optimize by working on the source
     if (paramsCount > 1 || affectsCount) return this.countInternal(condition);
     if (!condition && Array.isArray(source)) return source.length;
     if (SeqTags.isSeq(source) && (!condition || SeqTags.notMappingItems(this))) {
@@ -2080,7 +2125,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index: number, first: S | undefined] {
-    [fromIndex, condition, fallback] = (typeof fromIndex === "number")?
+    [fromIndex, condition, fallback] = (typeof fromIndex === 'number')?
       [fromIndex, condition as (item: T, index: number) => item is S, fallback]:
       [0, fromIndex, condition as S | undefined];
 
@@ -2090,7 +2135,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   private findLastByCondition(tillIndex: number | Condition<T>, condition?: Condition<T> | T | undefined, fallback?: T | undefined): [index: number, last: T | undefined] {
-    [tillIndex, condition, fallback] = (typeof tillIndex === "number")?
+    [tillIndex, condition, fallback] = (typeof tillIndex === 'number')?
       [tillIndex, condition as Condition<T>, fallback]:
       [Number.NaN, tillIndex, condition as T | undefined];
 
@@ -2113,61 +2158,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       lazyScan.dispose();
     });
   }
-
-  private splitAtIndex(atIndex: number): [Seq<T>, Seq<T>] {
-    atIndex = Math.trunc(atIndex);
-    let iterator: Iterator<T>;
-    let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
-      iterator = getIterator(source);
-      next = iterator.next();
-      let index = 0;
-      while (!next.done && index < atIndex) {
-        yield next.value;
-        index++;
-        next = iterator.next();
-      }
-    }));
-
-    const second = this.generate(function* splitAtIndexSecond() {
-      // apply cache
-      first.cache(true);
-      while (!next.done) {
-        yield next.value;
-        next = iterator.next();
-      }
-
-    });
-
-    return [first, second];
-  }
-
-  private splitByCondition(condition: Condition<T>): [Seq<T>, Seq<T>] {
-    let iterator: Iterator<T>;
-    let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* splitAtIndexFirst(source) {
-      iterator = getIterator(source);
-      next = iterator.next();
-      let index = 0;
-      while (!next.done && condition(next.value, index++)) {
-        yield next.value;
-        index++;
-        next = iterator.next();
-      }
-    }));
-
-    const second = this.generate(function* splitAtIndexSecond() {
-      first.consume();
-      while (!next.done) {
-        yield next.value;
-        next = iterator.next();
-      }
-
-    });
-
-    return [first, second];
-  }
-
 }
 
 class CyclicBuffer<T> implements Iterable<T> {
@@ -2338,3 +2328,5 @@ class LazyScanAndMark {
     return this.itemsCount === 0;
   }
 }
+
+

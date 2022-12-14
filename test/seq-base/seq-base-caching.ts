@@ -143,14 +143,6 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
         testIteratedOnce(input, sut => sut.ofType(Number));
       });
 
-      // it1('orderBy()', (input) => {
-      //     testIteratedOnce(input, sut => sut.orderBy(x => x));
-      // });
-
-      // it1('orderByDescending()', (input) => {
-      //     testIteratedOnce(input, sut => sut.orderByDescending(x => x));
-      // });
-
       it1('prepend()', (input) => {
         testIteratedOnce(input, sut => sut.prepend([1]));
       });
@@ -216,7 +208,11 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
       });
 
       it1('split()', (input) => {
-        testIteratedOnce(input, sut => sut.split(2));
+        testIteratedOnce(input, sut => sut.split(x => x));
+      });
+
+      it1('splitAt()', (input) => {
+        testIteratedOnce(input, sut => sut.splitAt(2));
       });
 
       it1('take()', (input) => {

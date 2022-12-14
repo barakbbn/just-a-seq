@@ -165,7 +165,8 @@ export const array = new class {
 
   get loremIpsum(): TestableArray<string> {
     return new TestableArray(...
-      "Lorem ipsum dolor sit amet consectetur adipiscing elit Sed ut nibh diam Morbi leo erat porta congue facilisis vitae hendrerit ac dolor Nunc et nisl sit amet tortor pellentesque auctor Morbi sit amet arcu risus Ut efficitur purus turpis id egestas massa rhoncus a Donec imperdiet eros ut mollis posuere Mauris at tellus turpis Mauris in felis nec sapien condimentum interdum Fusce vulputate libero a finibus sollicitudin Donec aliquam est at nibh condimentum semper convallis diam porta Nulla ut eros id turpis fermentum condimentum Etiam fringilla magna sit amet odio blandit vitae porta eros posuere Integer at ligula auctor bibendum dui sit amet venenatis libero Proin convallis eros et arcu dapibus sodales Vivamus maximus ultricies libero ac mattis justo euismod eu".split(' ')
+      "Lorem ipsum dolor sit amet consectetur adipiscing elit Sed ut nibh diam Morbi leo erat porta congue facilisis vitae hendrerit ac dolor Nunc et nisl sit amet tortor pellentesque auctor Morbi sit amet arcu risus Ut efficitur purus turpis id egestas massa rhoncus a Donec imperdiet eros ut mollis posuere Mauris at tellus turpis Mauris in felis nec sapien condimentum interdum Fusce vulputate libero a finibus sollicitudin Donec aliquam est at nibh condimentum semper convallis diam porta Nulla ut eros id turpis fermentum condimentum Etiam fringilla magna sit amet odio blandit vitae porta eros posuere Integer at ligula auctor bibendum dui sit amet venenatis libero Proin convallis eros et arcu dapibus sodales Vivamus maximus ultricies libero ac mattis justo euismod eu"
+        .split(' ')
     );
   }
 
@@ -351,6 +352,18 @@ export class TestableArray<T> extends Array<T> {
     const randomIndexes = [...uniqueRandomIndexes];
     while (undefineds--) this[randomIndexes.pop()!] = undefined as any;
     while (nulls--) this[randomIndexes.pop()!] = null as any;
+
+    return this;
+  }
+
+  randomNulls(count: number): this {
+    const random = new Random(count);
+    const uniqueRandomIndexes = new Set<number>();
+    const maxIndexes = Math.min(count, this.length);
+
+    while (uniqueRandomIndexes.size < maxIndexes) uniqueRandomIndexes.add(random.next(0, this.length - uniqueRandomIndexes.size - 1));
+    const randomIndexes = [...uniqueRandomIndexes];
+    while (count--) this[randomIndexes.pop()!] = null as any;
 
     return this;
   }

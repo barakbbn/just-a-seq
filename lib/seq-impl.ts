@@ -192,14 +192,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
-  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
-
-  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
-
-  split(atIndexOrCondition: number | Condition<T>): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+  splitAt(index: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
     let result: any = [];
-    if (typeof atIndexOrCondition !== 'number') result = super.split(atIndexOrCondition);
-    else if (atIndexOrCondition > 0) result = [this.take(atIndexOrCondition), this.skip(atIndexOrCondition)];
+    if (index > 0) result = [this.take(index), this.skip(index)];
     else result.push(internalEmpty<T>(), this);
 
     result.first = result[0];

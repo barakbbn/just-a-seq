@@ -31,7 +31,7 @@ asSeq(files)
   .filter(file => file.ext === '.json')
   .chunkByLimit(64 * 1024 * 1024 /* 64MB */, file => file.size, {maxItemsInChunk: 100})
   .forEach((chunk, i) => {
-    saveZipFile(`chunk-${i+1}.zip`, chunk.map(files => file.name));
+    saveZipFile(`chunk-${i}.zip`, chunk.map(file => file.name));
   });
 ```
 
@@ -240,7 +240,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | removeKeys   | removeNulls  | repeat       | reverse           |                 |
 | skip         | skipFirst    | skipLast     |                   |                 |
 | skipWhile    | slice        | sort         | sortBy            | **thenSortBy**  |
-| sorted       | split        |              |                   |                 |
+| sorted       | split        | splitAt      |                   |                 |
 | take         | takeLast     | takeOnly     | takeWhile         | **tap**         |
 | transform    |              |              |                   |                 |
 | union        | unshift      |              |                   |                 |

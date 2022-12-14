@@ -42,7 +42,7 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('cache()', () => testGetIterator(sut => sut.cache()));
 
     describe('chunk()', () => testGetIterator(sut => sut.chunk(2)));
-    describe('chunkBy()', () => testGetIterator(sut => sut.chunkBy(()=>{})));
+    describe('chunkBy()', () => testGetIterator(sut => sut.chunkBy(()=>({whatAboutTheItem:'KeepIt', endOfChunk: false}))));
     describe('chunkBySum()', () => testGetIterator(sut => sut.chunkByLimit(2)));
 
     describe('concat()', () => testGetIterator(sut => sut.concat([2])));
@@ -133,17 +133,13 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('sorted()', () => testGetIterator(sut => sut.sorted()));
 
-    describe('split(at)', () => testGetIterator(sut => sut.split(2)));
+    describe('splitAt()', () => testGetIterator(sut => sut.splitAt(2)));
 
-    describe('split(at)[0]', () => testGetIterator(sut => sut.split(2)[0]));
+    describe('splitAt()[0]', () => testGetIterator(sut => sut.splitAt(2)[0]));
 
-    describe('split(at)[1]', () => testGetIterator(sut => sut.split(2)[1]));
+    describe('splitAt()[1]', () => testGetIterator(sut => sut.splitAt(2)[1]));
 
     describe('split(condition)', () => testGetIterator(sut => sut.split(x => x)));
-
-    describe('split(condition)[0]', () => testGetIterator(sut => sut.split(x => x)[0]));
-
-    describe('split(condition)[1]', () => testGetIterator(sut => sut.split(x => x)[1]));
 
     describe('take()', () => testGetIterator(sut => sut.take(2)));
 

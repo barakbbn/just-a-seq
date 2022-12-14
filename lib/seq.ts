@@ -49,20 +49,25 @@ export interface Seq<T> extends Iterable<T> {
 
   chunk(size: number, maxChunks?: number): Seq<Seq<T>>;
 
-  chunkBy<U>(processor: (itemInfo: {
-               item: T;
-               index: number;
-               itemNumber: number;
-               chunkNumber: number;
-               userData?: U;
-               next(userData?: U): void;
-               done(includeItemInChunk: boolean, isLastChunk: boolean, userData?: U): void;
-             }) => void,
-             shouldStartNewChunk?: (info: {
-               chunkNumber: number;
-               processedItemsCount: number;
-               userData?: U;
-             }) => boolean): Seq<Seq<T>>;
+  chunkBy<U>(
+    splitLogic: (info: {
+      item: T;
+      index: number;
+      itemNumber: number;
+      chunkNumber: number;
+      userData?: U;
+    }) => {
+      endOfChunk?: boolean;
+      isLastChunk?: boolean;
+      whatAboutTheItem?: 'KeepIt' | 'SkipIt' | 'MoveToNextChunk';
+      userData?: U;
+    },
+    shouldStartNewChunk?: (info: {
+      chunkNumber: number;
+      processedItemsCount: number;
+      userData?: U;
+    }) => boolean
+  ): Seq<CachedSeq<T>>;
 
   chunkByLimit(limit: number, opts?: { maxItemsInChunk?: number; maxChunks?: number; }): T extends number? Seq<Seq<T>>: never;
 
@@ -129,6 +134,7 @@ export interface Seq<T> extends Iterable<T> {
   findLastIndex(tillIndex: number, condition: Condition<T>): number;
 
   first(): T | undefined;
+
   first(defaultIfEmpty: T): T;
 
   firstAndRest(defaultIfEmpty?: T): [first: T, rest: Seq<T>] & { first: T; rest: Seq<T>; };
@@ -283,8 +289,11 @@ export interface Seq<T> extends Iterable<T> {
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
+
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
+
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+
   partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
 
   max(): T extends number? number: never; // Overload
@@ -367,16 +376,19 @@ export interface Seq<T> extends Iterable<T> {
   some(condition?: Condition<T>): boolean;
 
   /**
-   * Sort the sequence
-   * @param comparer - Optional comparer function.
-   * If omitted, sorting behaves like Array.sort() method, in which the items are converted to strings.
+   * Sort the sequence by converting items into strings and compares them.
+   * (Same as Array.sort() method behaves).
    * @return Sorted sequence implementing SortedSeq interface
    * @desc
-   * Avoid using, since it behaves like Array.sort() which converts the items to strings and compares them.
-   * Checkout the simplifies versions for sorting sorted(), sortBy()
+   * Avoid using this overload, and prefer the simplifies versions for sorting sorted(), sortBy()
    */
   sort(): Seq<T>;
 
+  /**
+   * Sort the sequence by using a comparer function.
+   * @param comparer - Optional comparer function.
+   * @return Sorted sequence implementing SortedSeq interface
+   */
   sort(comparer: Comparer<T>, opts?: { stable?: boolean; }): Seq<T>;
 
   sort(comparer: Comparer<T>, top: number, opts?: { stable?: boolean; }): Seq<T>;
@@ -393,9 +405,9 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
 
-  split(atIndex: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; }; // Overload
-  split(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+  split(condition: Condition<T>, opts?: { keepSeparator?: 'LeftChunk' | 'SeparateChunk' | 'RightChunk'; maxChunks?: number }): Seq<Seq<T>>;
 
+  splitAt(index: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
   startsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
 

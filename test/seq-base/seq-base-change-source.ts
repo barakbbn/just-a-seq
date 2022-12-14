@@ -171,10 +171,8 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('at()', array.oneToTen, seq => seq.at(-1));
     test('average()', array.oneToTen, seq => seq.average());
     test('append()', array.oneToTen, seq => seq.append(-1));
-    test('chunk()', array.oneToTen, seq => seq.chunkBy(() => {
-    }));
-    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => {
-    }));
+    test('chunk()', array.oneToTen, seq => seq.chunk(1));
+    test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => ({whatAboutTheItem:'KeepIt', endOfChunk:true })));
     test('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
     test2('concat()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat(other));
     test2('concat$()', array.oneToTen, array.tenZeros, (seq, other) => seq.concat$(other));
@@ -245,7 +243,8 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('sort()', array.zeroToTen, seq => seq.sort());
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
-    test('split()', array.zeroToTen, seq => seq.split(4).reduce((a, b) => [...a, ...b], [1]));
+    test('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
+    test('splitAt()', array.zeroToTen, seq => seq.splitAt(1).reduce((a, b) => [...a, ...b], [1]));
     test2('startsWith()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test('sum()', array.zeroToTen, seq => seq.sum());
     test('take()', array.zeroToTen, seq => seq.take(10));
