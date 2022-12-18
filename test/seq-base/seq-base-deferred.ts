@@ -2108,6 +2108,59 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
     });
 
+    describe('partitionWhile', () => {
+      this.it1('should return two sequences, first one with items while the condition met and the second with the rest',
+        array.oneToTen.x(2), (input, inputArray) => {
+          const condition = (n: number) => n < 5;
+          let expectedIndex = 0;
+          const expected: [number[], number[]] = [[], []];
+          for (const n of inputArray) {
+            expectedIndex = (expectedIndex === 0 && condition(n)) ? 0 : 1;
+            expected[expectedIndex].push(n);
+          }
+          const sut = this.createSut(input);
+          const split = sut.partitionWhile(condition);
+          const actual = [[...split[0]], [...split[1]]];
+          assert.deepEqual(expected, actual);
+        });
+
+      this.it1('should return first sequence with all items and second empty, if all items match a condition',
+        array.oneToTen.x(2), (input, inputArray) => {
+
+        const expected = [inputArray.slice(), []];
+        const sut = this.createSut(input);
+        const split = sut.partitionWhile(() => true);
+        const actual = [[...split[0]], [...split[1]]];
+          assert.deepEqual(expected, actual);
+      });
+
+      this.it1('should return first sequence empty and second with all items, if none of the items match a condition',
+        array.oneToTen.x(2), (input, inputArray) => {
+        const expected = [[], inputArray.slice()];
+        const sut = this.createSut(input);
+        const split = sut.partitionWhile(() => false);
+        const actual = [[...split[0]], [...split[1]]];
+        assert.deepEqual(expected, actual);
+      });
+
+      this.it1('should return first and second sequences empty, when source sequence is empty',
+        [] as number[], (input, inputArray) => {
+          const expected = [[], []] as number[][];
+          const sut = this.createSut(input);
+          const split = sut.partitionWhile(() => false);
+          const actual = [[...split[0]], [...split[1]]];
+          assert.deepEqual(expected, actual);
+        });
+
+      this.it1('result properties: first, second should be same instance as the result tuple at index 0, 1 respectively',
+        array.oneToTen.x(2), (input, inputArray) => {
+          const sut = this.createSut(input);
+          const actual = sut.partitionWhile(n => n < 5);
+          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
+          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second')
+        });
+    });
+
     describe('ofType()', () => {
       this.it1('should return filtered sequence with only the values of requested type', Array<any>().concat(
         array.oneToTen,
@@ -2628,6 +2681,14 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           assert.deepEqual([...actual[0]], expectedFirst);
         }
       });
+
+      this.it1('result properties: first, second should be same instance as the result tuple at index 0, 1 respectively',
+        array.oneToTen.x(2), (input, inputArray) => {
+          const sut = this.createSut(input);
+          const actual = sut.splitAt(5);
+          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
+          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second')
+        });
     });
 
     describe('split()', () => {

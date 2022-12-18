@@ -99,6 +99,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('partition().unmatched', () => testGetIterator(sut => sut.partition(x => x).unmatched));
 
+    describe('partitionWhile()', () => testGetIterator(sut => sut.partitionWhile(x => x)));
+
+    describe('partitionWhile()[0]', () => testGetIterator(sut => sut.partitionWhile(x => x)[0]));
+
+    describe('partitionWhile()[1]', () => testGetIterator(sut => sut.partitionWhile(x => x)[1]));
+
     describe('ofType()', () => testGetIterator(sut => sut.ofType(Number)));
 
     describe('prepend()', () => testGetIterator(sut => sut.prepend([1])));

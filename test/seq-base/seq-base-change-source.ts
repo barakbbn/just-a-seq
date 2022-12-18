@@ -1,4 +1,3 @@
-import {SeqBase} from "../../lib/seq-base";
 import {describe, it} from "mocha";
 import {array, generator} from "../test-data";
 import {Seq} from "../../lib";
@@ -222,6 +221,9 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
+    test('partitionWhile()', array.zeroToTen, seq => seq.partitionWhile(x => x < 5));
+    test('partitionWhile().first', array.zeroToTen, seq => seq.partitionWhile(x => x < 5).first);
+    test('partitionWhile().second', array.zeroToTen, seq => seq.partitionWhile(x => x < 5).second);
     test('max()', array.oneToTen, seq => seq.max());
     test('min()', array.oneToTen, seq => seq.min());
     test2('prepend()', array.oneToTen, [0, -1, -2], (seq, other) => seq.prepend(other));
@@ -243,8 +245,10 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test('sort()', array.zeroToTen, seq => seq.sort());
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
-    test('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
-    test('splitAt()', array.zeroToTen, seq => seq.splitAt(1).reduce((a, b) => [...a, ...b], [1]));
+    test('split()', array.zeroToTen, seq => seq.split(x => x < 5));
+    test('splitAt()', array.zeroToTen, seq => seq.splitAt(1));
+    test('splitAt().first', array.zeroToTen, seq => seq.splitAt(2).first);
+    test('splitAt().second', array.zeroToTen, seq => seq.splitAt(2).second);
     test2('startsWith()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test('sum()', array.zeroToTen, seq => seq.sum());
     test('take()', array.zeroToTen, seq => seq.take(10));

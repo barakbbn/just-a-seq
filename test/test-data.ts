@@ -10,8 +10,8 @@ export const array = new class {
     return [1, 'x', true, [], {}, String, Symbol.iterator, Number.POSITIVE_INFINITY];
   }
 
-  get oneToTen(): number[] {
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  get oneToTen(): TestableArray<number> {
+    return new TestableArray<number>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
 
   get oneToNine(): number[] {
@@ -269,7 +269,7 @@ export const generator = new class {
       let count = 0;
       while (true) {
         const value = from + step * count++;
-        if (!(step > 0? value <= to: to <= value)) break;
+        if (!(step > 0 ? value <= to : to <= value)) break;
         yield value;
       }
     })
@@ -302,7 +302,7 @@ class Random {
   }
 }
 
-type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T>? Iterable<T>: never; };
+type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
 export const iterables: ArraysOnly = new Proxy(array, {
   get(target: any, p: PropertyKey, receiver: any): any {
     const array = Reflect.get(target, p, receiver);
@@ -373,18 +373,18 @@ export class TestableArray<T> extends Array<T> {
     while (undefineds--) this.unshift(undefined as any);
     return this;
   }
+
   appendNulldefined(undefineds: number, nulls: number = 0): this {
     while (nulls--) this.push(null as any);
     while (undefineds--) this.push(undefined as any);
     return this;
   }
 }
-Object.defineProperty(TestableArray, 'getIteratorCount',{ enumerable: false});
-Object.defineProperty(TestableArray, 'yieldCount',{ enumerable: false});
+
+Object.defineProperty(TestableArray, 'getIteratorCount', {enumerable: false});
+Object.defineProperty(TestableArray, 'yieldCount', {enumerable: false});
 
 export class TestableDerivedSeq<T> extends SeqBase<T> {
-  private _wasIterated = false;
-
   constructor(
     protected readonly source: Iterable<T> = EMPTY_ARRAY,
     tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
@@ -393,6 +393,8 @@ export class TestableDerivedSeq<T> extends SeqBase<T> {
 
     SeqTags.setTagsIfMissing(this, tags);
   }
+
+  private _wasIterated = false;
 
   get wasIterated(): boolean {
     return this._wasIterated;

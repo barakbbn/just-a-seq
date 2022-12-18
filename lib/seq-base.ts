@@ -162,7 +162,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
             const resolution = splitLogic(itemInfo);
             ({endOfChunk, isLastChunk, userData} = resolution);
             let whatAboutTheItem = resolution.whatAboutTheItem ?? 'KeepIt';
-            if(!endOfChunk && whatAboutTheItem === 'MoveToNextChunk') whatAboutTheItem = 'KeepIt';
+            if (!endOfChunk && whatAboutTheItem === 'MoveToNextChunk') whatAboutTheItem = 'KeepIt';
             if (whatAboutTheItem === 'KeepIt') {
               yield next.value;
               itemNumber++;
@@ -1010,6 +1010,37 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return resultSelector!(matchedSeq, unmatchedSeq);
   }
 
+  partitionWhile(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
+    let iterator: Iterator<T>;
+    let next: IteratorResult<T>;
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* partitionWhileFirst(source, iterationContext) {
+      iterator = getIterator(source);
+      next = iterator.next();
+      let index = 0;
+      while (!next.done && condition(next.value, index++)) {
+        yield next.value;
+        index++;
+        next = iterator.next();
+      }
+    }));
+
+    const second = factories.CachedSeq<T>(new Gen(internalEmpty(), function* partitionWhileSecond(_, iterationContext) {
+      first.consume();
+      iterationContext.onClose(() => iterator?.return?.());
+      // iterationContext.closeWhenDone(iterator);
+      while (!next.done) {
+        yield next.value;
+        next = iterator.next();
+      }
+    }));
+
+    const result = [first, second] as unknown as ([CachedSeq<T>, CachedSeq<T>] & { first: CachedSeq<T>; second: CachedSeq<T>; });
+    result.first = result[0];
+    result.second = result[1];
+
+    return result;
+  }
+
   max(): T extends number? number: never;
 
   max(selector: Selector<T, number>): number;
@@ -1449,19 +1480,19 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       }
     }));
 
-    const second = this.generate(function* splitAtIndexSecond() {
+    const second = factories.CachedSeq<T>(new Gen(internalEmpty(), function* splitAtIndexSecond(_, iterationContext) {
       // apply cache
       first.cache(true);
+      iterationContext.onClose(() => iterator?.return?.());
       while (!next.done) {
         yield next.value;
         next = iterator.next();
       }
-
-    });
+    }));
 
     const result = [first, second] as unknown as ([Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; });
     result.first = result[0];
-    result.second = result[0];
+    result.second = result[1];
 
     return result;
   }

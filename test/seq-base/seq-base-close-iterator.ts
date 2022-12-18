@@ -135,6 +135,9 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
+    test('partitionWhile()', array.zeroToTen, seq => seq.partitionWhile(x => x < 5));
+    // test('partitionWhile().first', array.zeroToTen, seq => seq.partitionWhile(x => x < 5).first);
+    test('partitionWhile().second', array.zeroToTen, seq => seq.partitionWhile(x => x < 5).second);
     test('max()', array.oneToTen, seq => seq.max());
     test('maxItem(selector)', array.grades, seq => seq.maxItem(x => x.grade));
     test('maxItem(comparer)', array.grades, seq => seq.maxItem({comparer: (a, b) => a.grade - b.grade}));
@@ -162,8 +165,10 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('sort()', array.zeroToTen, seq => seq.sort());
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
-    test('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
-    test('splitAt()', array.zeroToTen, seq => seq.splitAt(4).reduce((a, b) => [...a, ...b], [1]));
+    test('split()', array.zeroToTen, seq => seq.split(x => x < 5));
+    test('splitAt()', array.zeroToTen, seq => seq.splitAt(4));
+    // test('splitAt().first', array.zeroToTen, seq => seq.splitAt(4).first);
+    test('splitAt().second', array.zeroToTen, seq => seq.splitAt(4).second);
     test2('startsWith()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test2('startsWith() => first is longer', array.zeroToTen, array.zeroToNine, (seq, other) => seq.startsWith(other));
     test2('startsWith() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.startsWith(other));

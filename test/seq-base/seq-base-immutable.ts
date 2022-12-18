@@ -79,6 +79,9 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('partition({matched}})', array.grades, seq => seq.partition(() => true).matched);
     testImmutable('partition({unmatched}})', array.grades, seq => seq.partition(() => false).unmatched);
     testImmutable('partition({matched+unmatched}})', array.grades, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
+    testImmutable('partitionWhile()', array.grades, seq => seq.partitionWhile(() => true));
+    testImmutable('partitionWhile().first', array.grades, seq => seq.partitionWhile(() => false).first);
+    testImmutable('partitionWhile().second', array.grades, seq => seq.partitionWhile(() => false).second);
     testImmutable('maxItem(selector)', array.grades, seq => seq.maxItem(x => x.grade));
     testImmutable('maxItem(comparer)', array.grades, seq => seq.maxItem({comparer: (a, b) => a.grade - b.grade}));
     testImmutable('min()', array.oneToTen, seq => seq.min());

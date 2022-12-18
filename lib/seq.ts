@@ -296,6 +296,8 @@ export interface Seq<T> extends Iterable<T> {
 
   partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
 
+  partitionWhile(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
+
   max(): T extends number? number: never; // Overload
   max(selector: Selector<T, number>): number;
 
