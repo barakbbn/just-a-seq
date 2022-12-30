@@ -258,6 +258,8 @@ export interface Seq<T> extends Iterable<T> {
 
   insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
+  interleave(...others: Iterable<T>[]):Seq<T>;
+
   intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
   intersectBy<K>(keys: Iterable<K>, keySelector: Selector<T, K>): Seq<T>;

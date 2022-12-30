@@ -68,6 +68,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('insert()', array.oneToTen, seq => seq.insert(0, array.oneToTen));
     testImmutable('insertAfter()', array.oneToTen, seq => seq.insertAfter(n => n > 5, array.oneToTen));
     testImmutable('insertBefore()', array.oneToTen, seq => seq.insertBefore(n => n > 5, array.oneToTen));
+    testImmutable('interleave()', array.oneToTen, seq => seq.interleave(array.oneToTen));
     testImmutable('intersect()', array.oneToTen, seq => seq.intersect(array.oneToTen));
     testImmutable('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     testImmutable('intersperseBy()', array.oneToTen, seq => seq.intersperse(() => ','));

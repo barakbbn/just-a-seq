@@ -23,7 +23,7 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
       it(title + ' - array source', () => testFn(testableArray));
       it(title + ' - generator source', () => testFn(iterable));
     }
-    const testIteratedOnce = (input: Iterable<any> & { getIteratorCount: number; }, onSeq: (seq: Seq<any>) => any) => {
+    const test = (input: Iterable<any> & { getIteratorCount: number; }, onSeq: (seq: Seq<any>) => any) => {
       function tryIterate(maybeIterable?: any): boolean {
         if (typeof maybeIterable !== 'object' || typeof maybeIterable[Symbol.iterator] !== 'function') return false;
         for (const item of maybeIterable) {
@@ -47,217 +47,113 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
     });
 
     describe('should cache items also when further chained with other operations', () => {
-      it1('as()', (input) => {
-        testIteratedOnce(input, sut => sut.as<number>());
-      });
+      it1('as()', (input) => test(input, sut => sut.as<number>()));
 
-      it1('append()', (input) => {
-        testIteratedOnce(input, sut => sut.append(1));
-      });
+      it1('append()', (input) => test(input, sut => sut.append(1)));
 
-      it1('cache()', (input) => {
-        testIteratedOnce(input, sut => sut.cache());
-      });
+      it1('cache()', (input) => test(input, sut => sut.cache()));
 
-      it1('chunk()', (input) => {
-        testIteratedOnce(input, sut => sut.chunk(2));
-      });
+      it1('chunk()', (input) => test(input, sut => sut.chunk(2)));
 
-      it1('concat()', (input) => {
-        testIteratedOnce(input, sut => sut.concat([2]));
-      });
+      it1('concat()', (input) => test(input, sut => sut.concat([2])));
 
-      it1('concat$()', (input) => {
-        testIteratedOnce(input, sut => sut.concat$([2]));
-      });
+      it1('concat$()', (input) => test(input, sut => sut.concat$([2])));
 
-      it1('diffDistinct()', (input) => {
-        testIteratedOnce(input, sut => sut.diffDistinct([2]));
-      });
+      it1('diffDistinct()', (input) => test(input, sut => sut.diffDistinct([2])));
 
-      it1('diff()', (input) => {
-        testIteratedOnce(input, sut => sut.diff([2]));
-      });
+      it1('diff()', (input) => test(input, sut => sut.diff([2])));
 
-      it1('distinct()', (input) => {
-        testIteratedOnce(input, sut => sut.distinct());
-      });
+      it1('distinct()', (input) => test(input, sut => sut.distinct()));
 
-      it1('entries()', (input) => {
-        testIteratedOnce(input, sut => sut.entries());
-      });
+      it1('entries()', (input) => test(input, sut => sut.entries()));
 
-      it1('filter()', (input) => {
-        testIteratedOnce(input, sut => sut.filter(() => true));
-      });
+      it1('filter()', (input) => test(input, sut => sut.filter(() => true)));
 
-      it1('flat()', (input) => {
-        testIteratedOnce(input, sut => sut.flat(5));
-      });
+      it1('flat()', (input) => test(input, sut => sut.flat(5)));
 
-      it1('flatMap()', (input) => {
-        testIteratedOnce(input, sut => sut.flatMap(() => [1, 2]));
-      });
+      it1('flatMap()', (input) => test(input, sut => sut.flatMap(() => [1, 2])));
 
-      it1('groupBy()', (input) => {
-        testIteratedOnce(input, sut => sut.groupBy(() => 1,));
-      });
+      it1('groupBy()', (input) => test(input, sut => sut.groupBy(() => 1,)));
 
-      it1('groupJoin()', (input) => {
-        testIteratedOnce(input, sut => sut.groupJoin([1], () => 1, () => 1));
-      });
+      it1('groupJoin()', (input) => test(input, sut => sut.groupJoin([1], () => 1, () => 1)));
 
-      it1('innerJoin()', (input) => {
-        testIteratedOnce(input, sut => sut.innerJoin([1], () => 1, () => 1, () => 1));
-      });
+      it1('innerJoin()', (input) => test(input, sut => sut.innerJoin([1], () => 1, () => 1, () => 1)));
 
-      it1('ifEmpty()', (input) => {
-        testIteratedOnce(input, sut => sut.ifEmpty(1));
-      });
+      it1('ifEmpty()', (input) => test(input, sut => sut.ifEmpty(1)));
 
-      it1('insert()', (input) => {
-        testIteratedOnce(input, sut => sut.insert(1));
-      });
+      it1('insert()', (input) => test(input, sut => sut.insert(1)));
 
-      it1('insertBefore()', (input) => {
-        testIteratedOnce(input, sut => sut.insertBefore(() => true));
-      });
+      it1('insertAfter()', (input) => test(input, sut => sut.insertAfter(() => true)));
 
-      it1('insertAfter()', (input) => {
-        testIteratedOnce(input, sut => sut.insertAfter(() => true));
-      });
+      it1('insertBefore()', (input) => test(input, sut => sut.insertBefore(() => true)));
 
-      it1('intersect()', (input) => {
-        testIteratedOnce(input, sut => sut.intersect([1]));
-      });
+      it1('interleave()', (input) => test(input, sut => sut.interleave([1])));
 
-      it1('intersperse()', (input) => {
-        testIteratedOnce(input, sut => sut.intersperse(','));
-      });
+      it1('intersect()', (input) => test(input, sut => sut.intersect([1])));
 
-      it1('intersperseBy()', (input) => {
-        testIteratedOnce(input, sut => sut.intersperseBy(() => ','));
-      });
+      it1('intersperse()', (input) => test(input, sut => sut.intersperse(',')));
 
-      it1('map()', (input) => {
-        testIteratedOnce(input, sut => sut.map(() => 1));
-      });
+      it1('intersperseBy()', (input) => test(input, sut => sut.intersperseBy(() => ',')));
 
-      it1('ofType()', (input) => {
-        testIteratedOnce(input, sut => sut.ofType(Number));
-      });
+      it1('map()', (input) => test(input, sut => sut.map(() => 1)));
 
-      it1('prepend()', (input) => {
-        testIteratedOnce(input, sut => sut.prepend([1]));
-      });
+      it1('ofType()', (input) => test(input, sut => sut.ofType(Number)));
 
-      it1('push()', (input) => {
-        testIteratedOnce(input, sut => sut.push(1));
-      });
+      it1('prepend()', (input) => test(input, sut => sut.prepend([1])));
 
-      it1('remove()', (input) => {
-        testIteratedOnce(input, sut => sut.remove([1]));
-      });
+      it1('push()', (input) => test(input, sut => sut.push(1)));
 
-      it1('removeAll()', (input) => {
-        testIteratedOnce(input, sut => sut.removeAll([1]));
-      });
+      it1('remove()', (input) => test(input, sut => sut.remove([1])));
 
-      it1('removeFalsy()', (input) => {
-        testIteratedOnce(input, sut => sut.removeFalsy());
-      });
+      it1('removeAll()', (input) => test(input, sut => sut.removeAll([1])));
 
-      it1('removeNulls()', (input) => {
-        testIteratedOnce(input, sut => sut.removeNulls());
-      });
+      it1('removeFalsy()', (input) => test(input, sut => sut.removeFalsy()));
 
-      it1('repeat()', (input) => {
-        testIteratedOnce(input, sut => sut.repeat(2));
-      });
+      it1('removeNulls()', (input) => test(input, sut => sut.removeNulls()));
 
-      it1('reverse()', (input) => {
-        testIteratedOnce(input, sut => sut.reverse());
-      });
+      it1('repeat()', (input) => test(input, sut => sut.repeat(2)));
 
-      it1('skip()', (input) => {
-        testIteratedOnce(input, sut => sut.skip(2));
-      });
+      it1('reverse()', (input) => test(input, sut => sut.reverse()));
 
-      it1('skipFirst()', (input) => {
-        testIteratedOnce(input, sut => sut.skipFirst());
-      });
+      it1('skip()', (input) => test(input, sut => sut.skip(2)));
 
-      it1('skipLast()', (input) => {
-        testIteratedOnce(input, sut => sut.skipLast());
-      });
+      it1('skipFirst()', (input) => test(input, sut => sut.skipFirst()));
 
-      it1('skipWhile()', (input) => {
-        testIteratedOnce(input, sut => sut.skipWhile(() => false));
-      });
+      it1('skipLast()', (input) => test(input, sut => sut.skipLast()));
 
-      it1('slice()', (input) => {
-        testIteratedOnce(input, sut => sut.slice(0, 2));
-      });
+      it1('skipWhile()', (input) => test(input, sut => sut.skipWhile(() => false)));
 
-      it1('sort()', (input) => {
-        testIteratedOnce(input, sut => sut.sort());
-      });
+      it1('slice()', (input) => test(input, sut => sut.slice(0, 2)));
 
-      it1('sortBy()', (input) => {
-        testIteratedOnce(input, sut => sut.sortBy(x => x));
-      });
+      it1('sort()', (input) => test(input, sut => sut.sort()));
 
-      it1('sorted()', (input) => {
-        testIteratedOnce(input, sut => sut.sorted());
-      });
+      it1('sortBy()', (input) => test(input, sut => sut.sortBy(x => x)));
 
-      it1('split()', (input) => {
-        testIteratedOnce(input, sut => sut.split(x => x));
-      });
+      it1('sorted()', (input) => test(input, sut => sut.sorted()));
 
-      it1('splitAt()', (input) => {
-        testIteratedOnce(input, sut => sut.splitAt(2));
-      });
+      it1('split()', (input) => test(input, sut => sut.split(x => x)));
 
-      it1('take()', (input) => {
-        testIteratedOnce(input, sut => sut.take(2));
-      });
+      it1('splitAt()', (input) => test(input, sut => sut.splitAt(2)));
 
-      it1('takeLast()', (input) => {
-        testIteratedOnce(input, sut => sut.takeLast(2));
-      });
+      it1('take()', (input) => test(input, sut => sut.take(2)));
 
-      it1('takeWhile()', (input) => {
-        testIteratedOnce(input, sut => sut.takeWhile(() => true));
-      });
+      it1('takeLast()', (input) => test(input, sut => sut.takeLast(2)));
 
-      it1('takeOnly()', (input) => {
-        testIteratedOnce(input, sut => sut.takeOnly([1], x => x));
-      });
+      it1('takeWhile()', (input) => test(input, sut => sut.takeWhile(() => true)));
 
-      it1('tap()', (input) => {
-        testIteratedOnce(input, sut => sut.tap(x => x));
-      });
+      it1('takeOnly()', (input) => test(input, sut => sut.takeOnly([1], x => x)));
 
-      it1('union()', (input) => {
-        testIteratedOnce(input, sut => sut.union([1]));
-      });
+      it1('tap()', (input) => test(input, sut => sut.tap(x => x)));
 
-      it1('unshift()', (input) => {
-        testIteratedOnce(input, sut => sut.unshift(1));
-      });
+      it1('union()', (input) => test(input, sut => sut.union([1])));
 
-      it1('zip()', (input) => {
-        testIteratedOnce(input, sut => sut.zip([1]));
-      });
+      it1('unshift()', (input) => test(input, sut => sut.unshift(1)));
 
-      it1('zipAll()', (input) => {
-        testIteratedOnce(input, sut => sut.zipAll([1]));
-      });
+      it1('zip()', (input) => test(input, sut => sut.zip([1])));
 
-      it1('zipWithIndex()', (input) => {
-        testIteratedOnce(input, sut => sut.zipWithIndex());
-      });
+      it1('zipAll()', (input) => test(input, sut => sut.zipAll([1])));
+
+      it1('zipWithIndex()', (input) => test(input, sut => sut.zipWithIndex()));
     });
   });
 }

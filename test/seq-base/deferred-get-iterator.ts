@@ -86,9 +86,11 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('insert()', () => testGetIterator(sut => sut.insert(1)));
 
+    describe('insertAfter()', () => testGetIterator(sut => sut.insertAfter(() => true)));
+
     describe('insertBefore()', () => testGetIterator(sut => sut.insertBefore(() => true)));
 
-    describe('insertAfter()', () => testGetIterator(sut => sut.insertAfter(() => true)));
+    describe('interleave()', () => testGetIterator(sut => sut.interleave([1])));
 
     describe('intersect()', () => testGetIterator(sut => sut.intersect([1])));
 

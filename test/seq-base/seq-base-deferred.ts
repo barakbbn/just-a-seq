@@ -1571,6 +1571,86 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('insertAfter()', () => {
+      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - numbers', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut<any>(first);
+
+        for (let i = 0; i <= source.length; i++) {
+          const condition: Condition<number> = (x: number, index: number) => index === i;
+          const secondArray = [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+
+          let actual = [...sut.insertAfter(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
+        }
+      });
+
+      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - strings', array.abc, array.strings, (first, second) => {
+        const source = [...first];
+        const sut = this.createSut<any>(first);
+
+        for (let i = 0; i <= source.length; i++) {
+          const condition: Condition<string> = (x: string, index: number) => index === i;
+          const secondArray = [...second];
+          let atIndex = source.findIndex(condition);
+          let expected = [...first];
+          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+
+          const secondForLog = (() => {
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
+          })();
+          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+
+          let actual = [...sut.insertAfter(condition, second)];
+          assert.deepEqual(actual, expected, failedMessage(actual));
+        }
+      });
+
+      it('should insert new items in source sequence immediately before the first item that meets the condition - chars', () => {
+        const input = array.abc;
+        const toInsert = "123";
+        const expected = input.slice(0, 2).concat(toInsert).concat(input.slice(2));
+        const sut = this.createSut(input).insertAfter(s => s === 'b', toInsert);
+        const actual = [...sut];
+
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it2('should not add new items if none of the sources items meets the condition - numbers', array.zeroToNine, [-1, -2, -3], (first, second) => {
+        const expected: any[] = [...first];
+        const sut = this.createSut<any>(first);
+        const actual = sut.insertAfter(() => false, second);
+        assert.deepEqual([...actual], expected)
+      });
+
+      this.it2('should not add new items if none of the sources items meets the condition - string', array.abc, ['', '1', '-'], (first, second) => {
+        const expected: any[] = [...first];
+        const sut = this.createSut<any>(first);
+        const actual = sut.insertAfter(() => false, second);
+        assert.deepEqual([...actual], expected)
+      });
+
+      this.it2('should not add new items if none of the sources items meets the condition - objects', array.grades, [{
+        name: Date.now().toString(),
+        grade: -101
+      }], (first, second) => {
+        const expected: any[] = [...first];
+        const sut = this.createSut<any>(first);
+        const actual = sut.insertAfter(() => false, second);
+        assert.deepEqual([...actual], expected)
+      });
+    });
+
     describe('insertBefore()', () => {
       this.it2('should insert new items in source sequence immediately before the first item that meets the condition - numbers', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
         const source = [...first];
@@ -1651,84 +1731,43 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
-    describe('insertAfter()', () => {
-      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - numbers', [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1], array.oneToTen, (first, second) => {
-        const source = [...first];
-        const sut = this.createSut<any>(first);
+    describe('interleave()', () => {
+      this.it2('should return a sequence composed with all items from all source sequences positioned ordered by their positional index in source sequence and then by the position of their  source sequence in the arguments - 1 sequence',
+        array.range(0, 10, 2), array.range(1, 9, 2), (first, second, firstArray, secondArray) => {
 
-        for (let i = 0; i <= source.length; i++) {
-          const condition: Condition<number> = (x: number, index: number) => index === i;
-          const secondArray = [...second];
-          let atIndex = source.findIndex(condition);
-          let expected = [...first];
-          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+          const expected = new Array<number>()
+            .concat(...firstArray.map((first, i) => [first, secondArray[i]]))
+            .filter(x => x != null);
 
-          const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
-          })();
-          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+          const sut = this.createSut(first).interleave(second);
+          const actual = [...sut];
 
-          let actual = [...sut.insertAfter(condition, second)];
-          assert.deepEqual(actual, expected, failedMessage(actual));
-        }
-      });
+          assert.sameOrderedMembers(actual, expected);
+        });
 
-      this.it2('should insert new items in source sequence immediately after the first item that meets the condition - strings', array.abc, array.strings, (first, second) => {
-        const source = [...first];
-        const sut = this.createSut<any>(first);
+      this.itx('should return a sequence composed with all items from all source sequences positioned ordered by their positional index in source sequence and then by the position of their  source sequence in the arguments - many sequence',
+        array.repeat(0, 10), [
+          array.repeat(1, 11),
+          array.repeat(2, 12),
+          array.repeat(3, 13),
+          array.repeat(4, 11),
+          array.repeat(5, 10)
+        ],
+        (first, second, firstArray, secondArray) => {
 
-        for (let i = 0; i <= source.length; i++) {
-          const condition: Condition<string> = (x: string, index: number) => index === i;
-          const secondArray = [...second];
-          let atIndex = source.findIndex(condition);
-          let expected = [...first];
-          if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
+          const maxLen = Math.max(firstArray.length, ...secondArray.map(second => second.length));
+          let expected = [] as number[];
+          for (let i = 0; i < maxLen; i++) {
+            expected.push(firstArray[i]);
+            expected.push(...secondArray.map(second => second[i]));
+          }
+          expected = expected.filter(x => x != null);
 
-          const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
-            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
-          })();
-          const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
+          const sut = this.createSut(first).interleave(...second);
+          const actual = [...sut];
 
-          let actual = [...sut.insertAfter(condition, second)];
-          assert.deepEqual(actual, expected, failedMessage(actual));
-        }
-      });
-
-      it('should insert new items in source sequence immediately before the first item that meets the condition - chars', () => {
-        const input = array.abc;
-        const toInsert = "123";
-        const expected = input.slice(0, 2).concat(toInsert).concat(input.slice(2));
-        const sut = this.createSut(input).insertAfter(s => s === 'b', toInsert);
-        const actual = [...sut];
-
-        assert.deepEqual(actual, expected);
-      });
-
-      this.it2('should not add new items if none of the sources items meets the condition - numbers', array.zeroToNine, [-1, -2, -3], (first, second) => {
-        const expected: any[] = [...first];
-        const sut = this.createSut<any>(first);
-        const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
-      });
-
-      this.it2('should not add new items if none of the sources items meets the condition - string', array.abc, ['', '1', '-'], (first, second) => {
-        const expected: any[] = [...first];
-        const sut = this.createSut<any>(first);
-        const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
-      });
-
-      this.it2('should not add new items if none of the sources items meets the condition - objects', array.grades, [{
-        name: Date.now().toString(),
-        grade: -101
-      }], (first, second) => {
-        const expected: any[] = [...first];
-        const sut = this.createSut<any>(first);
-        const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
-      });
+          assert.sameOrderedMembers(actual, expected);
+        });
     });
 
     describe('intersect()', () => {
@@ -1983,7 +2022,6 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
-
     describe('intersperseBy()', () => {
 
       this.it1('should return sequence with separator value between each item from the source sequence',
@@ -2032,12 +2070,36 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
       describe('should provide correct arguments to separatorFactory function', () => {
-        this.it1(`when separatorAlignment is "Inner"`, [0,1,2], (input, inputArray) => {
+        this.it1(`when separatorAlignment is "Inner"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
-            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+            {
+              prevItem: inputArray[0],
+              hasPervItem: true,
+              prevItemIndex: 0,
+              nextItem: 1,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[1],
+              hasPervItem: true,
+              prevItemIndex: 1,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[2],
+              hasPervItem: true,
+              prevItemIndex: 2,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
           ];
           const sut = this.createSut(input).intersperseBy(actual => {
             const expected = innerInfo[i++];
@@ -2047,13 +2109,45 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           TestHarness.materialize(sut);
         });
 
-        this.it1(`when separatorAlignment is "Outer"`, [0,1,2], (input, inputArray) => {
+        this.it1(`when separatorAlignment is "Outer"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
-            {prevItem: undefined as unknown as number, hasPervItem: false, prevItemIndex: -1, nextItem: 0, hasNextItem: true, isPrefixSeparator: true, isSuffixSeparator: false},
-            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: undefined as unknown as number, hasNextItem: false, isPrefixSeparator: false, isSuffixSeparator: true}
+          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+            {
+              prevItem: undefined as unknown as number,
+              hasPervItem: false,
+              prevItemIndex: -1,
+              nextItem: 0,
+              hasNextItem: true,
+              isPrefixSeparator: true,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[0],
+              hasPervItem: true,
+              prevItemIndex: 0,
+              nextItem: 1,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[1],
+              hasPervItem: true,
+              prevItemIndex: 1,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[2],
+              hasPervItem: true,
+              prevItemIndex: 2,
+              nextItem: undefined as unknown as number,
+              hasNextItem: false,
+              isPrefixSeparator: false,
+              isSuffixSeparator: true
+            }
           ];
           const sut = this.createSut(input).intersperseBy(actual => {
             const expected = innerInfo[i++];
@@ -2063,13 +2157,45 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           TestHarness.materialize(sut);
         });
 
-        this.it1(`when separatorAlignment is "Left"`, [0,1,2], (input, inputArray) => {
+        this.it1(`when separatorAlignment is "Left"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
-            {prevItem: undefined as unknown as number, hasPervItem: false, prevItemIndex: -1, nextItem: 0, hasNextItem: true, isPrefixSeparator: true, isSuffixSeparator: false},
-            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+            {
+              prevItem: undefined as unknown as number,
+              hasPervItem: false,
+              prevItemIndex: -1,
+              nextItem: 0,
+              hasNextItem: true,
+              isPrefixSeparator: true,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[0],
+              hasPervItem: true,
+              prevItemIndex: 0,
+              nextItem: 1,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[1],
+              hasPervItem: true,
+              prevItemIndex: 1,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[2],
+              hasPervItem: true,
+              prevItemIndex: 2,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
           ];
           const sut = this.createSut(input).intersperseBy(actual => {
             const expected = innerInfo[i++];
@@ -2079,12 +2205,36 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           TestHarness.materialize(sut);
         });
 
-        this.it1(`when separatorAlignment is "Right"`, [0,1,2], (input, inputArray) => {
+        this.it1(`when separatorAlignment is "Right"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
-            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
-            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: undefined as unknown as number, hasNextItem: false, isPrefixSeparator: false, isSuffixSeparator: true}
+          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+            {
+              prevItem: inputArray[0],
+              hasPervItem: true,
+              prevItemIndex: 0,
+              nextItem: 1,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[1],
+              hasPervItem: true,
+              prevItemIndex: 1,
+              nextItem: 2,
+              hasNextItem: true,
+              isPrefixSeparator: false,
+              isSuffixSeparator: false
+            },
+            {
+              prevItem: inputArray[2],
+              hasPervItem: true,
+              prevItemIndex: 2,
+              nextItem: undefined as unknown as number,
+              hasNextItem: false,
+              isPrefixSeparator: false,
+              isSuffixSeparator: true
+            }
           ];
           const sut = this.createSut(input).intersperseBy(actual => {
             const expected = innerInfo[i++];

@@ -772,6 +772,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  insertAfter(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T> {
+    if (!items || items.length === 0) return this;
+
+    return this.generate(function* insertAfter(self) {
+
+      let keepChecking = true;
+      for (const {value, index} of entries(self)) {
+        yield value;
+        if (keepChecking && condition(value, index)) {
+          keepChecking = false;
+          for (const seq of items) {
+            if (isIterable(seq, true)) yield* seq;
+            else yield seq;
+          }
+        }
+      }
+    });
+  }
+
   insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T> {
     if (!items || items.length === 0) return this;
 
@@ -790,19 +809,17 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  insertAfter(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T> {
-    if (!items || items.length === 0) return this;
-
-    return this.generate(function* insertAfter(self) {
-
-      let keepChecking = true;
-      for (const {value, index} of entries(self)) {
-        yield value;
-        if (keepChecking && condition(value, index)) {
-          keepChecking = false;
-          for (const seq of items) {
-            if (isIterable(seq, true)) yield* seq;
-            else yield seq;
+  interleave(...others: Iterable<T>[]): Seq<T> {
+    return this.generate(function* interleave(self, iterationContext) {
+      let iterators = new Set([self, ...others].map(iterable => iterationContext.closeWhenDone(getIterator(iterable))));
+      while (iterators.size) {
+        for (const iterator of iterators) {
+          const next = iterator.next();
+          if (next.done) {
+            iterator.return?.();
+            iterators.delete(iterator);
+          } else {
+            yield next.value;
           }
         }
       }
@@ -1067,7 +1084,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   partitionWhile(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
     let iterator: Iterator<T>;
     let next: IteratorResult<T>;
-    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* partitionWhileFirst(source, iterationContext) {
+    const first = factories.CachedSeq<T>(new Gen(this.getSourceForNewSequence(), function* partitionWhileFirst(source) {
       iterator = getIterator(source);
       next = iterator.next();
       let index = 0;
@@ -1738,11 +1755,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
-      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
-      let next = iterables.map(it => it.next());
+      const iterators = allIterables.map(iterable => iterationContext.closeWhenDone(getIterator(iterable)));
+      let next = iterators.map(it => it.next());
       while (next.every(next => !next.done)) {
         yield next.map(next => next.value);
-        next = iterables.map(it => it.next());
+        next = iterators.map(it => it.next());
       }
     }) as any;
   }
@@ -1761,11 +1778,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         allIterables.pop();
       }
       const defaults = opts?.defaults ?? [];
-      const iterables = allIterables.map(iterator => iterationContext.closeWhenDone(getIterator(iterator)));
-      let next = iterables.map(it => it.next());
+      const iterators = allIterables.map(iterable => iterationContext.closeWhenDone(getIterator(iterable)));
+      let next = iterators.map(it => it.next());
       while (!next.every(next => next.done)) {
         yield next.map((next, i) => next.done? defaults[i]: next.value);
-        next = iterables.map(it => it.next());
+        next = iterators.map(it => it.next());
       }
     });
 

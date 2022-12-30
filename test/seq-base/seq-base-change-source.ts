@@ -211,6 +211,7 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test2('insert()', array.oneToTen, array.oneToTen, (seq, other) => seq.insert(0, other));
     test2('insertAfter()', array.oneToTen, array.oneToTen, (seq, other) => seq.insertAfter(n => n > 5, other));
     test2('insertBefore()', array.oneToTen, array.oneToTen, (seq, other) => seq.insertBefore(n => n > 5, other));
+    test2('interleave()', array.oneToTen, array.oneToTen, (seq, other) => seq.interleave(other));
     test2('intersect()', array.oneToTen, array.oneToTen, (seq, other) => seq.intersect(other));
     test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     test('intersperseBy()', array.oneToTen, seq => seq.intersperseBy(() => ','));

@@ -71,53 +71,53 @@ export abstract class TestIt {
     }
   }
 
-  it2 = <T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>) => void): void => {
+  it2 = <T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>, firstArray: readonly T[], secondArray: readonly U[]) => void): void => {
     const generatorFunctionSut1 = this.tryCreateSutForGeneratorFunction(first);
     const generatorFunctionSut2 = this.tryCreateSutForGeneratorFunction(second);
 
-    it(title + ' - first array, second array', () => testFn(first, second));
-    it(title + ' - first array, second iterable', () => testFn(first, generator.from(second)));
-    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second)));
+    it(title + ' - first array, second array', () => testFn(first, second, first, second));
+    it(title + ' - first array, second iterable', () => testFn(first, generator.from(second), first, second));
+    it(title + ' - first array, second sequence', () => testFn(first, this.createSut(second), first, second));
     if (generatorFunctionSut2 != null) {
-      it(title + ' - first array, second generator fn', () => testFn(first, generatorFunctionSut2));
+      it(title + ' - first array, second generator fn', () => testFn(first, generatorFunctionSut2, first, second));
     }
 
-    it(title + ' - first iterable, second array', () => testFn(generator.from(first), second));
-    it(title + ' - first iterable, second iterable', () => testFn(generator.from(first), generator.from(second)));
-    it(title + ' - first iterable, second sequence', () => testFn(generator.from(first), this.createSut(second)));
+    it(title + ' - first iterable, second array', () => testFn(generator.from(first), second, first, second));
+    it(title + ' - first iterable, second iterable', () => testFn(generator.from(first), generator.from(second), first, second));
+    it(title + ' - first iterable, second sequence', () => testFn(generator.from(first), this.createSut(second), first, second));
     if (generatorFunctionSut2 != null) {
-      it(title + ' - first iterable, second generator fn', () => testFn(generator.from(first), generatorFunctionSut2));
+      it(title + ' - first iterable, second generator fn', () => testFn(generator.from(first), generatorFunctionSut2, first, second));
     }
 
-    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second));
-    it(title + ' - first sequence, second iterable', () => testFn(this.createSut(first), generator.from(second)));
-    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second)));
+    it(title + ' - first sequence, second array', () => testFn(this.createSut(first), second, first, second));
+    it(title + ' - first sequence, second iterable', () => testFn(this.createSut(first), generator.from(second), first, second));
+    it(title + ' - first sequence, second sequence', () => testFn(this.createSut(first), this.createSut(second), first, second));
     if (generatorFunctionSut2 != null) {
-      it(title + ' - first sequence, second generator fn', () => testFn(this.createSut(first), generatorFunctionSut2));
+      it(title + ' - first sequence, second generator fn', () => testFn(this.createSut(first), generatorFunctionSut2, first, second));
     }
 
     if (generatorFunctionSut1 != null) {
-      it(title + ' - first generator fn, second array', () => testFn(generatorFunctionSut1, second));
-      it(title + ' - first generator fn, second iterable', () => testFn(generatorFunctionSut1, generator.from(second)));
-      it(title + ' - first generator fn, second sequence', () => testFn(generatorFunctionSut1, this.createSut(second)));
+      it(title + ' - first generator fn, second array', () => testFn(generatorFunctionSut1, second, first, second));
+      it(title + ' - first generator fn, second iterable', () => testFn(generatorFunctionSut1, generator.from(second), first, second));
+      it(title + ' - first generator fn, second sequence', () => testFn(generatorFunctionSut1, this.createSut(second), first, second));
       if (generatorFunctionSut2 != null) {
-        it(title + ' - first generator fn, second generator fn', () => testFn(this.createSut(first), generatorFunctionSut2));
+        it(title + ' - first generator fn, second generator fn', () => testFn(this.createSut(first), generatorFunctionSut2, first, second));
       }
     }
   }
 
-  itx = <T, U = T>(title: string, input: readonly T[], others: readonly U[][], testFn: (input: Iterable<T>, others: readonly Iterable<U>[]) => void): void => {
-    it(title + ' - input array, others array', () => testFn(input, others));
-    it(title + ' - input array, others generator', () => testFn(input, others.map(x => generator.from(x))));
-    it(title + ' - input array, others sequence', () => testFn(input, others.map(x => this.createSut(x))));
+  itx = <T, U = T>(title: string, input: readonly T[], others: readonly U[][], testFn: (input: Iterable<T>, others: readonly Iterable<U>[], inputArray: readonly T[], otherArrays: readonly U[][]) => void): void => {
+    it(title + ' - input array, others array', () => testFn(input, others, input, others));
+    it(title + ' - input array, others generator', () => testFn(input, others.map(x => generator.from(x)), input, others));
+    it(title + ' - input array, others sequence', () => testFn(input, others.map(x => this.createSut(x)), input, others));
 
-    it(title + ' - input generator, others array', () => testFn(generator.from(input), others));
-    it(title + ' - input generator, others generator', () => testFn(generator.from(input), others.map(x => generator.from(x))));
-    it(title + ' - input generator, others sequence', () => testFn(generator.from(input), others.map(x => this.createSut(x))));
+    it(title + ' - input generator, others array', () => testFn(generator.from(input), others, input, others));
+    it(title + ' - input generator, others generator', () => testFn(generator.from(input), others.map(x => generator.from(x)), input, others));
+    it(title + ' - input generator, others sequence', () => testFn(generator.from(input), others.map(x => this.createSut(x)), input, others));
 
-    it(title + ' - input sequence, others array', () => testFn(this.createSut(input), others));
-    it(title + ' - input sequence, others generator', () => testFn(this.createSut(input), others.map(x => generator.from(x))));
-    it(title + ' - input sequence, others sequence', () => testFn(this.createSut(input), others.map(x => this.createSut(x))));
+    it(title + ' - input sequence, others array', () => testFn(this.createSut(input), others, input, others));
+    it(title + ' - input sequence, others generator', () => testFn(this.createSut(input), others.map(x => generator.from(x)), input, others));
+    it(title + ' - input sequence, others sequence', () => testFn(this.createSut(input), others.map(x => this.createSut(x)), input, others));
   }
 
   private tryCreateSutForGeneratorFunction<T>(input: Iterable<T>) {
