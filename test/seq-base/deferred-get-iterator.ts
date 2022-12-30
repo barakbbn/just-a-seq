@@ -42,7 +42,10 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('cache()', () => testGetIterator(sut => sut.cache()));
 
     describe('chunk()', () => testGetIterator(sut => sut.chunk(2)));
-    describe('chunkBy()', () => testGetIterator(sut => sut.chunkBy(()=>({whatAboutTheItem:'KeepIt', endOfChunk: false}))));
+    describe('chunkBy()', () => testGetIterator(sut => sut.chunkBy(() => ({
+      whatAboutTheItem: 'KeepIt',
+      endOfChunk: false
+    }))));
     describe('chunkBySum()', () => testGetIterator(sut => sut.chunkByLimit(2)));
 
     describe('concat()', () => testGetIterator(sut => sut.concat([2])));
@@ -90,6 +93,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('intersect()', () => testGetIterator(sut => sut.intersect([1])));
 
     describe('intersperse()', () => testGetIterator(sut => sut.intersperse(',')));
+
+    describe('intersperseBy()', () => testGetIterator(sut => sut.intersperseBy(() => ',')));
 
     describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
 

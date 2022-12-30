@@ -157,7 +157,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           //chunk every 3 items, when absolute item index is greater than 5, move item to next chunk
           const createSut = () => this.createSut(input).chunkBy(info => ({
             endOfChunk: info.itemNumber % 3 === 0,
-            whatAboutTheItem: info.index <= 5 || info.itemNumber === 1 ? 'KeepIt' : 'MoveToNextChunk',
+            whatAboutTheItem: info.index <= 5 || info.itemNumber === 1? 'KeepIt': 'MoveToNextChunk',
             userData: info.item.grade
           }));
 
@@ -193,7 +193,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should return empty sequence if source sequence is empty', [], input => {
-        const sut = this.createSut(input).chunkBy(itemInfo => ({endOfChunk: true}));
+        const sut = this.createSut(input).chunkBy(() => ({endOfChunk: true}));
         const actual = [...sut].map(x => [...x]);
         assert.isEmpty(actual);
       });
@@ -236,8 +236,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const endOfChunk = info.itemNumber % 3 === 0;
             return {
               endOfChunk,
-              whatAboutTheItem: info.index <= 5 || info.itemNumber === 1 ? 'KeepIt' : 'MoveToNextChunk',
-              userData: endOfChunk ? -1 : info.item.grade
+              whatAboutTheItem: info.index <= 5 || info.itemNumber === 1? 'KeepIt': 'MoveToNextChunk',
+              userData: endOfChunk? -1: info.item.grade
             };
           });
 
@@ -246,7 +246,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should stop creating more chunks after calling endChunk with isLastCheck=true',
-        array.grades, (input, inputArray) => {
+        array.grades, input => {
           const sut = this.createSut(input);
           for (let maxChunks = 1; maxChunks < 3; maxChunks++) {
             const chunkBy = sut.chunkBy(info => ({
@@ -261,11 +261,11 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should create new chunks until shouldStartNewChunk function returns false',
-        array.grades, (input, inputArray) => {
+        array.grades, input => {
 
           const sut = this.createSut(input);
           for (let maxChunks = 0; maxChunks < 3; maxChunks++) {
-            const chunkBy = sut.chunkBy(info => ({endOfChunk: true}),
+            const chunkBy = sut.chunkBy(() => ({endOfChunk: true}),
               info => info.chunkNumber <= maxChunks);
 
             const actual = [...chunkBy];
@@ -1145,7 +1145,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1194,7 +1194,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
       this.it1('should call all selector callbacks with expected parameters', array.folders, (input) => {
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         let expectedSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
         const expectedIndexes = new Array<number>(9).fill(0);
         let actualSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
@@ -1280,7 +1280,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
         let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length ? v.subFolders : [v];
+        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
         [...input].forEach(v0 => safeChildren(v0)
           .forEach(v1 => safeChildren(v1)
             .forEach(v2 => safeChildren(v2)
@@ -1584,8 +1584,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1606,8 +1606,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertBefore((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1664,8 +1664,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1686,8 +1686,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           if (atIndex >= 0) expected.splice(atIndex + 1, 0, ...secondArray);
 
           const secondForLog = (() => {
-            const quoted: any[] = secondArray.map(x => typeof x === 'string' ? `'${x}'` : x);
-            return Array.isArray(second) ? (`[${quoted}]`) : second === undefined ? 'undefined' : [quoted[0]];
+            const quoted: any[] = secondArray.map(x => typeof x === 'string'? `'${x}'`: x);
+            return Array.isArray(second)? (`[${quoted}]`): second === undefined? 'undefined': [quoted[0]];
           })();
           const failedMessage = (act: any) => `expected [${act}] to deeply equal [${expected}] when doing [${source}].insertAfter((x, index) => index === ${i}, ${secondForLog})`;
 
@@ -1951,7 +1951,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         if (opts?.suffix != null || opts?.insideOut) expected.push(opts?.suffix ?? separator);
 
         const sut = this.createSut(input);
-        const actual = (opts?.insideOut) ? sut.intersperse(separator, true) : sut.intersperse(separator, opts);
+        const actual = (opts?.insideOut)? sut.intersperse(separator, true): sut.intersperse(separator, opts);
         assert.deepEqual([...actual], expected);
       };
 
@@ -1981,6 +1981,120 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       this.it1('should return sequence prefixed with a start value and suffixed with an end value and a separator value between each item from the source sequence', array.zeroToNine, (input) => {
         testIntersperse(input, '|', {prefix: '[', suffix: ']'});
       });
+    });
+
+
+    describe('intersperseBy()', () => {
+
+      this.it1('should return sequence with separator value between each item from the source sequence',
+        array.samples, (input, inputArray) => {
+          const separatorFactory: () => Sample = () => ({type: '-', period: 0, score: 0, ok: false});
+          const expected = Array<Sample | number>().concat(...inputArray.map(x => [x, separatorFactory()]));
+          expected.pop();
+          const sut = this.createSut(input).intersperseBy(separatorFactory);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return sequence with source items between the separator value when separatorAlignment is "Outer"',
+        array.samples, (input, inputArray) => {
+          const separatorFactory: () => Sample = () => ({type: '-', period: 0, score: 0, ok: false});
+          const expected = Array<Sample | number>().concat(separatorFactory(), ...inputArray.map(x => [x, separatorFactory()]));
+          const sut = this.createSut(input).intersperseBy(separatorFactory, 'Outer');
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return sequence starting with a separator value when separatorAlignment is "Left"',
+        array.zeroToNine, (input, inputArray) => {
+          const separator = '|';
+          const expected = Array<number | string>().concat(...inputArray.map(x => [separator, x]));
+          const sut = this.createSut(input).intersperseBy(() => separator, 'Left');
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return sequence ending with a separator value when separatorAlignment is "Right"',
+        array.zeroToNine, (input, inputArray) => {
+          const separator = '|';
+          const expected = Array<number | string>().concat(...inputArray.map(x => [x, separator]));
+          const sut = this.createSut(input).intersperseBy(() => separator, 'Right');
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+        const separator = '|';
+        const expected = [] as number[];
+        const sut = this.createSut(input).intersperseBy(() => separator);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      describe('should provide correct arguments to separatorFactory function', () => {
+        this.it1(`when separatorAlignment is "Inner"`, [0,1,2], (input, inputArray) => {
+          let i = 0;
+          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
+            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+          ];
+          const sut = this.createSut(input).intersperseBy(actual => {
+            const expected = innerInfo[i++];
+            assert.deepEqual(actual, expected);
+          }, 'Inner');
+
+          TestHarness.materialize(sut);
+        });
+
+        this.it1(`when separatorAlignment is "Outer"`, [0,1,2], (input, inputArray) => {
+          let i = 0;
+          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
+            {prevItem: undefined as unknown as number, hasPervItem: false, prevItemIndex: -1, nextItem: 0, hasNextItem: true, isPrefixSeparator: true, isSuffixSeparator: false},
+            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: undefined as unknown as number, hasNextItem: false, isPrefixSeparator: false, isSuffixSeparator: true}
+          ];
+          const sut = this.createSut(input).intersperseBy(actual => {
+            const expected = innerInfo[i++];
+            assert.deepEqual(actual, expected);
+          }, 'Outer');
+
+          TestHarness.materialize(sut);
+        });
+
+        this.it1(`when separatorAlignment is "Left"`, [0,1,2], (input, inputArray) => {
+          let i = 0;
+          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
+            {prevItem: undefined as unknown as number, hasPervItem: false, prevItemIndex: -1, nextItem: 0, hasNextItem: true, isPrefixSeparator: true, isSuffixSeparator: false},
+            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+          ];
+          const sut = this.createSut(input).intersperseBy(actual => {
+            const expected = innerInfo[i++];
+            assert.deepEqual(actual, expected);
+          }, 'Left');
+
+          TestHarness.materialize(sut);
+        });
+
+        this.it1(`when separatorAlignment is "Right"`, [0,1,2], (input, inputArray) => {
+          let i = 0;
+          const innerInfo: {prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean}[] = [
+            {prevItem: inputArray[0], hasPervItem: true, prevItemIndex: 0, nextItem: 1, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[1], hasPervItem: true, prevItemIndex: 1, nextItem: 2, hasNextItem: true, isPrefixSeparator: false, isSuffixSeparator: false},
+            {prevItem: inputArray[2], hasPervItem: true, prevItemIndex: 2, nextItem: undefined as unknown as number, hasNextItem: false, isPrefixSeparator: false, isSuffixSeparator: true}
+          ];
+          const sut = this.createSut(input).intersperseBy(actual => {
+            const expected = innerInfo[i++];
+            assert.deepEqual(actual, expected);
+          }, 'Right');
+
+          TestHarness.materialize(sut);
+        });
+      });
+
     });
 
     describe("map()", () => {
@@ -2115,7 +2229,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           let expectedIndex = 0;
           const expected: [number[], number[]] = [[], []];
           for (const n of inputArray) {
-            expectedIndex = (expectedIndex === 0 && condition(n)) ? 0 : 1;
+            expectedIndex = (expectedIndex === 0 && condition(n))? 0: 1;
             expected[expectedIndex].push(n);
           }
           const sut = this.createSut(input);
@@ -2127,24 +2241,24 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       this.it1('should return first sequence with all items and second empty, if all items match a condition',
         array.oneToTen.x(2), (input, inputArray) => {
 
-        const expected = [inputArray.slice(), []];
-        const sut = this.createSut(input);
-        const split = sut.partitionWhile(() => true);
-        const actual = [[...split[0]], [...split[1]]];
+          const expected = [inputArray.slice(), []];
+          const sut = this.createSut(input);
+          const split = sut.partitionWhile(() => true);
+          const actual = [[...split[0]], [...split[1]]];
           assert.deepEqual(expected, actual);
-      });
+        });
 
       this.it1('should return first sequence empty and second with all items, if none of the items match a condition',
         array.oneToTen.x(2), (input, inputArray) => {
-        const expected = [[], inputArray.slice()];
-        const sut = this.createSut(input);
-        const split = sut.partitionWhile(() => false);
-        const actual = [[...split[0]], [...split[1]]];
-        assert.deepEqual(expected, actual);
-      });
+          const expected = [[], inputArray.slice()];
+          const sut = this.createSut(input);
+          const split = sut.partitionWhile(() => false);
+          const actual = [[...split[0]], [...split[1]]];
+          assert.deepEqual(expected, actual);
+        });
 
       this.it1('should return first and second sequences empty, when source sequence is empty',
-        [] as number[], (input, inputArray) => {
+        [] as number[], input => {
           const expected = [[], []] as number[][];
           const sut = this.createSut(input);
           const split = sut.partitionWhile(() => false);
@@ -2153,7 +2267,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('result properties: first, second should be same instance as the result tuple at index 0, 1 respectively',
-        array.oneToTen.x(2), (input, inputArray) => {
+        array.oneToTen.x(2), input => {
           const sut = this.createSut(input);
           const actual = sut.partitionWhile(n => n < 5);
           assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
@@ -2669,8 +2783,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         let sut = this.createSut(input);
 
         for (let index = -1; index < inputArray.length + 1; index++) {
-          const expectedFirst = index < 1 ? [] : inputArray.slice(0, index);
-          const expectedSecond = index < 1 ? inputArray.slice() : inputArray.slice(index);
+          const expectedFirst = index < 1? []: inputArray.slice(0, index);
+          const expectedSecond = index < 1? inputArray.slice(): inputArray.slice(index);
 
           let actual = sut.splitAt(index);
           assert.deepEqual([...actual[0]], expectedFirst);
@@ -2683,7 +2797,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
       this.it1('result properties: first, second should be same instance as the result tuple at index 0, 1 respectively',
-        array.oneToTen.x(2), (input, inputArray) => {
+        array.oneToTen.x(2), input => {
           const sut = this.createSut(input);
           const actual = sut.splitAt(5);
           assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
@@ -2729,13 +2843,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should return empty sequence if source sequence is empty', [] as number[], (input) => {
         const expected = [] as number[][];
-        const sut = this.createSut(input).split(n => true);
+        const sut = this.createSut(input).split(() => true);
         const actual = [...sut].map(seq => [...seq]);
         assert.deepEqual(actual, expected);
       });
 
       this.it1('should included the "separator" item in a separated sub-sequence when opts.keepSeparator = SeparateChunk',
-        array.oneToTen, (input, inputArray) => {
+        array.oneToTen, input => {
           const expected = [[1, 2, 3, 4], [5], [6, 7, 8, 9, 10]];
           const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'SeparateChunk'});
           const actual = [...sut].map(x => [...x]);
@@ -2743,7 +2857,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should included "separator" item, appended to the left chunk when opts.keepSeparator = LeftChunk',
-        array.oneToTen, (input, inputArray) => {
+        array.oneToTen, input => {
           const expected = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
           const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'LeftChunk'});
           const actual = [...sut].map(x => [...x]);
@@ -2752,7 +2866,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
 
       this.it1('should included the "separator" item, prepend to the next chunk when opts.keepSeparator = RightChunk',
-        array.oneToTen, (input, inputArray) => {
+        array.oneToTen, input => {
           const expected = [[1, 2, 3, 4], [5, 6, 7, 8, 9, 10]];
           const sut = this.createSut(input).split(n => n === 5, {keepSeparator: 'RightChunk'});
           const actual = [...sut].map(x => [...x]);
@@ -2762,7 +2876,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       describe('with {opts.maxChunks: 2}', () => {
         const maxChunks = 2;
         this.it1('should split the sequence into number of sub sequences as specified in {opts.maxChunks}, when source sequence can be split to more',
-          array.oneToTen, (input, inputArray) => {
+          array.oneToTen, input => {
 
             const expected = [[1], [3]] as number[][];
 
@@ -2782,13 +2896,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
         this.it1('should return empty sequence if source sequence is empty', [] as number[], (input) => {
           const expected = [] as number[][];
-          const sut = this.createSut(input).split(n => true, {maxChunks});
+          const sut = this.createSut(input).split(() => true, {maxChunks});
           const actual = [...sut].map(seq => [...seq]);
           assert.deepEqual(actual, expected);
         });
 
         this.it1('should included the "separator" item in a separated sub-sequence when opts.keepSeparator = SeparateChunk',
-          array.oneToTen, (input, inputArray) => {
+          array.oneToTen, input => {
             const expected = [[1, 2, 3, 4], [5]];
             const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'SeparateChunk', maxChunks});
             const actual = [...sut].map(x => [...x]);
@@ -2796,7 +2910,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           });
 
         this.it1('should included "separator" item, appended to the left chunk when opts.keepSeparator = LeftChunk',
-          array.oneToTen, (input, inputArray) => {
+          array.oneToTen, input => {
             const expected = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
             const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'LeftChunk', maxChunks});
             const actual = [...sut].map(x => [...x]);
@@ -2804,7 +2918,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           });
 
         this.it1('should included the "separator" item, prepend to the next chunk when opts.keepSeparator = RightChunk',
-          array.oneToTen, (input, inputArray) => {
+          array.oneToTen, input => {
             const expected = [[1, 2, 3, 4], [5, 6, 7, 8, 9]];
             const sut = this.createSut(input).split(n => n % 5 === 0, {keepSeparator: 'RightChunk', maxChunks});
             const actual = [...sut].map(x => [...x]);

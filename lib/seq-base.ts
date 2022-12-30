@@ -863,6 +863,58 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }) as unknown as Seq<TPrefix | U | TSuffix>;
   }
 
+  intersperseBy<U>(separatorFactory: (info: { prevItem: T; hasPervItem: boolean; prevItemIndex: number; nextItem: T; hasNextItem: boolean; isPrefixSeparator: boolean; isSuffixSeparator: boolean; }) => U, separatorAlignment: 'Inner' | 'Outer' | 'Left' | 'Right' = 'Inner'): Seq<T | U> {
+    return this.generate(function* intersperseBy(self) {
+      let isFirst = true;
+      let shouldPrefix = separatorAlignment === 'Outer' || separatorAlignment === 'Left';
+      let shouldSuffix = separatorAlignment === 'Outer' || separatorAlignment === 'Right';
+
+      let prevItem: T = undefined as unknown as T;
+      let index = 0;
+      for (const item of self) {
+
+        if (shouldPrefix) {
+          shouldPrefix = false;
+          yield separatorFactory({
+            prevItem,
+            hasPervItem: false,
+            prevItemIndex: -1,
+            nextItem: item,
+            hasNextItem: true,
+            isPrefixSeparator: true,
+            isSuffixSeparator: false
+          });
+        }
+
+        if (isFirst) isFirst = false;
+        else yield separatorFactory({
+          prevItem,
+          hasPervItem: true,
+          prevItemIndex: index++,
+          nextItem: item,
+          hasNextItem: true,
+          isPrefixSeparator: false,
+          isSuffixSeparator: false
+        });
+
+        yield item;
+        prevItem = item;
+      }
+
+      if (shouldSuffix && !isFirst) {
+        yield separatorFactory({
+          prevItem,
+          hasPervItem: true,
+          prevItemIndex: index,
+          nextItem: undefined as unknown as T,
+          hasNextItem: false,
+          isPrefixSeparator: false,
+          isSuffixSeparator: true
+        });
+      }
+    });
+  }
+
   isEmpty(): boolean {
     if (SeqTags.optimize(this) && SeqTags.empty(this)) return true;
     // noinspection LoopStatementThatDoesntLoopJS
@@ -946,17 +998,19 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const unmatched: T[] = [];
 
     const sourceIterator = new class {
-      private _done: boolean | undefined = false;
-      private _iter: Iterator<T> | undefined;
       private index = -1;
       private refCount = 2;
 
       constructor(private source: Iterable<T>) {
       }
 
+      private _done: boolean | undefined = false;
+
       get done(): boolean {
         return !!this._done;
       };
+
+      private _iter: Iterator<T> | undefined;
 
       private get iter() {
         if (!this._iter) this._iter = getIterator(this.source);

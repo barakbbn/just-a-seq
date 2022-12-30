@@ -135,6 +135,10 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
         testIteratedOnce(input, sut => sut.intersperse(','));
       });
 
+      it1('intersperseBy()', (input) => {
+        testIteratedOnce(input, sut => sut.intersperseBy(() => ','));
+      });
+
       it1('map()', (input) => {
         testIteratedOnce(input, sut => sut.map(() => 1));
       });

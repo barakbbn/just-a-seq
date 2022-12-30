@@ -213,6 +213,7 @@ export abstract class SeqBase_Change_Source_Tests extends TestIt {
     test2('insertBefore()', array.oneToTen, array.oneToTen, (seq, other) => seq.insertBefore(n => n > 5, other));
     test2('intersect()', array.oneToTen, array.oneToTen, (seq, other) => seq.intersect(other));
     test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
+    test('intersperseBy()', array.oneToTen, seq => seq.intersperseBy(() => ','));
     test('isEmpty()', array.oneToTen, seq => seq.isEmpty());
     test('join()', array.oneToTen, seq => seq.join());
     test('last()', array.oneToTen, seq => seq.last());

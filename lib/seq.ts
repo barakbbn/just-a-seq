@@ -274,6 +274,8 @@ export interface Seq<T> extends Iterable<T> {
 
   intersperse<U = T, TPrefix = T, TSuffix = T>(separator: U, opts?: { prefix?: TPrefix; suffix?: TSuffix }): Seq<TPrefix | T | U | TSuffix>;
 
+  intersperseBy<U>(separatorFactory: (info: { prevItem: T; hasPervItem: boolean; prevItemIndex: number; nextItem: T; hasNextItem: boolean; isPrefixSeparator: boolean; isSuffixSeparator: boolean; }) => U, separatorAlignment?: 'Inner' | 'Outer' | 'Left' | 'Right'): Seq<T | U>;
+
   isEmpty(): boolean;
 
   join(separator?: string): string; // Overload
