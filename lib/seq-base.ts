@@ -322,6 +322,29 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  distinctUntilChanged(keySelector?: Selector<T, unknown>): Seq<T>;
+  distinctUntilChanged({equals}: { equals(prev: T, next: T): unknown; }): Seq<T>;
+  distinctUntilChanged(keySelectorOrEquals?: Selector<T, unknown> | { equals(a: T, b: T): unknown; }): Seq<T> {
+    const [keySelector, equals]: [Selector<T, any>, (a: any, b: any) => any] =
+      typeof keySelectorOrEquals === 'function'?
+        [keySelectorOrEquals, sameValueZero]:
+        typeof keySelectorOrEquals?.equals === 'function'?
+          [IDENTITY, keySelectorOrEquals?.equals]:
+          [IDENTITY, sameValueZero];
+
+    return this.generate(function* distinctUntilChanged(self) {
+      let prevValue: any = undefined;
+      let index = 0;
+      for (const item of self) {
+        const key = keySelector(item, index);
+        if (index > 0 && equals(key, prevValue)) continue;
+        prevValue = key;
+        index++;
+        yield item;
+      }
+    });
+  }
+
   endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
 
   endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;

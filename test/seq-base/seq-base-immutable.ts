@@ -37,6 +37,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('diffDistinct()', array.zeroToNine, seq => seq.diffDistinct(array.oneToTen));
     testImmutable('diff()', array.zeroToNine, seq => seq.diff(array.oneToTen));
     testImmutable('distinct()', array.tenOnes, seq => seq.distinct());
+    testImmutable('distinctUntilChanged()', array.tenOnes, seq => seq.distinctUntilChanged());
     testImmutable('endsWith()', array.oneToTen, seq => seq.endsWith([9, 10]));
     testImmutable('entries()', array.oneToTen, seq => seq.entries());
     testImmutable('filter()', array.oneToTen, seq => seq.filter(() => true));

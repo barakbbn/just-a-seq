@@ -916,6 +916,46 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe("distinctUntilChanged()", () => {
+      this.it1('should return a sequence without parts with consecutive same values',
+        array.tenZeros.concat(array.tenOnes).x(2), (input) => {
+          const expected = [0, 1, 0, 1];
+          const sut = this.createSut(input).distinctUntilChanged();
+          const actual = [...sut];
+          assert.sameOrderedMembers(expected, actual);
+        });
+
+      this.it1('should return empty sequence when source sequence is empty', [], (input) => {
+        const sut = this.createSut(input).distinctUntilChanged();
+        const actual = [...sut];
+        assert.isEmpty(actual);
+      });
+
+      describe('with key-selector', () => {
+        this.it1('should return distinct values by key selector',
+          array.grades.selfZip(3),
+          (input) => {
+
+            const expected = array.grades;
+            const sut = this.createSut(input).distinctUntilChanged(x => x.grade);
+            const actual = [...sut];
+            assert.deepEqual(expected, actual);
+          });
+
+      });
+      describe('with equality-comparer', () => {
+        this.it1('should return distinct values by key selector',
+          array.grades.selfZip(3),
+          (input) => {
+
+            const expected = array.grades;
+            const sut = this.createSut(input).distinctUntilChanged({equals: (g1, g2) => g1.grade === g2.grade});
+            const actual = [...sut];
+            assert.deepEqual(expected, actual);
+          });
+      });
+
+    });
     describe('entries()', () => {
       this.it1('should return sequence of tuples of index paired with the item, like Array.entries()', array.abc, (input) => {
         const sut = this.createSut(input);

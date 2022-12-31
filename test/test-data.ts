@@ -26,12 +26,12 @@ export const array = new class {
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   }
 
-  get tenZeros(): number[] {
-    return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  get tenZeros(): TestableArray<number> {
+    return new TestableArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   }
 
-  get tenOnes(): number[] {
-    return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  get tenOnes(): TestableArray<number> {
+    return new TestableArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
   }
 
   get abc(): TestableArray<string> {
@@ -378,6 +378,10 @@ export class TestableArray<T> extends Array<T> {
     while (nulls--) this.push(null as any);
     while (undefineds--) this.push(undefined as any);
     return this;
+  }
+
+  concat(...items: (T | ConcatArray<T>)[]): TestableArray<T> {
+    return super.concat(...items) as TestableArray<T>;
   }
 }
 

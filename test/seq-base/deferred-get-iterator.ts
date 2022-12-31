@@ -58,6 +58,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('distinct()', () => testGetIterator(sut => sut.distinct()));
 
+    describe('distinctUntilChanged()', () => testGetIterator(sut => sut.distinctUntilChanged()));
+
     describe('entries()', () => testGetIterator(sut => sut.entries()));
 
     describe('filter()', () => testGetIterator(sut => sut.filter(() => true)));

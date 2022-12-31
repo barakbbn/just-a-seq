@@ -92,6 +92,10 @@ export interface Seq<T> extends Iterable<T> {
 
   distinct(keySelector?: Selector<T, unknown>): Seq<T>;
 
+  distinctUntilChanged(keySelector?: Selector<T, unknown>): Seq<T>;
+
+  distinctUntilChanged({equals}: { equals(prev: T, next: T): unknown; }): Seq<T>;
+
   endsWith(items: Iterable<T>, keySelector?: (item: T) => unknown): boolean;
 
   endsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
@@ -258,7 +262,7 @@ export interface Seq<T> extends Iterable<T> {
 
   insertBefore(condition: Condition<T>, ...items: Iterable<T>[]): Seq<T>;  // Overload
 
-  interleave(...others: Iterable<T>[]):Seq<T>;
+  interleave(...others: Iterable<T>[]): Seq<T>;
 
   intersect(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 

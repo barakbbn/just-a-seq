@@ -65,6 +65,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('distinct()', (input) => test(input, sut => sut.distinct()));
 
+      it1('distinctUntilChanged()', (input) => test(input, sut => sut.distinctUntilChanged()));
+
       it1('entries()', (input) => test(input, sut => sut.entries()));
 
       it1('filter()', (input) => test(input, sut => sut.filter(() => true)));

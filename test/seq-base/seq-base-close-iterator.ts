@@ -94,6 +94,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test2('diffDistinct()', array.zeroToNine, array.oneToTen, (seq, other) => seq.diffDistinct(other));
     test2('diff()', array.zeroToNine, array.oneToTen, (seq, other) => seq.diff(other));
     test('distinct()', array.tenOnes, seq => seq.distinct());
+    test('distinctUntilChanged()', array.tenOnes, seq => seq.distinctUntilChanged());
     test2('endsWith()', array.oneToTen, [9, 10], (seq, other) => seq.endsWith(other));
     test('entries()', array.oneToTen, seq => seq.entries());
     test('filter()', array.oneToTen, seq => seq.filter(() => true));
