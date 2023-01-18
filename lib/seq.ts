@@ -298,7 +298,7 @@ export interface Seq<T> extends Iterable<T> {
 
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
 
-  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
+  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U;
 
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
 
@@ -432,7 +432,7 @@ export interface Seq<T> extends Iterable<T> {
 
   take(count: number): Seq<T>; // negative count is like takeLast
 
-  takeLast(count: number): Seq<T>
+  takeLast(count: number): Seq<T>;
 
   // Similar to intersect() by not distinct items, rather as they appear in second iterable
   takeOnly(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
@@ -462,6 +462,14 @@ export interface Seq<T> extends Iterable<T> {
   unionRight(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
 
   unshift(...items: T[]): Seq<T>;
+
+  window(size: number): Seq<Seq<T>>;
+
+  window(size: number, step: number): Seq<Seq<T>>;
+
+  window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+
+  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]>;
 
@@ -597,7 +605,7 @@ export interface SeqOfGroupsFactory {
   <K, T = K, U = T>(source: Iterable<T>,
                     keySelector?: Selector<T, K>,
                     toComparableKey?: ToComparableKey<K>,
-                    valueSelector?: (x: T, index: number, key: K) => U): SeqOfGroups<K, U>
+                    valueSelector?: (x: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 }
 
 export interface FilterMapSeqFactory {

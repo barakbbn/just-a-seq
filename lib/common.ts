@@ -1,7 +1,7 @@
-import {CachedSeq, ComparableType, Comparer, KeyedSeq, Seq, SortedSeq} from "./seq";
+import {CachedSeq, ComparableType, KeyedSeq, Seq, SortedSeq} from "./seq";
 
 export interface IterationContext {
-  closeWhenDone<V>(iterator: Iterator<V>): Iterator<V>;
+  closeWhenDone<V, TIter extends Iterator<V>>(iterator: TIter): TIter;
 
   onClose(action: () => void): void;
 }
@@ -9,7 +9,7 @@ export interface IterationContext {
 class IterationContextImpl implements IterationContext {
   private onCloseActions: (() => void)[];
 
-  closeWhenDone<V>(iterator: Iterator<V>) {
+  closeWhenDone<V, TIter extends Iterator<V>>(iterator: TIter): TIter {
     this.onClose(() => closeIterator(iterator));
     return iterator;
   }
@@ -113,7 +113,7 @@ export function consume(iterable: Iterable<any>): void {
   }
 }
 
-export const IGNORED_ITEM: any = {};
+export const IGNORED_ITEM: any = new class IGNORED_ITEM {};
 export const EMPTY_ARRAY: readonly any[] = []
 
 export function isArray<T>(iterable: Iterable<T>): iterable is Array<T> {

@@ -114,7 +114,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should be able to iterate child chunked-sequence after main sequence closed',
         array.oneToTen, (input, inputArray) => {
-          const expected = inputArray.slice().splice(0, 2)
+          const expected = inputArray.slice().splice(0, 2);
           const sut = this.createSut(input).chunk(2);
           let [firstChunk] = sut; // will take first child chunked-sequence and close the iterator returned by sut
           const actual = [...firstChunk];
@@ -163,7 +163,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
           for (const outerFirst of [false, true]) {
             let actual: Iterable<Iterable<{ name: string; grade: number; }>> = createSut();
-            if (outerFirst) actual = [...actual]
+            if (outerFirst) actual = [...actual];
 
             let chunkIndex = 0;
             for (const actualChunk of actual) {
@@ -327,7 +327,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           const createSut = () => this.createSut(input).chunkByLimit(LIMIT, sample => sample.score);
           for (const outerFirst of [false, true]) {
             let actual: Iterable<Iterable<Sample>> = createSut();
-            if (outerFirst) actual = [...actual]
+            if (outerFirst) actual = [...actual];
 
             let chunkIndex = 0;
             for (const actualChunk of actual) {
@@ -379,7 +379,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const createSut = () => this.createSut(input).chunkByLimit(LIMIT, sample => sample.score, {maxItemsInChunk: MAX});
             for (const outerFirst of [false, true]) {
               let actual: Iterable<Iterable<Sample>> = createSut();
-              if (outerFirst) actual = [...actual]
+              if (outerFirst) actual = [...actual];
 
               let chunkIndex = 0;
               for (const actualChunk of actual) {
@@ -956,12 +956,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
     });
+
     describe('entries()', () => {
       this.it1('should return sequence of tuples of index paired with the item, like Array.entries()', array.abc, (input) => {
         const sut = this.createSut(input);
         const expected = [...[...input].entries()];
         const actual = [...sut.entries()];
-        assert.deepEqual(actual, expected)
+        assert.deepEqual(actual, expected);
       });
     });
 
@@ -1069,9 +1070,9 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         }
 
         let results = items;
-        for (let level = 0; level < depth; level++) results = [...split(results)]
+        for (let level = 0; level < depth; level++) results = [...split(results)];
         return results;
-      }
+      };
 
       it('should flatten a sequence of array by 1 level when no specifying depth', () => {
         const depth1 = array.oneToTen;
@@ -1480,13 +1481,13 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           let expected = [...first].slice(0, i).concat([...second]).concat([...first].slice(i));
           let sut = this.createSut(first).insert(i, second);
           let actual = [...sut];
-          let msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second]}])`
+          let msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second]}])`;
           assert.deepEqual(actual, expected, msg);
 
           expected = [...first].slice(0, i).concat([...second, ...first]).concat([...first].slice(i));
           sut = this.createSut(first).insert(i, second, first);
           actual = [...sut];
-          msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second, ...first]}])`
+          msg = `expected [${actual}] to deeply equals [${expected}] when doing [${[...first]}].insert(${i}, [${[...second, ...first]}])`;
           assert.deepEqual(actual, expected, msg);
         }
       });
@@ -1670,14 +1671,14 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - string', array.abc, ['', '1', '-'], (first, second) => {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - objects', array.grades, [{
@@ -1687,7 +1688,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertAfter(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
     });
 
@@ -1750,14 +1751,14 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertBefore(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - string', array.abc, ['', '1', '-'], (first, second) => {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertBefore(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
 
       this.it2('should not add new items if none of the sources items meets the condition - objects', array.grades, [{
@@ -1767,7 +1768,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const expected: any[] = [...first];
         const sut = this.createSut<any>(first);
         const actual = sut.insertBefore(() => false, second);
-        assert.deepEqual([...actual], expected)
+        assert.deepEqual([...actual], expected);
       });
     });
 
@@ -2403,12 +2404,12 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         let sut = this.createSut(input);
         const matchResults = sut.partition(x => x % 2 == 0);
         assert.sameOrderedMembers([...matchResults.matched], [...matchResults[0]]);
-      })
+      });
       this.it1('should have the items in .unmatched property exactly the same as result tuple at index 1', array.oneToTen, (input) => {
         let sut = this.createSut(input);
         const matchResults = sut.partition(x => x % 2 == 0);
         assert.sameOrderedMembers([...matchResults.unmatched], [...matchResults[1]]);
-      })
+      });
 
     });
 
@@ -2460,8 +2461,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         array.oneToTen.x(2), input => {
           const sut = this.createSut(input);
           const actual = sut.partitionWhile(n => n < 5);
-          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
-          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second')
+          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first');
+          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second');
         });
     });
 
@@ -2647,7 +2648,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             array.gradesAboveFifty.map(g => ({grade: g.grade})),
             (first, second) => {
 
-              const expected = array.gradesFiftyAndBelow
+              const expected = array.gradesFiftyAndBelow;
 
               const sut = this.createSut(first);
               let actual = sut.remove(second, x => x.grade);
@@ -2706,7 +2707,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             let actual = sut.remove(second,
               point => point.x + point.y * 1000,
               point => point.X + point.Y * 1000);
-            const actualArray = [...actual]
+            const actualArray = [...actual];
             assert.deepEqual(actualArray, expected);
           });
       });
@@ -2718,7 +2719,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           const expected = [...first].filter(ch => ![...second].includes(ch));
           const sut = this.createSut(first);
           const actual = sut.removeAll(second);
-          assert.sameOrderedMembers([...actual], expected)
+          assert.sameOrderedMembers([...actual], expected);
         });
 
       describe('with key-selector', () => {
@@ -2731,7 +2732,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const sut = this.createSut(first);
             const actual = sut.removeAll(second, sample => sample.type);
 
-            assert.deepEqual([...actual], expected)
+            assert.deepEqual([...actual], expected);
           });
 
         // TODO: second sequence of different type
@@ -2747,7 +2748,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const sut = this.createSut(first);
             const actual = sut.removeAll(second, sample => sample.type, sample => sample.kind);
             const actualArray = [...actual];
-            assert.deepEqual(actualArray, expected)
+            assert.deepEqual(actualArray, expected);
           });
       });
     });
@@ -2772,7 +2773,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           const sut = this.createSut(first);
           const actual = sut.removeKeys(second, g => g.grade);
 
-          assert.deepEqual([...actual], expected)
+          assert.deepEqual([...actual], expected);
         });
 
       describe('by Set', () => {
@@ -2784,7 +2785,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const sut = this.createSut(first);
             const actual = sut.removeKeys(second, g => g.grade);
 
-            assert.deepEqual([...actual], expected)
+            assert.deepEqual([...actual], expected);
           });
       });
 
@@ -2798,7 +2799,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const sut = this.createSut(first);
             const actual = sut.removeKeys(second, g => g.grade);
 
-            assert.deepEqual([...actual], expected)
+            assert.deepEqual([...actual], expected);
           });
       });
     });
@@ -2990,8 +2991,8 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         array.oneToTen.x(2), input => {
           const sut = this.createSut(input);
           const actual = sut.splitAt(5);
-          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first')
-          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second')
+          assert.equal(actual[0], actual.first, 'Tuple at index 0 is not same instance as property: first');
+          assert.equal(actual[1], actual.second, 'Tuple at index 1 is not same instance as property: second');
         });
     });
 
@@ -3424,7 +3425,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const tapped = sut.tap((item, index) => actual.push(index));
         for (const item of tapped) {
         }
-        assert.deepEqual(actual, expected)
+        assert.deepEqual(actual, expected);
       });
 
       this.it1('should produce same results before and after tap', array.oneToTen, (input) => {
@@ -3609,6 +3610,326 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         assert.deepEqual(actual, expected);
       });
     });
+
+    describe('window()', () => {
+      const overflowLeftArgs = [false, false];
+      const overflowRightArgs = [false, true];
+      const padWithArgs = [undefined, -1];
+
+      // ==========================================
+
+      const sources = [[1, 2, 3], [] as number[]];
+      for (const source of sources) {
+        this.it1(`combination of all parameters${source.length? '': ' - empty source'}`, source, (input, inputArray) => {
+          for (let slidingSize = -1; slidingSize <= inputArray.length * 2 + 1; slidingSize++) {
+            for (let slidingStep = -1; slidingStep <= inputArray.length * 2 + 1; slidingStep++) {
+              const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
+              for (const rightOverflow of overflowRightArgs) {
+                for (const leftOverflow of overflowLeftArgs) {
+                  for (const padWith of padWithArgs) {
+                    for (let windowSize = -1; windowSize <= inputArray.length * 2 + 1; windowSize++) {
+                      const size = Math.max(windowSize, 0);
+                      const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
+                      const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
+
+                      // ==========================================
+                      {
+                        const opts = padWith !== undefined?
+                          {leftOverflow, rightOverflow, padWith}
+                          : {leftOverflow, rightOverflow};
+
+                        const leftPadding = leftOverflow?
+                          padWith !== undefined?
+                            paddings:
+                            undefinedPaddings:
+                          [];
+                        const rightPadding = rightOverflow?
+                          padWith !== undefined?
+                            paddings:
+                            undefinedPaddings:
+                          [];
+
+                        const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
+                        const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}`;
+
+                        // console.log('window - combined', testInfo);
+
+                        const expectedBase = leftPadding.concat(inputArray, rightPadding);
+                        let sliceLength = Math.max(expectedBase.length - size + 1, 1);
+
+                        const expected: number[][] = [];
+                        for (let i = 0; i < sliceLength; i += step) {
+                          const win = expectedBase.slice(i, i + size).filter(x => x !== undefined);
+                          if (!win.length) continue;
+                          const prevWin = expected[expected.length - 1];
+                          let equals = false;
+                          if (prevWin && prevWin.length === win.length) {
+                            equals = win.every((value, index) => value === prevWin[index]);
+                          }
+                          if (!equals) expected.push(win);
+                        }
+
+                        const sut = this.createSut(input).window(windowSize, slidingStep, opts);
+                        const actual = [...sut].map(s => [...s]);
+                        assert.deepEqual(actual, expected, testInfo);
+                      }
+                      // ==========================================
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // describe('window()', () => {
+    //
+    //   this.it1('should return expected number of windows, with each having number of items as the window size',
+    //     array.oneToTen, (input, inputArray) => {
+    //       for (let size = 1; size <= inputArray.length; size++) {
+    //         const expected = inputArray
+    //           .slice(0, inputArray.length - size + 1)
+    //           .map((_, i) => inputArray.slice(i, i + size));
+    //
+    //         const sut = this.createSut(input).window(size);
+    //
+    //         const actual = [...sut].map(s => [...s]);
+    //         assert.deepEqual(actual, expected, `windows size is ${size}`);
+    //       }
+    //     });
+    //
+    //   this.it1('should return 1 window containing all the source items, when window size is more than the number of source items',
+    //     array.oneToTen, (input, inputArray) => {
+    //       const size = inputArray.length + 2;
+    //       const expected = [inputArray];
+    //
+    //       const sut = this.createSut(input).window(size);
+    //
+    //       const actual = [...sut].map(s => [...s]);
+    //       assert.deepEqual(actual, expected);
+    //     });
+    //
+    //   this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+    //     const size = 2;
+    //     const sut = this.createSut(input).window(size);
+    //     const actual = [...sut];
+    //     assert.isEmpty(actual);
+    //   });
+    //
+    //   describe('left-overflow', () => {
+    //     this.it1('should return expected number of windows, with each having number of items as the window size',
+    //       array.oneToTen, (input, inputArray) => {
+    //
+    //         for (let size = 1; size <= inputArray.length; size++) {
+    //           const leftPadded = new Array(size - 1)
+    //             .fill(undefined)
+    //             .concat(inputArray);
+    //           const expected = leftPadded
+    //             .slice(0, leftPadded.length - size + 1)
+    //             .map((_, i) => leftPadded
+    //               .slice(i, i + size)
+    //               .filter(x => x !== undefined));
+    //
+    //           const sut = this.createSut(input).window(size, {leftOverflow: true});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           assert.deepEqual(actual, expected, `windows size is ${size}`);
+    //         }
+    //       });
+    //
+    //     this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
+    //       array.oneToTen, (input, inputArray) => {
+    //         const size = inputArray.length + 2;
+    //         const expected = inputArray.map((_, i) => inputArray.slice(0, i + 1));
+    //
+    //         const sut = this.createSut(input).window(size, {leftOverflow: true});
+    //
+    //         const actual = [...sut].map(s => [...s]);
+    //         assert.deepEqual(actual, expected);
+    //       });
+    //
+    //     this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+    //       const size = 2;
+    //       const sut = this.createSut(input).window(size, {leftOverflow: true});
+    //       const actual = [...sut];
+    //       assert.isEmpty(actual);
+    //     });
+    //
+    //     describe('with padding', () => {
+    //       this.it1('should return expected number of windows, with each having number of items as the window size',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           for (let size = 1; size <= inputArray.length; size++) {
+    //             const leftPadded = new Array(size - 1)
+    //               .fill(padWith)
+    //               .concat(inputArray);
+    //             const expected = leftPadded
+    //               .slice(0, leftPadded.length - size + 1)
+    //               .map((_, i) => leftPadded.slice(i, i + size));
+    //
+    //             const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
+    //
+    //             const actual = [...sut].map(s => [...s]);
+    //             assert.deepEqual(actual, expected, `windows size is ${size}`);
+    //           }
+    //         });
+    //
+    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           const size = inputArray.length + 2;
+    //           const leftPadded = new Array(size - 1)
+    //             .fill(padWith)
+    //             .concat(inputArray);
+    //           const expected = leftPadded
+    //             .slice(0, leftPadded.length - size + 1)
+    //             .map((_, i) => leftPadded.slice(i, i + size));
+    //
+    //           const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           assert.deepEqual(actual, expected);
+    //         });
+    //
+    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than twice the number of source items',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           const size = inputArray.length * 2 + 2;
+    //           const leftPadded = new Array(size - 1)
+    //             .fill(padWith)
+    //             .concat(inputArray);
+    //           const expected = leftPadded
+    //             .slice(0, leftPadded.length - size + 1)
+    //             .map((_, i) => leftPadded.slice(i, i + size));
+    //
+    //           const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           assert.deepEqual(actual, expected);
+    //         });
+    //
+    //       this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+    //         const size = 2;
+    //         const sut = this.createSut(input).window(size, {leftOverflow: true, padWith: -10});
+    //         const actual = [...sut];
+    //         assert.isEmpty(actual);
+    //       });
+    //
+    //     });
+    //
+    //     describe('with step', () => {
+    //     });
+    //     describe('with offset', () => {
+    //     });
+    //   });
+    //
+    //   describe('right-overflow', () => {
+    //     this.it1('should return expected number of windows, with each having number of items as the window size',
+    //       array.oneToTen, (input, inputArray) => {
+    //
+    //         for (let size = 1; size <= inputArray.length; size++) {
+    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(undefined));
+    //           const expected = rightPadded
+    //             .slice(0, rightPadded.length - size + 1)
+    //             .map((_, i) => rightPadded
+    //               .slice(i, i + size)
+    //               .filter(x => x !== undefined));
+    //
+    //           const sut = this.createSut(input).window(size, {rightOverflow: true});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           const exp = [...expected].map(s => [...s]);
+    //           assert.deepEqual(actual, exp, `windows size is ${size}`);
+    //         }
+    //       });
+    //
+    //     this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
+    //       array.oneToTen, (input, inputArray) => {
+    //         const size = inputArray.length + 2;
+    //         const rightPadded = inputArray.concat(new Array(size - 1).fill(undefined));
+    //         const expected = rightPadded
+    //           .slice(0, rightPadded.length - size + 1)
+    //           .map((_, i) => rightPadded
+    //             .slice(i, i + size)
+    //             .filter(x => x !== undefined));
+    //
+    //         const sut = this.createSut(input).window(size, {rightOverflow: true});
+    //
+    //         const actual = [...sut].map(s => [...s]);
+    //         assert.deepEqual(actual, expected);
+    //       });
+    //
+    //     this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+    //       const size = 2;
+    //       const sut = this.createSut(input).window(size, {rightOverflow: true});
+    //       const actual = [...sut];
+    //       assert.isEmpty(actual);
+    //     });
+    //
+    //     describe('with padding', () => {
+    //       this.it1('should return expected number of windows, with each having number of items as the window size',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           for (let size = 1; size <= inputArray.length; size++) {
+    //             const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
+    //             const expected = rightPadded
+    //               .slice(0, rightPadded.length - size + 1)
+    //               .map((_, i) => rightPadded.slice(i, i + size));
+    //
+    //             const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
+    //
+    //             const actual = [...sut].map(s => [...s]);
+    //             assert.deepEqual(actual, [...expected], `windows size is ${size}`);
+    //           }
+    //         });
+    //
+    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           const size = inputArray.length + 2;
+    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
+    //           const expected = rightPadded
+    //             .slice(0, rightPadded.length - size + 1)
+    //             .map((_, i) => rightPadded.slice(i, i + size));
+    //
+    //           const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           assert.deepEqual(actual, expected);
+    //         });
+    //
+    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than twice the number of source items',
+    //         array.oneToTen, (input, inputArray) => {
+    //           const padWith = -1;
+    //           const size = inputArray.length * 2 + 2;
+    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
+    //           const expected = rightPadded
+    //             .slice(0, rightPadded.length - size + 1)
+    //             .map((_, i) => rightPadded.slice(i, i + size));
+    //
+    //           const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
+    //
+    //           const actual = [...sut].map(s => [...s]);
+    //           assert.deepEqual(actual, expected);
+    //         });
+    //
+    //       this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+    //         const size = 2;
+    //         const sut = this.createSut(input).window(size, {rightOverflow: true, padWith: -1});
+    //         const actual = [...sut];
+    //         assert.isEmpty(actual);
+    //       });
+    //     });
+    //     describe('with step', () => {
+    //     });
+    //     describe('with offset', () => {
+    //     });
+    //   });
+    //
+    //
+    // });
 
     describe('zip()', () => {
       it('should return a sequence as long as the shortest zipped sequence', () => {

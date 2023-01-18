@@ -28,7 +28,8 @@ import {
   sameValueZero,
   SeqTags,
   TaggedSeq,
-  tapIterable
+  tapIterable,
+  generate
 } from './common';
 import {LEGACY_COMPARER} from './sort-util';
 
@@ -96,7 +97,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   chunk(size: number, maxChunks: number = Number.MAX_SAFE_INTEGER): Seq<Seq<T>> {
     size = Math.trunc(size);
     if (size <= 0) {
-      throw new Error('size parameter must be positive value')
+      throw new Error('size parameter must be positive value');
     }
 
     if (maxChunks < 1) return internalEmpty<Seq<T>>();
@@ -132,7 +133,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const optimize = SeqTags.optimize(this);
     return this.generate(function* chunkBy(items, iterationContext) {
 
-      iterationContext.onClose(() => innerSeq?.consume())
+      iterationContext.onClose(() => innerSeq?.consume());
       const iterator = iterationContext.closeWhenDone(getIterator(items));
 
       let innerSeq: CachedSeq<T> | undefined;
@@ -168,7 +169,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
               itemNumber++;
             }
 
-            const shouldStop = isLastChunk && endOfChunk
+            const shouldStop = isLastChunk && endOfChunk;
             if (!shouldStop && whatAboutTheItem !== 'MoveToNextChunk') {
               next = iterator.next();
               index++;
@@ -192,7 +193,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     if (selectorOrOpts && typeof selectorOrOpts === 'object') opts = selectorOrOpts;
     const actualOpts = {maxItemsInChunk: Number.MAX_SAFE_INTEGER, maxChunks: Number.MAX_SAFE_INTEGER, ...opts};
     if (actualOpts.maxItemsInChunk <= 0) {
-      throw new Error('maxItemsInChunk parameter must be positive value')
+      throw new Error('maxItemsInChunk parameter must be positive value');
     }
     if (actualOpts.maxChunks < 1) return internalEmpty<Seq<T>>();
 
@@ -563,7 +564,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         const selector = selectors[level];
 
         const parents = context.slice();
-        parents.unshift(0)
+        parents.unshift(0);
         for (const entry of entries(children)) {
           const subChildren: Iterable<any> = selector?.(entry.value, ...context, entry.index, absoluteIndexes[level]++);
           parents[0] = entry.value;
@@ -596,7 +597,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey: ToComparableKey<K>, valueSelector: (item: T, index: number, key: K) => U): SeqOfGroups<K, U>;
 
   groupBy<K, U = T>(keySelector: Selector<T, K>, toComparableKey?: ToComparableKey<K>, valueSelector?: (item: T, index: number, key: K) => U): SeqOfGroups<K, U> {
-    return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector))
+    return this.transferOptimizeTag(factories.SeqOfGroups(this.getSourceForNewSequence(), keySelector, toComparableKey, valueSelector));
   }
 
   groupBy$<K extends object>(keySelector: Selector<T, K>): SeqOfGroups<K, T> {
@@ -1013,7 +1014,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     for (const item of this) {
       if (sameValueZero(itemToFind, item)) foundIndex = index;
       if (index === fromIndex) break;
-      index++
+      index++;
     }
     return foundIndex;
   }
@@ -1033,24 +1034,22 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       result.matched = matchedSeq;
       result.unmatched = unmatchedSeq;
       return result;
-    }
+    };
     const matched: S[] = [];
     const unmatched: T[] = [];
 
     const sourceIterator = new class {
       private index = -1;
       private refCount = 2;
+      private _done: boolean | undefined = false;
+      private _iter: Iterator<T> | undefined;
 
       constructor(private source: Iterable<T>) {
       }
 
-      private _done: boolean | undefined = false;
-
       get done(): boolean {
         return !!this._done;
       };
-
-      private _iter: Iterator<T> | undefined;
 
       private get iter() {
         if (!this._iter) this._iter = getIterator(this.source);
@@ -1072,7 +1071,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
           this.refCount--;
           if (this.refCount === 0 && this._iter) {
             this._iter.return?.();
-            this._iter = undefined
+            this._iter = undefined;
           }
         }
       }
@@ -1089,13 +1088,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }
 
     const matchedGen = new Gen<S, S, S[]>(matched, function* (array, iterationContext) {
-      iterationContext.onClose(() => sourceIterator.release())
-      yield* yieldNext(array)
+      iterationContext.onClose(() => sourceIterator.release());
+      yield* yieldNext(array);
     });
 
     const unmatchedGen = new Gen<T, T, T[]>(unmatched, function* (array, iterationContext) {
-      iterationContext.onClose(() => sourceIterator.release())
-      yield* yieldNext(array)
+      iterationContext.onClose(() => sourceIterator.release());
+      yield* yieldNext(array);
     });
 
     const matchedSeq = factories.CachedSeq(matchedGen);
@@ -1341,7 +1340,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     if (count === 1) return this;
     return this.generate(function* repeat(self) {
       while (count--) yield* self;
-    })
+    });
   }
 
   reverse(): Seq<T> {
@@ -1351,7 +1350,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         yield array[index];
       }
       array.length = 0;
-    })
+    });
   }
 
   sameItems<U = T>(second: Iterable<T>, keySelector?: (item: T | U) => unknown): boolean;
@@ -1413,7 +1412,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.generate(function* skipLast(items) {
       const array: T[] = Array.isArray(items)? items: [...items];
       for (let i = 0; i < array.length - count; i++) yield array[i];
-    })
+    });
   }
 
   skipWhile(condition: Condition<T>): Seq<T> {
@@ -1775,6 +1774,82 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.prepend(items);
   }
 
+  window(size: number): Seq<Seq<T>>;
+  window(size: number, step: number): Seq<Seq<T>>;
+  window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+  window(size: number, stepOrOpts?: number | { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; offset?: number; }, opts?: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>> {
+    if (size < 1) return internalEmpty<Seq<T>>();
+    const defaultOpts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; } = {
+      leftOverflow: false,
+      rightOverflow: false
+    };
+    let [step, actualOpts] = typeof stepOrOpts === 'number'?
+      [stepOrOpts, opts ?? defaultOpts]:
+      stepOrOpts?
+        [1, stepOrOpts ?? defaultOpts]:
+        [1, opts ?? defaultOpts];
+
+    if (step < 1) step = 1;
+
+    const leftPadding = actualOpts?.leftOverflow && actualOpts?.padWith !== undefined;
+    const rightPadding = actualOpts?.rightOverflow && actualOpts?.padWith !== undefined;
+    const overflowRight = actualOpts?.rightOverflow && !rightPadding;
+
+    const optimize = SeqTags.optimize(this);
+    const createSeq = (window: Iterable<T>): Seq<T> => {
+      const innerSeq = factories.Seq(window);
+      return this.tagAsOptimized(innerSeq, optimize);
+    };
+
+    return this.generate(function* window(items, iterationContext) {
+      function* iterate() {
+        let isEmpty = true;
+
+        for (const item of items) {
+          yield item;
+          isEmpty = false;
+        }
+
+        if (isEmpty) return;
+
+        if (rightPadding && size > 1) {
+          for (let i = 1; i < size; i++) yield actualOpts.padWith!;
+        }
+      }
+
+      let window = new SlidingWindow<T>(generate(iterate), size);
+      iterationContext.onClose(() => window.dispose());
+
+      if (leftPadding) window.fill(actualOpts.padWith!);
+      const initialSize = actualOpts.leftOverflow? 1: size;
+      let writtenCount = window.writeNext(initialSize);
+
+      while (writtenCount) {
+        const win = [...window];
+        if (!win.length) break;
+        yield createSeq(win);
+
+        if (window.done) break;
+
+        writtenCount = window.writeNext(step);
+        if (overflowRight) {
+          const stepsLeft = step - writtenCount;
+          if (stepsLeft) writtenCount += window.skip(stepsLeft);
+
+        } else if (writtenCount < step) break;
+      }
+
+      if (overflowRight) while (window.count > step) {
+        window.skip(step);
+        const win = [...window];
+        if (!win.length) break;
+        yield createSeq(win);
+      }
+    });
+  }
+
+
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
@@ -2016,7 +2091,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     if (SeqTags.empty(this)) return 0;
 
     const paramsCount = condition?.length ?? 0;
-    const affectsCount = !SeqTags.notAffectingNumberOfItems(this)
+    const affectsCount = !SeqTags.notAffectingNumberOfItems(this);
     // We assume that if condition argument is a function that doesn't accept index parameter (2nd parameter)
     // (Also assuming not getting wise with 2nd parameter having default value)
     // then the order of items is not important, and we optimize by working on the source
@@ -2170,7 +2245,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         yield item;
       }
       keys.clear();
-    })
+    });
   }
 
   private maxItemBySelector(selector: Selector<T, number>, findLast = false): [T, number] | undefined {
@@ -2246,7 +2321,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     }
 
     const gen = new Gen(outers, leftOuterJoin);
-    return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner))
+    return this.transferOptimizeTag(factories.SeqOfGroups(gen, ({outer}) => outer, undefined, ({inner}) => inner));
   }
 
   private findFirstByCondition<S extends T>(fromIndex: number | ((item: T, index: number) => item is S) | Condition<T>, condition?: ((item: T, index: number) => item is S) | Condition<T> | S | undefined, fallback?: S | undefined): [index: number, first: S | undefined] {
@@ -2340,6 +2415,94 @@ class CyclicBuffer<T> implements Iterable<T> {
     }
     return count;
   }
+
+  fill(value: T): this {
+    const emptySpace = this.bufferSize - this.count;
+    for (let i = 0; i < emptySpace; i++) this.write(value);
+    return this;
+  }
+
+  remove(count: number): number {
+    let removed = 0;
+    if (this.count <= count) {
+      removed = this.count;
+      this.clear();
+      return removed;
+    }
+
+    while (count--) {
+      if (this.start === this.end) {
+        this.start = this.end = -1;
+        break;
+      }
+      this.start = (this.start + 1) % this.bufferSize;
+      removed++;
+    }
+    return removed;
+  }
+}
+
+class SlidingWindow<T> implements Iterable<T> {
+
+  private readonly buffer: CyclicBuffer<T>;
+  private iterator: Iterator<T>;
+  private _done = false;
+
+  constructor(private readonly source: Iterable<T>, private readonly windowSize: number) {
+    this.buffer = new CyclicBuffer<T>(windowSize);
+  }
+
+  get done(): boolean {
+    return this._done;
+  }
+
+  get count(): number {
+    return this.buffer.count;
+  }
+
+  [Symbol.iterator](): Iterator<T> {
+    return this.buffer[Symbol.iterator]();
+  }
+
+  fill(value: T): this {
+    this.buffer.fill(value);
+    return this;
+  }
+
+  writeNext(count: number): number {
+    this.EnsureIteratorCreated();
+    const res = this.writeNextInternal(this.iterator, count);
+    this._done ||= res.done;
+    return res.writtenCount;
+  }
+
+  skip(count: number): number {
+    return this.buffer.remove(count);
+  }
+
+  dispose(): void {
+    closeIterator(this.iterator);
+  }
+
+  private writeNextInternal(iterator: Iterator<T>, count: number): { done: boolean; writtenCount: number } {
+    if (count < 1) return {done: false, writtenCount: 0};
+
+    let counted = 0;
+    let next = iterator.next();
+    while (!next.done) {
+      this.buffer.write(next.value);
+      counted++;
+      if (counted === count) break;
+      next = iterator.next();
+    }
+
+    return {done: !!next.done, writtenCount: counted};
+  }
+
+  private EnsureIteratorCreated() {
+    if (!this.iterator) this.iterator = getIterator(this.source);
+  }
+
 }
 
 function parseEqualsFn(param?: number | ((item: any) => any) | { equals(a: any, b: any): unknown }): ((a: any, b: any) => unknown) | undefined {
@@ -2369,7 +2532,7 @@ class LazyScanAndMark {
       empty: this.checkIsEmpty(),
       done: !!this.next?.done,
       count: this.itemsCount
-    }
+    };
   }
 
   includesNext(key: unknown): boolean {
