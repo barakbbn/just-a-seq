@@ -1818,37 +1818,34 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         }
       }
 
-      let window = new SlidingWindow<T>(generate(iterate), size);
+      let window = new SlidingWindow<T>(iterate(), size);
       iterationContext.onClose(() => window.dispose());
 
       if (leftPadding) window.fill(actualOpts.padWith!);
       const initialSize = actualOpts.leftOverflow? 1: size;
-      let writtenCount = window.writeNext(initialSize);
+      let lastSlidCount = window.slide(initialSize);
 
-      while (writtenCount) {
-        const win = [...window];
-        if (!win.length) break;
-        yield createSeq(win);
+      while (lastSlidCount) {
 
+        yield createSeq([...window]);
         if (window.done) break;
 
-        writtenCount = window.writeNext(step);
-        if (overflowRight) {
-          const stepsLeft = step - writtenCount;
-          if (stepsLeft) writtenCount += window.skip(stepsLeft);
+        lastSlidCount = window.slide(step);
 
-        } else if (writtenCount < step) break;
+        const stepsLeft = step - lastSlidCount;
+        if (stepsLeft > 0) {
+          if (overflowRight) lastSlidCount += window.overflow(stepsLeft);
+          else break; // When not overflow right, we expect to have full window slide, otherwise reached end of sequence without enough items
+          if (!window.count) break; // in case overflowed over the edge
+        }
       }
 
-      if (overflowRight) while (window.count > step) {
-        window.skip(step);
-        const win = [...window];
-        if (!win.length) break;
-        yield createSeq(win);
+      while (overflowRight && window.count > step) {
+        window.overflow(step);
+        yield createSeq([...window]);
       }
     });
   }
-
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self, iterationContext) {
@@ -2469,14 +2466,14 @@ class SlidingWindow<T> implements Iterable<T> {
     return this;
   }
 
-  writeNext(count: number): number {
-    this.EnsureIteratorCreated();
-    const res = this.writeNextInternal(this.iterator, count);
+  slide(count: number): number {
+    const iterator = this.iterator ||= getIterator(this.source);
+    const res = this.slideInternal(iterator, count);
     this._done ||= res.done;
     return res.writtenCount;
   }
 
-  skip(count: number): number {
+  overflow(count: number): number {
     return this.buffer.remove(count);
   }
 
@@ -2484,7 +2481,7 @@ class SlidingWindow<T> implements Iterable<T> {
     closeIterator(this.iterator);
   }
 
-  private writeNextInternal(iterator: Iterator<T>, count: number): { done: boolean; writtenCount: number } {
+  private slideInternal(iterator: Iterator<T>, count: number): { done: boolean; writtenCount: number } {
     if (count < 1) return {done: false, writtenCount: 0};
 
     let counted = 0;

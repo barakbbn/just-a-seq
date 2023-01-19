@@ -3621,60 +3621,58 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       const sources = [[1, 2, 3], [] as number[]];
       for (const source of sources) {
         this.it1(`combination of all parameters${source.length? '': ' - empty source'}`, source, (input, inputArray) => {
-          for (let slidingSize = -1; slidingSize <= inputArray.length * 2 + 1; slidingSize++) {
-            for (let slidingStep = -1; slidingStep <= inputArray.length * 2 + 1; slidingStep++) {
-              const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
-              for (const rightOverflow of overflowRightArgs) {
-                for (const leftOverflow of overflowLeftArgs) {
-                  for (const padWith of padWithArgs) {
-                    for (let windowSize = -1; windowSize <= inputArray.length * 2 + 1; windowSize++) {
-                      const size = Math.max(windowSize, 0);
-                      const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
-                      const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
+          for (let slidingStep = 0; slidingStep <= inputArray.length * 2; slidingStep++) {
+            const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
+            for (const rightOverflow of overflowRightArgs) {
+              for (const leftOverflow of overflowLeftArgs) {
+                for (const padWith of padWithArgs) {
+                  for (let windowSize = 0; windowSize <= inputArray.length * 2; windowSize++) {
+                    const size = Math.max(windowSize, 0);
+                    const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
+                    const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
 
-                      // ==========================================
-                      {
-                        const opts = padWith !== undefined?
-                          {leftOverflow, rightOverflow, padWith}
-                          : {leftOverflow, rightOverflow};
+                    // ==========================================
+                    {
+                      const opts = padWith !== undefined?
+                        {leftOverflow, rightOverflow, padWith}
+                        : {leftOverflow, rightOverflow};
 
-                        const leftPadding = leftOverflow?
-                          padWith !== undefined?
-                            paddings:
-                            undefinedPaddings:
-                          [];
-                        const rightPadding = rightOverflow?
-                          padWith !== undefined?
-                            paddings:
-                            undefinedPaddings:
-                          [];
+                      const leftPadding = leftOverflow?
+                        padWith !== undefined?
+                          paddings:
+                          undefinedPaddings:
+                        [];
+                      const rightPadding = rightOverflow?
+                        padWith !== undefined?
+                          paddings:
+                          undefinedPaddings:
+                        [];
 
-                        const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
-                        const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}`;
+                      const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
+                      const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}`;
 
-                        // console.log('window - combined', testInfo);
+                      // console.log('window - combined', testInfo);
 
-                        const expectedBase = leftPadding.concat(inputArray, rightPadding);
-                        let sliceLength = Math.max(expectedBase.length - size + 1, 1);
+                      const expectedBase = leftPadding.concat(inputArray, rightPadding);
+                      let sliceLength = Math.max(expectedBase.length - size + 1, 1);
 
-                        const expected: number[][] = [];
-                        for (let i = 0; i < sliceLength; i += step) {
-                          const win = expectedBase.slice(i, i + size).filter(x => x !== undefined);
-                          if (!win.length) continue;
-                          const prevWin = expected[expected.length - 1];
-                          let equals = false;
-                          if (prevWin && prevWin.length === win.length) {
-                            equals = win.every((value, index) => value === prevWin[index]);
-                          }
-                          if (!equals) expected.push(win);
+                      const expected: number[][] = [];
+                      for (let i = 0; i < sliceLength; i += step) {
+                        const win = expectedBase.slice(i, i + size).filter(x => x !== undefined);
+                        if (!win.length) continue;
+                        const prevWin = expected[expected.length - 1];
+                        let equals = false;
+                        if (prevWin && prevWin.length === win.length) {
+                          equals = win.every((value, index) => value === prevWin[index]);
                         }
-
-                        const sut = this.createSut(input).window(windowSize, slidingStep, opts);
-                        const actual = [...sut].map(s => [...s]);
-                        assert.deepEqual(actual, expected, testInfo);
+                        if (!equals) expected.push(win);
                       }
-                      // ==========================================
+
+                      const sut = this.createSut(input).window(windowSize, slidingStep, opts);
+                      const actual = [...sut].map(s => [...s]);
+                      assert.deepEqual(actual, expected, testInfo);
                     }
+                    // ==========================================
                   }
                 }
               }
@@ -3683,253 +3681,6 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
       }
     });
-
-    // describe('window()', () => {
-    //
-    //   this.it1('should return expected number of windows, with each having number of items as the window size',
-    //     array.oneToTen, (input, inputArray) => {
-    //       for (let size = 1; size <= inputArray.length; size++) {
-    //         const expected = inputArray
-    //           .slice(0, inputArray.length - size + 1)
-    //           .map((_, i) => inputArray.slice(i, i + size));
-    //
-    //         const sut = this.createSut(input).window(size);
-    //
-    //         const actual = [...sut].map(s => [...s]);
-    //         assert.deepEqual(actual, expected, `windows size is ${size}`);
-    //       }
-    //     });
-    //
-    //   this.it1('should return 1 window containing all the source items, when window size is more than the number of source items',
-    //     array.oneToTen, (input, inputArray) => {
-    //       const size = inputArray.length + 2;
-    //       const expected = [inputArray];
-    //
-    //       const sut = this.createSut(input).window(size);
-    //
-    //       const actual = [...sut].map(s => [...s]);
-    //       assert.deepEqual(actual, expected);
-    //     });
-    //
-    //   this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
-    //     const size = 2;
-    //     const sut = this.createSut(input).window(size);
-    //     const actual = [...sut];
-    //     assert.isEmpty(actual);
-    //   });
-    //
-    //   describe('left-overflow', () => {
-    //     this.it1('should return expected number of windows, with each having number of items as the window size',
-    //       array.oneToTen, (input, inputArray) => {
-    //
-    //         for (let size = 1; size <= inputArray.length; size++) {
-    //           const leftPadded = new Array(size - 1)
-    //             .fill(undefined)
-    //             .concat(inputArray);
-    //           const expected = leftPadded
-    //             .slice(0, leftPadded.length - size + 1)
-    //             .map((_, i) => leftPadded
-    //               .slice(i, i + size)
-    //               .filter(x => x !== undefined));
-    //
-    //           const sut = this.createSut(input).window(size, {leftOverflow: true});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           assert.deepEqual(actual, expected, `windows size is ${size}`);
-    //         }
-    //       });
-    //
-    //     this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
-    //       array.oneToTen, (input, inputArray) => {
-    //         const size = inputArray.length + 2;
-    //         const expected = inputArray.map((_, i) => inputArray.slice(0, i + 1));
-    //
-    //         const sut = this.createSut(input).window(size, {leftOverflow: true});
-    //
-    //         const actual = [...sut].map(s => [...s]);
-    //         assert.deepEqual(actual, expected);
-    //       });
-    //
-    //     this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
-    //       const size = 2;
-    //       const sut = this.createSut(input).window(size, {leftOverflow: true});
-    //       const actual = [...sut];
-    //       assert.isEmpty(actual);
-    //     });
-    //
-    //     describe('with padding', () => {
-    //       this.it1('should return expected number of windows, with each having number of items as the window size',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           for (let size = 1; size <= inputArray.length; size++) {
-    //             const leftPadded = new Array(size - 1)
-    //               .fill(padWith)
-    //               .concat(inputArray);
-    //             const expected = leftPadded
-    //               .slice(0, leftPadded.length - size + 1)
-    //               .map((_, i) => leftPadded.slice(i, i + size));
-    //
-    //             const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
-    //
-    //             const actual = [...sut].map(s => [...s]);
-    //             assert.deepEqual(actual, expected, `windows size is ${size}`);
-    //           }
-    //         });
-    //
-    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           const size = inputArray.length + 2;
-    //           const leftPadded = new Array(size - 1)
-    //             .fill(padWith)
-    //             .concat(inputArray);
-    //           const expected = leftPadded
-    //             .slice(0, leftPadded.length - size + 1)
-    //             .map((_, i) => leftPadded.slice(i, i + size));
-    //
-    //           const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           assert.deepEqual(actual, expected);
-    //         });
-    //
-    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than twice the number of source items',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           const size = inputArray.length * 2 + 2;
-    //           const leftPadded = new Array(size - 1)
-    //             .fill(padWith)
-    //             .concat(inputArray);
-    //           const expected = leftPadded
-    //             .slice(0, leftPadded.length - size + 1)
-    //             .map((_, i) => leftPadded.slice(i, i + size));
-    //
-    //           const sut = this.createSut(input).window(size, {leftOverflow: true, padWith});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           assert.deepEqual(actual, expected);
-    //         });
-    //
-    //       this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
-    //         const size = 2;
-    //         const sut = this.createSut(input).window(size, {leftOverflow: true, padWith: -10});
-    //         const actual = [...sut];
-    //         assert.isEmpty(actual);
-    //       });
-    //
-    //     });
-    //
-    //     describe('with step', () => {
-    //     });
-    //     describe('with offset', () => {
-    //     });
-    //   });
-    //
-    //   describe('right-overflow', () => {
-    //     this.it1('should return expected number of windows, with each having number of items as the window size',
-    //       array.oneToTen, (input, inputArray) => {
-    //
-    //         for (let size = 1; size <= inputArray.length; size++) {
-    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(undefined));
-    //           const expected = rightPadded
-    //             .slice(0, rightPadded.length - size + 1)
-    //             .map((_, i) => rightPadded
-    //               .slice(i, i + size)
-    //               .filter(x => x !== undefined));
-    //
-    //           const sut = this.createSut(input).window(size, {rightOverflow: true});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           const exp = [...expected].map(s => [...s]);
-    //           assert.deepEqual(actual, exp, `windows size is ${size}`);
-    //         }
-    //       });
-    //
-    //     this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
-    //       array.oneToTen, (input, inputArray) => {
-    //         const size = inputArray.length + 2;
-    //         const rightPadded = inputArray.concat(new Array(size - 1).fill(undefined));
-    //         const expected = rightPadded
-    //           .slice(0, rightPadded.length - size + 1)
-    //           .map((_, i) => rightPadded
-    //             .slice(i, i + size)
-    //             .filter(x => x !== undefined));
-    //
-    //         const sut = this.createSut(input).window(size, {rightOverflow: true});
-    //
-    //         const actual = [...sut].map(s => [...s]);
-    //         assert.deepEqual(actual, expected);
-    //       });
-    //
-    //     this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
-    //       const size = 2;
-    //       const sut = this.createSut(input).window(size, {rightOverflow: true});
-    //       const actual = [...sut];
-    //       assert.isEmpty(actual);
-    //     });
-    //
-    //     describe('with padding', () => {
-    //       this.it1('should return expected number of windows, with each having number of items as the window size',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           for (let size = 1; size <= inputArray.length; size++) {
-    //             const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
-    //             const expected = rightPadded
-    //               .slice(0, rightPadded.length - size + 1)
-    //               .map((_, i) => rightPadded.slice(i, i + size));
-    //
-    //             const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
-    //
-    //             const actual = [...sut].map(s => [...s]);
-    //             assert.deepEqual(actual, [...expected], `windows size is ${size}`);
-    //           }
-    //         });
-    //
-    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than the number of source items',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           const size = inputArray.length + 2;
-    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
-    //           const expected = rightPadded
-    //             .slice(0, rightPadded.length - size + 1)
-    //             .map((_, i) => rightPadded.slice(i, i + size));
-    //
-    //           const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           assert.deepEqual(actual, expected);
-    //         });
-    //
-    //       this.it1('should return number of windows as the number of source items, containing the expected items, when window size is more than twice the number of source items',
-    //         array.oneToTen, (input, inputArray) => {
-    //           const padWith = -1;
-    //           const size = inputArray.length * 2 + 2;
-    //           const rightPadded = inputArray.concat(new Array(size - 1).fill(padWith));
-    //           const expected = rightPadded
-    //             .slice(0, rightPadded.length - size + 1)
-    //             .map((_, i) => rightPadded.slice(i, i + size));
-    //
-    //           const sut = this.createSut(input).window(size, {rightOverflow: true, padWith});
-    //
-    //           const actual = [...sut].map(s => [...s]);
-    //           assert.deepEqual(actual, expected);
-    //         });
-    //
-    //       this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
-    //         const size = 2;
-    //         const sut = this.createSut(input).window(size, {rightOverflow: true, padWith: -1});
-    //         const actual = [...sut];
-    //         assert.isEmpty(actual);
-    //       });
-    //     });
-    //     describe('with step', () => {
-    //     });
-    //     describe('with offset', () => {
-    //     });
-    //   });
-    //
-    //
-    // });
 
     describe('zip()', () => {
       it('should return a sequence as long as the shortest zipped sequence', () => {
