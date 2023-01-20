@@ -3614,65 +3614,71 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
     describe('window()', () => {
       const overflowLeftArgs = [false, false];
       const overflowRightArgs = [false, true];
+      const fixedSizeArgs = [false, true];
       const padWithArgs = [undefined, -1];
 
       // ==========================================
+      function buildExpected(values: number[], step: number, size: number, fixedSize: boolean): number[][] {
+        let sliceLength = Math.max(values.length - size + 1, 1);
+        const result: number[][] = [];
+
+        for (let i = 0; i < sliceLength; i += step) {
+          const win = values.slice(i, i + size).filter(x => x !== undefined);
+          if (!win.length || fixedSize && win.length < size) continue;
+          const prevWin = result[result.length - 1];
+          let equals = false;
+          if (prevWin && prevWin.length === win.length) {
+            equals = win.every((value, index) => value === prevWin[index]);
+          }
+          if (!equals) result.push(win);
+        }
+
+        return result;
+      }
 
       const sources = [[1, 2, 3], [] as number[]];
+
       for (const source of sources) {
         this.it1(`combination of all parameters${source.length? '': ' - empty source'}`, source, (input, inputArray) => {
-          for (let slidingStep = 0; slidingStep <= inputArray.length * 2; slidingStep++) {
+          const test = (fixedSize: boolean, slidingStep: number, rightOverflow: boolean, leftOverflow: boolean, padWith: any, windowSize:number) => {
+            const size = Math.max(windowSize, 0);
             const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
-            for (const rightOverflow of overflowRightArgs) {
-              for (const leftOverflow of overflowLeftArgs) {
-                for (const padWith of padWithArgs) {
-                  for (let windowSize = 0; windowSize <= inputArray.length * 2; windowSize++) {
-                    const size = Math.max(windowSize, 0);
-                    const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
-                    const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
+            const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
+            const undefinedPaddings = new Array<number>(Math.max(size, 1) - 1);
 
-                    // ==========================================
-                    {
-                      const opts = padWith !== undefined?
-                        {leftOverflow, rightOverflow, padWith}
-                        : {leftOverflow, rightOverflow};
+            const opts = {leftOverflow, rightOverflow, padWith, fixedSize};
 
-                      const leftPadding = leftOverflow?
-                        padWith !== undefined?
-                          paddings:
-                          undefinedPaddings:
-                        [];
-                      const rightPadding = rightOverflow?
-                        padWith !== undefined?
-                          paddings:
-                          undefinedPaddings:
-                        [];
+            const leftPadding = leftOverflow?
+              padWith !== undefined?
+                paddings:
+                undefinedPaddings:
+              [];
+            const rightPadding = rightOverflow?
+              padWith !== undefined?
+                paddings:
+                undefinedPaddings:
+              [];
 
-                      const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
-                      const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}`;
+            const overflowString = ['none', 'left', 'right', 'left/right'][+leftOverflow + (+rightOverflow * 2)];
+            const testInfo = `size: ${windowSize}, step: ${slidingStep}, overflow: ${overflowString}, padWith: ${padWith}, fixedSize: ${fixedSize}`;
 
-                      // console.log('window - combined', testInfo);
+            // console.log('window - combined', testInfo);
 
-                      const expectedBase = leftPadding.concat(inputArray, rightPadding);
-                      let sliceLength = Math.max(expectedBase.length - size + 1, 1);
+            const expectedBase = leftPadding.concat(inputArray, rightPadding);
+            const expected = buildExpected(expectedBase, step, size, fixedSize);
 
-                      const expected: number[][] = [];
-                      for (let i = 0; i < sliceLength; i += step) {
-                        const win = expectedBase.slice(i, i + size).filter(x => x !== undefined);
-                        if (!win.length) continue;
-                        const prevWin = expected[expected.length - 1];
-                        let equals = false;
-                        if (prevWin && prevWin.length === win.length) {
-                          equals = win.every((value, index) => value === prevWin[index]);
-                        }
-                        if (!equals) expected.push(win);
-                      }
-
-                      const sut = this.createSut(input).window(windowSize, slidingStep, opts);
-                      const actual = [...sut].map(s => [...s]);
-                      assert.deepEqual(actual, expected, testInfo);
+            const sut = this.createSut(input).window(windowSize, slidingStep, opts);
+            const actual = [...sut].map(s => [...s]);
+            assert.deepEqual(actual, expected, testInfo);
+          }
+          for (const fixedSize of fixedSizeArgs) {
+            for (let slidingStep = 0; slidingStep <= inputArray.length * 2; slidingStep++) {
+              for (const rightOverflow of overflowRightArgs) {
+                for (const leftOverflow of overflowLeftArgs) {
+                  for (const padWith of padWithArgs) {
+                    for (let windowSize = 0; windowSize <= inputArray.length * 2; windowSize++) {
+                      test(fixedSize, slidingStep, rightOverflow, leftOverflow, padWith, windowSize);
                     }
-                    // ==========================================
                   }
                 }
               }

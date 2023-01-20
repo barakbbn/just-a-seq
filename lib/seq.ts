@@ -469,7 +469,11 @@ export interface Seq<T> extends Iterable<T> {
 
   window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
 
-  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+  window(size: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
+
+  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T;  }): Seq<Seq<T>>;
+
+  window(size: number, step: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
 
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]>;
 
