@@ -94,6 +94,31 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.transferOptimizeTag(factories.CachedSeq(this.getSourceForNewSequence(), now));
   }
 
+  cartesian<Ts extends any[]>(...sources: Iterables<Ts>): Seq<[T, ...Ts]> {
+    const result = this.generate(function* permutations(thisSource) {
+      const permutation: any[] = new Array(sources.length + 1);
+
+      function* loop(source: Iterables<Ts>[number], depth = -1): Generator<any[]> {
+        if (depth === sources.length) {
+          yield permutation.slice();
+          return;
+        }
+
+        depth++;
+        const nextSource = sources[depth];
+        for (const item of source) {
+          permutation[depth] = item;
+          yield* loop(nextSource, depth);
+        }
+      }
+
+      yield* loop(thisSource);
+    });
+
+    return result as unknown as Seq<[T, ...Ts]>;
+
+  }
+
   chunk(size: number, maxChunks: number = Number.MAX_SAFE_INTEGER): Seq<Seq<T>> {
     size = Math.trunc(size);
     if (size <= 0) {
@@ -212,7 +237,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       };
     }) as unknown as Seq<Seq<T>>;
   }
-
 
   concat(...items: Iterable<T>[]): Seq<T> {
     if (!items.length) return this;
@@ -554,7 +578,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const selectors = selectorsAndMapResults as ((...args: unknown[]) => Iterable<unknown>)[];
 
     return this.generate(function* flatHierarchy(items) {
-      const absoluteIndexes = new Array<number>(9).fill(0);
+      const absoluteIndexes = new Array<number>(selectorsAndMapResults.length + 1).fill(0);
 
       for (const entry of entries(recursiveFlatMap(items, 0, []))) {
         yield mapResult(...entry.value, entry.index);
@@ -1024,6 +1048,105 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return factories.FilterMapSeq<T, U>(this.getSourceForNewSequence(), map);
   }
 
+  max(): T extends number? number: never;
+
+  max(selector: Selector<T, number>): number;
+
+  max(selector: Selector<T, number> = IDENTITY): number | void {
+    const maxItemResult = this.maxItemBySelector(selector);
+    return maxItemResult?.[1] ?? Number.NEGATIVE_INFINITY;
+  }
+
+  maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
+  maxItem({comparer, findLast}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+
+  maxItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
+    if (typeof selector === 'function') return this.maxItemBySelector(selector, options?.findLast)?.[0];
+
+    if (typeof selector?.comparer === 'function') return this.maxItemByComparer(selector.comparer, selector.findLast);
+
+    throw new Error('selector or comparer parameter must be a function');
+  }
+
+  min(): T extends number? number: never;
+
+  min(selector: Selector<T, number>): number;
+
+  min(selector: Selector<T, number> = IDENTITY): number | void {
+    const maxItemResult = this.minItemBySelector(selector);
+    return maxItemResult?.[1] ?? Number.POSITIVE_INFINITY;
+  }
+
+  minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
+
+  minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
+
+  minItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
+    if (typeof selector === 'function') return this.minItemBySelector(selector, options?.findLast)?.[0];
+
+    if (typeof selector?.comparer === 'function') return this.minItemByComparer(selector.comparer, selector.findLast);
+
+    throw new Error('selector or comparer parameter must be a function');
+  }
+
+  ofType(type: 'number'): Seq<number>;
+
+  ofType(type: 'string'): Seq<string>;
+
+  ofType(type: 'boolean'): Seq<boolean>;
+
+  ofType(type: 'function'): Seq<Function>;
+
+  ofType(type: 'symbol'): Seq<symbol>;
+
+  ofType(type: 'object'): Seq<object>;
+
+  ofType(type: typeof Number): Seq<number>;
+
+  ofType(type: typeof String): Seq<string>;
+
+  ofType(type: typeof Boolean): Seq<boolean>;
+
+  ofType(type: typeof Object): Seq<object>;
+
+  ofType(type: typeof Symbol): Seq<symbol>;
+
+  ofType<V extends new(...ags: any[]) => any>(type: V): Seq<InstanceType<V>>;
+
+  ofType(type: any): Seq<any> {
+    let typename: string = '';
+    let instanceOf: Function | undefined = undefined;
+    switch (type) {
+      case Number:
+        typename = 'number';
+        break;
+      case String:
+        typename = 'string';
+        break;
+      case Object:
+        typename = 'object';
+        break;
+      case Boolean:
+        typename = 'boolean';
+        break;
+      case Symbol:
+        typename = 'symbol';
+        break;
+      default:
+        if (typeof type === 'string') typename = type;
+        else if (typeof type === 'function') instanceOf = type;
+        break;
+    }
+
+    if (typename) return this.filter(value => typeof value === typename);
+    else if (instanceOf) {
+      const fn = instanceOf;
+      return this.filter(value => value instanceof fn);
+    }
+    return this.createDefaultSeq<any>();
+  }
+
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
@@ -1132,105 +1255,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     result.second = result[1];
 
     return result;
-  }
-
-  max(): T extends number? number: never;
-
-  max(selector: Selector<T, number>): number;
-
-  max(selector: Selector<T, number> = IDENTITY): number | void {
-    const maxItemResult = this.maxItemBySelector(selector);
-    return maxItemResult?.[1] ?? Number.NEGATIVE_INFINITY;
-  }
-
-  maxItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
-
-  maxItem({comparer, findLast}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
-
-  maxItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
-    if (typeof selector === 'function') return this.maxItemBySelector(selector, options?.findLast)?.[0];
-
-    if (typeof selector?.comparer === 'function') return this.maxItemByComparer(selector.comparer, selector.findLast);
-
-    throw new Error('selector or comparer parameter must be a function');
-  }
-
-  min(): T extends number? number: never;
-
-  min(selector: Selector<T, number>): number;
-
-  min(selector: Selector<T, number> = IDENTITY): number | void {
-    const maxItemResult = this.minItemBySelector(selector);
-    return maxItemResult?.[1] ?? Number.POSITIVE_INFINITY;
-  }
-
-  minItem(selector: Selector<T, number>, options?: { findLast?: boolean; }): T | undefined;
-
-  minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
-
-  minItem(selector: Selector<T, number> | { comparer: (a: T, b: T) => number; findLast?: boolean; }, options?: { findLast?: boolean; }): T | undefined {
-    if (typeof selector === 'function') return this.minItemBySelector(selector, options?.findLast)?.[0];
-
-    if (typeof selector?.comparer === 'function') return this.minItemByComparer(selector.comparer, selector.findLast);
-
-    throw new Error('selector or comparer parameter must be a function');
-  }
-
-  ofType(type: 'number'): Seq<number>;
-
-  ofType(type: 'string'): Seq<string>;
-
-  ofType(type: 'boolean'): Seq<boolean>;
-
-  ofType(type: 'function'): Seq<Function>;
-
-  ofType(type: 'symbol'): Seq<symbol>;
-
-  ofType(type: 'object'): Seq<object>;
-
-  ofType(type: typeof Number): Seq<number>;
-
-  ofType(type: typeof String): Seq<string>;
-
-  ofType(type: typeof Boolean): Seq<boolean>;
-
-  ofType(type: typeof Object): Seq<object>;
-
-  ofType(type: typeof Symbol): Seq<symbol>;
-
-  ofType<V extends new(...ags: any[]) => any>(type: V): Seq<InstanceType<V>>;
-
-  ofType(type: any): Seq<any> {
-    let typename: string = '';
-    let instanceOf: Function | undefined = undefined;
-    switch (type) {
-      case Number:
-        typename = 'number';
-        break;
-      case String:
-        typename = 'string';
-        break;
-      case Object:
-        typename = 'object';
-        break;
-      case Boolean:
-        typename = 'boolean';
-        break;
-      case Symbol:
-        typename = 'symbol';
-        break;
-      default:
-        if (typeof type === 'string') typename = type;
-        else if (typeof type === 'function') instanceOf = type;
-        break;
-    }
-
-    if (typename) return this.filter(value => typeof value === typename);
-    else if (instanceOf) {
-      const fn = instanceOf;
-      return this.filter(value => value instanceof fn);
-    }
-    return this.createDefaultSeq<any>();
   }
 
   prepend(...items: Iterable<T>[]): Seq<T> {

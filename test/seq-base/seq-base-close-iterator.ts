@@ -84,6 +84,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('at()', array.oneToTen, seq => seq.at(-1));
     test('average()', array.oneToTen, seq => seq.average());
     test('append()', array.oneToTen, seq => seq.append(-1));
+    test2('cartesian()', array.oneToTen, array.tenZeros, (seq, other) => seq.cartesian(other));
     test('chunk()', array.oneToTen, seq => seq.chunk(5));
     test('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
     test('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => ({})));

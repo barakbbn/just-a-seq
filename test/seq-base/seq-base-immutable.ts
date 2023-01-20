@@ -27,6 +27,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('at()', array.oneToTen, seq => seq.at(-1));
     testImmutable('average()', array.oneToTen, seq => seq.average());
     testImmutable('append()', array.oneToTen, seq => seq.append(-1));
+    testImmutable('cartesian()', array.oneToTen, seq => seq.cartesian(array.tenZeros));
     testImmutable('chunk()', array.oneToTen, seq => seq.chunk(5));
     testImmutable('chunkBySum()', array.oneToTen, seq => seq.chunkByLimit(5));
     testImmutable('chunkBy()', array.oneToTen, seq => seq.chunkBy(() => ({})));

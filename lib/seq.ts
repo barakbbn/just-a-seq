@@ -47,6 +47,8 @@ export interface Seq<T> extends Iterable<T> {
 
   cache(now?: boolean): CachedSeq<T>;
 
+  cartesian<Ts extends any[]>(...sources: Iterables<Ts>): Seq<[T, ...Ts]>;
+
   chunk(size: number, maxChunks?: number): Seq<Seq<T>>;
 
   chunkBy<U>(
@@ -471,7 +473,7 @@ export interface Seq<T> extends Iterable<T> {
 
   window(size: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
 
-  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T;  }): Seq<Seq<T>>;
+  window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
 
   window(size: number, step: number, opts: { fixedSize: boolean; }): Seq<Seq<T>>;
 

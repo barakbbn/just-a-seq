@@ -44,6 +44,74 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('cartesian', () => {
+      this.itx('should return all possible permutations for source sequences',
+        [1, 2, 3], [[2, 3, 4], [3, 4, 5]], (input, others) => {
+
+          const expected = [
+            [1, 2, 3], [1, 2, 4], [1, 2, 5],
+            [1, 3, 3], [1, 3, 4], [1, 3, 5],
+            [1, 4, 3], [1, 4, 4], [1, 4, 5],
+
+            [2, 2, 3], [2, 2, 4], [2, 2, 5],
+            [2, 3, 3], [2, 3, 4], [2, 3, 5],
+            [2, 4, 3], [2, 4, 4], [2, 4, 5],
+
+            [3, 2, 3], [3, 2, 4], [3, 2, 5],
+            [3, 3, 3], [3, 3, 4], [3, 3, 5],
+            [3, 4, 3], [3, 4, 4], [3, 4, 5],
+          ];
+
+          const sut = this.createSut(input).cartesian(...others);
+
+          const actual = [...sut].map(x => [...x]);
+
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return all possible permutations for source sequences, when all sources are same instance',
+        [1, 2, 3], (input) => {
+          const expected = [
+            [1, 1, 1], [1, 1, 2], [1, 1, 3],
+            [1, 2, 1], [1, 2, 2], [1, 2, 3],
+            [1, 3, 1], [1, 3, 2], [1, 3, 3],
+
+            [2, 1, 1], [2, 1, 2], [2, 1, 3],
+            [2, 2, 1], [2, 2, 2], [2, 2, 3],
+            [2, 3, 1], [2, 3, 2], [2, 3, 3],
+
+            [3, 1, 1], [3, 1, 2], [3, 1, 3],
+            [3, 2, 1], [3, 2, 2], [3, 2, 3],
+            [3, 3, 1], [3, 3, 2], [3, 3, 3],
+          ];
+
+          const sut = this.createSut(input).cartesian(input, input);
+
+          const actual = [...sut].map(x => [...x]);
+
+          assert.deepEqual(actual, expected);
+        });
+
+      this.itx('should return empty sequence when at least one source sequences is empty',
+        [1, 2, 3], [[] as number[], [3, 4, 5]], (input, others) => {
+          const sut = this.createSut(input).cartesian(...others);
+
+          const actual = [...sut].map(x => [...x]);
+
+          assert.isEmpty(actual);
+        });
+
+      this.it1('should return each item from source sequence as separate permutation when no sources provided as parameter',
+        [1,2,3], (input, inputArray) =>{
+          const expected = inputArray.map(x => [x]);
+          const sut = this.createSut(input).cartesian();
+
+          const actual = [...sut].map(x => [...x]);
+
+          assert.deepEqual(actual, expected);
+        });
+    });
+
     describe("chunk()", () => {
       const testRangeOfChunkSizes = <T>(input: Iterable<T>, inputArray: readonly T[], consumeOuterSequenceFirst: boolean) => {
         const sut = this.createSut(input);
@@ -3640,7 +3708,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       for (const source of sources) {
         this.it1(`combination of all parameters${source.length? '': ' - empty source'}`, source, (input, inputArray) => {
-          const test = (fixedSize: boolean, slidingStep: number, rightOverflow: boolean, leftOverflow: boolean, padWith: any, windowSize:number) => {
+          const test = (fixedSize: boolean, slidingStep: number, rightOverflow: boolean, leftOverflow: boolean, padWith: any, windowSize: number) => {
             const size = Math.max(windowSize, 0);
             const step = Math.max(Math.min(slidingStep, inputArray.length), 1);
             const paddings = new Array<number>(Math.max(size, 1) - 1).fill(padWith!);
@@ -3670,7 +3738,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const sut = this.createSut(input).window(windowSize, slidingStep, opts);
             const actual = [...sut].map(s => [...s]);
             assert.deepEqual(actual, expected, testInfo);
-          }
+          };
           for (const fixedSize of fixedSizeArgs) {
             for (let slidingStep = 0; slidingStep <= inputArray.length * 2; slidingStep++) {
               for (const rightOverflow of overflowRightArgs) {
