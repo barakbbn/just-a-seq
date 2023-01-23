@@ -1,4 +1,4 @@
-# just-a-seq
+# just-a-seq [![GitHub last commit](https://img.shields.io/github/last-commit/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq) [![GitHub license](https://img.shields.io/github/license/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq/LICENSE)  
 
 This is just a **sequence** that provides LINQ functionalities (and more)</br>
 But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
@@ -18,7 +18,7 @@ ___
   (Since most existing libraries already mimics .Net IEnumerable).
 * Additional useful functionalities that can make you more productive.
 
-#### See: *[Full API documentation](https://github.com/barakbbn/just-a-seq/wiki/docs)*
+See: [![GitHub docs](https://img.shields.io/static/v1?label=docs&message=Full%20API&color=blueviolet)](https://github.com/barakbbn/just-a-seq/wiki/docs) [![NPM Badge](https://img.shields.io/npm/v/@barakbbn/just-a-seq)](https://www.npmjs.com/package/@barakbbn/just-a-seq)  
 
 #### Examples
 
