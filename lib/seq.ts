@@ -1,5 +1,3 @@
-import {IterationContext} from "./common";
-
 export type Class<T = any> = new (...args: any) => T;
 export type Condition<T> = (x: T, index: number) => unknown;
 
@@ -298,16 +296,6 @@ export interface Seq<T> extends Iterable<T> {
 
   map<U = T>(mapFn: Selector<T, U>): Seq<U>;
 
-  partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
-
-  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U;
-
-  partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
-
-  partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
-
-  partitionWhile(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
-
   max(): T extends number? number: never; // Overload
   max(selector: Selector<T, number>): number;
 
@@ -334,6 +322,18 @@ export interface Seq<T> extends Iterable<T> {
   ofType(type: typeof Symbol): Seq<symbol>; // Overload
   ofType(type: typeof Object): Seq<object>; // Overload
   ofType<V extends Class>(type: V): Seq<InstanceType<V>>;
+
+  padEnd(value: T, count: number): Seq<T>;
+
+  partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
+
+  partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U;
+
+  partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
+
+  partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
+
+  partitionWhile(condition: Condition<T>): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
   prepend(...items: Iterable<T>[]): Seq<T>;
 
@@ -417,7 +417,7 @@ export interface Seq<T> extends Iterable<T> {
 
   sorted(top: number, opts?: { stable?: boolean; }): T extends ComparableType? Seq<T>: never;
 
-  split(condition: Condition<T>, opts?: { keepSeparator?: 'LeftChunk' | 'SeparateChunk' | 'RightChunk'; maxChunks?: number }): Seq<Seq<T>>;
+  split(condition: Condition<T>, opts?: { keepSeparator?: 'LeftChunk' | 'SeparateChunk' | 'RightChunk'; maxChunks?: number; }): Seq<Seq<T>>;
 
   splitAt(index: number): [first: Seq<T>, second: Seq<T>] & { first: Seq<T>; second: Seq<T>; };
 
@@ -590,7 +590,7 @@ export type Reverse<T extends any[], R extends any[] = []> = ReturnType<T extend
 export interface SeqFactory {
   <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(
     source?: Iterable<T>,
-    generator?: (source: TSeq, iterationContext: IterationContext) => Iterator<U>,
+    generator?: (source: TSeq) => Iterator<U>,
     tags?: readonly [tag: symbol, value: any][]): Seq<U>;
 }
 

@@ -1,18 +1,17 @@
+import {Condition, Seq} from './seq'
 import {internalEmpty} from "./internal";
 import {
   CloseableIterator,
   EMPTY_ARRAY,
-  IterationContext,
   SeqTags,
   TaggedSeq
 } from './common'
 
-import {Condition, Seq} from './seq'
 import {SeqBase} from './seq-base';
 
 export function createSeq<TSource = any, T = TSource>(
   source: Iterable<TSource> = EMPTY_ARRAY as unknown as TSource[],
-  generator?: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>,
+  generator?: (source: Iterable<TSource>) => Iterator<T>,
   tags?: readonly [symbol, any][]): SeqBase<T> {
 
   return !generator?
@@ -25,7 +24,7 @@ export function createSeq<TSource = any, T = TSource>(
 export class GeneratorSeqImpl<TSource = any, T = TSource> extends SeqBase<T> {
   constructor(
     protected readonly source: Iterable<TSource>,
-    private generator: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>,
+    private generator: (source: Iterable<TSource>) => Iterator<T>,
     tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
 
     super();

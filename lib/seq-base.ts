@@ -2207,7 +2207,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const optimize = SeqTags.optimize(this);
     tags = optimize? [...tags ?? [], [SeqTags.$optimize, true]]: tags;
 
-    return factories.Seq(source, generator, tags);
+    return factories.Seq(source, generator as (source: TSeq) => Iterator<U>, tags);
   }
 
   protected transferOptimizeTag<TSeq extends Seq<any>>(to: TSeq): TSeq {
