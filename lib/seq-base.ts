@@ -28,9 +28,9 @@ import {
   sameValueZero,
   SeqTags,
   TaggedSeq,
-  tapIterable,
-  generate
+  tapIterable
 } from './common';
+import { Seq as SeqFactory, } from './seq-factory';
 import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
@@ -1147,6 +1147,27 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.createDefaultSeq<any>();
   }
 
+  padEnd(value: T, count: number): Seq<T> {
+    count = Math.max(Math.trunc(count), 0);
+    if(count === 0) return this;
+    if (SeqTags.optimize(this)) {
+      const maxCount = SeqTags.maxCount(this);
+      if (maxCount != null) {
+        if (count <= maxCount) return this;
+        if (maxCount === 0) return SeqFactory.repeat(value, count);
+      }
+    }
+
+    return this.generate(function* padEnd(items) {
+      let counted = 0;
+      for (const item of items) {
+        yield item;
+        counted++;
+      }
+      for (; count > counted; counted++) yield value;
+    });
+  }
+
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
@@ -1256,6 +1277,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return result;
   }
+
 
   prepend(...items: Iterable<T>[]): Seq<T> {
     return this.insert(0, ...items);
@@ -2523,11 +2545,6 @@ class SlidingWindow<T> implements Iterable<T> {
 
     return {done: !!next.done, writtenCount: counted};
   }
-
-  private EnsureIteratorCreated() {
-    if (!this.iterator) this.iterator = getIterator(this.source);
-  }
-
 }
 
 function parseEqualsFn(param?: number | ((item: any) => any) | { equals(a: any, b: any): unknown }): ((a: any, b: any) => unknown) | undefined {

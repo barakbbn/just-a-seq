@@ -9,17 +9,18 @@ import {assert} from "chai";
 import {SeqBase_Immutable_Tests} from "./seq-base/seq-base-immutable";
 import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {SeqBase} from "../lib/seq-base";
-import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
-import {EMPTY_ARRAY, SeqTags} from "../lib/common";
+import {SeqBase_Deferred_Change_Source_Tests} from "./seq-base/seq-base-deferred-change-source";
+import {SeqTags} from "../lib/common";
 import {array, TestableDerivedSeq} from "./test-data";
-
+import {TestIt} from "./test-harness";
+import {SeqBase_Immediate_Change_Source_Tests} from "./seq-base/seq-base-immediate-change-source";
 
 
 function createSut<T>(optimized: boolean) {
   return <T>(input?: Iterable<T>, ...tags: [tag: symbol, value: any][]): SeqBase<T> => {
     if (optimized) tags.push([SeqTags.$optimize, true]);
     return new TestableDerivedSeq(input, tags);
-  }
+  };
 }
 
 class DerivedSeq_Deferred_GetIterator_Tests extends SeqBase_Deferred_GetIterator_Tests {
@@ -54,14 +55,19 @@ class DerivedSeq_Close_Iterator_Tests extends SeqBase_Close_Iterator_Tests {
   protected createSut = createSut(this.optimized);
 }
 
-class DerivedSeq_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+class DerivedSeq_Deferred_Change_Source_Tests extends SeqBase_Deferred_Change_Source_Tests {
   protected readonly createSut = createSut(this.optimized);
 }
 
-export class DerivedSeq_Tests {
+class DerivedSeq_Immediate_Change_Source_Tests extends SeqBase_Immediate_Change_Source_Tests {
+  protected readonly createSut = createSut(this.optimized);
+}
+
+export class DerivedSeq_Tests extends TestIt {
   protected createSut = createSut(this.optimized);
 
-  constructor(protected optimized: boolean) {
+  constructor(optimized: boolean) {
+    super(optimized);
   }
 
   readonly run = () => describe('DerivedImpl', () => {
@@ -72,8 +78,9 @@ export class DerivedSeq_Tests {
     new DerivedSeq_CachedSeq_Tests(this.optimized).run();
     new DerivedSeq_Grouping_Tests(this.optimized).run();
     new DerivedSeq_Immutable_Tests(this.optimized).run();
+    new DerivedSeq_Deferred_Change_Source_Tests(this.optimized).run();
     new DerivedSeq_Close_Iterator_Tests(this.optimized).run();
-    new DerivedSeq_Change_Source_Tests(this.optimized).run();
+    new DerivedSeq_Immediate_Change_Source_Tests(this.optimized).run();
 
     if (this.optimized) {
       describe('isEmpty()', () => {
@@ -82,6 +89,17 @@ export class DerivedSeq_Tests {
           let actual = sut.isEmpty();
           assert.isTrue(actual);
         });
+      });
+
+      describe('padEnd()', () => {
+        this.it1('should return the source sequence instance, when padding count is known to be less than or same as the source sequence length',
+          array.oneToTen, (input, inputArray) => {
+            const expected = this.createSut(input).take(inputArray.length);
+            let actual = expected.padEnd(0, 1); // less than source sequence length
+            assert.equal(actual, expected);
+            actual = expected.padEnd(0, inputArray.length); // same length as source sequence
+            assert.equal(actual, expected);
+          });
       });
     }
 

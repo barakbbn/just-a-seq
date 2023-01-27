@@ -7,8 +7,9 @@ import {SeqBase_Immediate_Tests} from "./seq-base/seq-base-immediate";
 import {SeqBase_Sorting_Tests} from "./seq-base/seq-base-sorting";
 import {SeqBase_CachedSeq_Tests} from "./seq-base/seq-base-caching";
 import {SeqBase_Grouping_Tests} from "./seq-base/seq-base-grouping";
-import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
+import {SeqBase_Deferred_Change_Source_Tests} from "./seq-base/seq-base-deferred-change-source";
 import {SeqTags, TaggedSeq} from "../lib/common";
+import {SeqBase_Immediate_Change_Source_Tests} from "./seq-base/seq-base-immediate-change-source";
 
 function createSut<T>(optimized: boolean) {
   return <T>(input?: Iterable<T>): GroupedSeqImpl<string, T> => {
@@ -43,7 +44,11 @@ class GroupedSeqImpl_Grouping_Tests extends SeqBase_Grouping_Tests {
 
 }
 
-class GroupedSeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+class GroupedSeqImpl_Deferred_Change_Source_Tests extends SeqBase_Deferred_Change_Source_Tests {
+  protected readonly createSut = createSut(this.optimized);
+}
+
+class GroupedSeqImpl_Immediate_Change_Source_Tests extends SeqBase_Immediate_Change_Source_Tests {
   protected readonly createSut = createSut(this.optimized);
 }
 
@@ -58,7 +63,8 @@ export class GroupedSeqImpl_Tests {
     new GroupedSeqImpl_SortedSeq_Tests(this.optimized).run();
     new GroupedSeqImpl_CachedSeq_Tests(this.optimized).run();
     new GroupedSeqImpl_Grouping_Tests(this.optimized).run();
-    new GroupedSeqImpl_Change_Source_Tests(this.optimized).run();
+    new GroupedSeqImpl_Deferred_Change_Source_Tests(this.optimized).run();
+    new GroupedSeqImpl_Immediate_Change_Source_Tests(this.optimized).run();
 
     describe('key property', () => {
       it('should return value that was set in creation', () => {

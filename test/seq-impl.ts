@@ -11,9 +11,10 @@ import {assert} from "chai";
 import {SeqBase_Immutable_Tests} from "./seq-base/seq-base-immutable";
 import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {SeqBase} from "../lib/seq-base";
-import {SeqBase_Change_Source_Tests} from "./seq-base/seq-base-change-source";
-import {IterationContext, SeqTags, TaggedSeq} from "../lib/common";
+import {SeqBase_Deferred_Change_Source_Tests} from "./seq-base/seq-base-deferred-change-source";
+import {SeqTags, TaggedSeq} from "../lib/common";
 import {Seq} from "../lib";
+import {SeqBase_Immediate_Change_Source_Tests} from "./seq-base/seq-base-immediate-change-source";
 
 function createSut<T>(optimized: boolean) {
   const factory: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> } = <T>(input?: Iterable<T>): SeqBase<T> => {
@@ -60,10 +61,13 @@ class SeqImpl_Close_Iterator_Tests extends SeqBase_Close_Iterator_Tests {
   protected createSut = createSut(this.optimized);
 }
 
-class SeqImpl_Change_Source_Tests extends SeqBase_Change_Source_Tests {
+class SeqImpl_Deferred_Change_Source_Tests extends SeqBase_Deferred_Change_Source_Tests {
   protected readonly createSut = createSut(this.optimized);
 }
 
+class SeqImpl_Immediate_Change_Source_Tests extends SeqBase_Immediate_Change_Source_Tests {
+  protected readonly createSut = createSut(this.optimized);
+}
 class GeneratorSeqImpl_Optimized_Tests {
   constructor(protected optimized: boolean) {
   }
@@ -774,7 +778,7 @@ class GeneratorSeqImpl_Optimized_Tests {
     });
   });
 
-  createSut<TSource, T>(source: Iterable<TSource>, generator: (source: Iterable<TSource>, iterationContext: IterationContext) => Iterator<T>) {
+  createSut<TSource, T>(source: Iterable<TSource>, generator: (source: Iterable<TSource>) => Iterator<T>) {
     return new GeneratorSeqImpl(source, generator, [[SeqTags.$optimize, true]]);
   }
 }
@@ -794,7 +798,8 @@ export class SeqImpl_Tests {
     new SeqImpl_Grouping_Tests(this.optimized).run();
     new SeqImpl_Immutable_Tests(this.optimized).run();
     new SeqImpl_Close_Iterator_Tests(this.optimized).run();
-    new SeqImpl_Change_Source_Tests(this.optimized).run();
+    new SeqImpl_Deferred_Change_Source_Tests(this.optimized).run();
+    new SeqImpl_Immediate_Change_Source_Tests(this.optimized).run();
 
     describe('cache()', () => {
       it('should return same items on re-consume although source sequence changed', () => {

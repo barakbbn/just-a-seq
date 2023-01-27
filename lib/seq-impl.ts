@@ -1,11 +1,11 @@
-import {Condition, Seq} from './seq'
+import {Condition, Seq} from './seq';
 import {internalEmpty} from "./internal";
 import {
   CloseableIterator,
   EMPTY_ARRAY,
   SeqTags,
   TaggedSeq
-} from './common'
+} from './common';
 
 import {SeqBase} from './seq-base';
 
@@ -68,11 +68,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     SeqTags.setTagsIfMissing(this, tags);
   }
 
-  // TaggedSeq
-  // get [SeqTags.$maxCount](): number {
-  //   return this.source.length;
-  // }
-
   all(condition: Condition<T>): boolean {
     return this.every(condition);
   }
@@ -92,7 +87,7 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     size = Math.trunc(size);
     maxChunks = Math.trunc(maxChunks);
     if (size <= 0) {
-      throw new Error('size parameter must be positive value')
+      throw new Error('size parameter must be positive value');
     }
 
     if (maxChunks < 1) return internalEmpty<Seq<T>>();
@@ -145,8 +140,6 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   reverse(): Seq<T> {
-    if (this.source.length === 0) return this;
-
     return this.createDefaultSeq(this.source, function* reverse(source: T[]) {
       for (let i = source.length - 1; i >= 0; i--) yield source[i];
     }, [
@@ -170,15 +163,15 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   }
 
   slice(start: number, end: number): Seq<T> {
-    if (start < 0) start += this.source.length;
-    if (start < 0) start = 0;
-    if (end < 0) end += this.source.length;
-    if (end < 0) end = 0;
-    else if (end > this.source.length) end = this.source.length;
-
-    if (end === 0 || end - start <= 0) return internalEmpty<T>();
-
     return this.generateForSource(this.source, function* slice(source: T[]) {
+      if (start < 0) start += this.source.length;
+      if (start < 0) start = 0;
+      if (end < 0) end += this.source.length;
+      if (end < 0) end = 0;
+      else if (end > this.source.length) end = this.source.length;
+
+      if (end === 0 || end - start <= 0) return;
+
       for (let i = start; i < end; i++) yield source[i];
     }, [[SeqTags.$notMappingItems, true]]);
   }
@@ -214,16 +207,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return super.startsWith(items, firstKeySelector as any, secondKeySelector);
   }
 
-  take(count: number): Seq<T> {
-    if (count >= this.source.length) return this;
-    return super.take(count);
-  }
-
   takeLast(count: number): Seq<T> {
-    if (count > this.source.length) return this;
-
     return this.generateForSource(this.source, function* takeLast(source: T[]) {
-      const startIndex = source.length - count;
+      const startIndex = Math.max(source.length - count, 0);
       for (let i = startIndex; i < source.length; i++) yield source[i];
     }, [[SeqTags.$notMappingItems, true]]);
   }

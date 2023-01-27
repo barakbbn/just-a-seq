@@ -102,7 +102,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should return each item from source sequence as separate permutation when no sources provided as parameter',
-        [1,2,3], (input, inputArray) =>{
+        [1, 2, 3], (input, inputArray) => {
           const expected = inputArray.map(x => [x]);
           const sut = this.createSut(input).cartesian();
 
@@ -2454,6 +2454,35 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('padEnd()', () => {
+      this.it1('should append "pad value" items as many as the "count" parameter when source sequence is empty',
+        [] as number[], (input, inputArray) => {
+          const padValue = 0;
+          const paddingCount = 2;
+          const expected = new Array<number>(paddingCount).fill(padValue);
+          const sut = this.createSut(input).padEnd(padValue, paddingCount);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should append "pad value" as the number of the "count" parameter minus the length of the source sequence when source sequence length is less than count parameter',
+        array.oneToTen, (input, inputArray) => {
+          const padValue = 0;
+          const paddingCount = inputArray.length * 2;
+          const expected = inputArray.concat(new Array<number>(inputArray.length).fill(padValue));
+          const sut = this.createSut(input).padEnd(padValue, paddingCount);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return the source sequence instance, when padding count is zero',
+        array.oneToTen, (input, inputArray) => {
+          const expected = this.createSut(input);
+          const actual = expected.padEnd(0, 0);
+          assert.equal(actual, expected);
+        });
+    });
+
     describe('partition()', () => {
       describe("matched sequence", () => {
         this.it1('should return only items that meet the condition - numbers', array.oneToTen, (input) => {
@@ -3237,7 +3266,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
 
       this.it1('should return empty sequence is source sequence is empty', [], (input) => {
-        assert.sameOrderedMembers([...this.createSut(input).takeLast(10)], []);
+        const expected = [] as number[];
+        const sut = this.createSut(input).takeLast(10);
+        const actual = [...sut];
+        assert.sameOrderedMembers(actual, expected);
       });
     });
 
