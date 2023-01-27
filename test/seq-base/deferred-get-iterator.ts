@@ -70,9 +70,12 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('flat()', () => testGetIterator(sut => sut.flat(5)));
 
-    describe('flatMap()', () => testGetIterator(sut => sut.flatMap(() => [1, 2])));
-
-    describe('flatHierarchy()', () => testGetIterator(sut => sut.flatHierarchy(() => [1, 2], () => [3, 4], (a1, a2, a3) => ({
+    describe('flatMap<U>()', () => testGetIterator(sut => sut.flatMap(() => [1, 2])));
+    describe('flatMap<V1, R>()', () => testGetIterator(sut => sut.flatMap(() => [1, 2], (a1, a2) => ({
+      a1,
+      a2
+    }))));
+    describe('flatMap<V1, V2, R>()', () => testGetIterator(sut => sut.flatMap(() => [1, 2], () => [3, 4], (a1, a2, a3) => ({
       a1,
       a2,
       a3

@@ -30,7 +30,7 @@ import {
   TaggedSeq,
   tapIterable
 } from './common';
-import { Seq as SeqFactory, } from './seq-factory';
+import {Seq as SeqFactory} from './seq-factory';
 import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
@@ -493,35 +493,41 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
-    return this.generate(function* flatMap(items) {
-      for (const {value, index} of entries(items)) {
-        const subItems = selector(value, index);
-        if (!isIterable(subItems, true)) {
-          const finalValue = mapResult? mapResult(subItems, value, index): subItems as unknown as R;
-          yield finalValue;
-        } else for (const {value: subValue, index: subIndex} of entries(subItems)) {
-          const finalValue = mapResult? mapResult(subValue, value, subIndex): subValue as unknown as R;
-          yield finalValue;
-        }
-      }
-    });
-  }
+  // flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: ((subItem: U, parent: T, index: number) => R)): Seq<R> {
+  //   return this.generate(function* flatMap(items) {
+  //     for (const {value, index} of entries(items)) {
+  //       const subItems = selector(value, index);
+  //       if (!isIterable(subItems, true)) {
+  //         const finalValue = mapResult? mapResult(subItems, value, index): subItems as unknown as R;
+  //         yield finalValue;
+  //       } else for (const {value: subValue, index: subIndex} of entries(subItems)) {
+  //         const finalValue = mapResult? mapResult(subValue, value, subIndex): subValue as unknown as R;
+  //         yield finalValue;
+  //       }
+  //     }
+  //   });
+  // }
+  flatMap<U>(selector: Selector<T, Iterable<U>>): Seq<U>;
 
-  flatHierarchy<V1, V2, TRes = V2>(
+  flatMap<V1, TRes = V1>(
+    selector: Selector<T, Iterable<V1>>,
+    mapResult: (subItem: V1, parent: T, index: number) => TRes
+  ): Seq<TRes>;
+
+  flatMap<V1, V2, TRes = V2>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     mapResult: (lastItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, TRes = V3>(
+  flatMap<V1, V2, V3, TRes = V3>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
     mapResult: (lastItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, TRes = V4>(
+  flatMap<V1, V2, V3, V4, TRes = V4>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -529,7 +535,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     mapResult: (lastItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, TRes = V5>(
+  flatMap<V1, V2, V3, V4, V5, TRes = V5>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -538,7 +544,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     mapResult: (lastItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, TRes = V6>(
+  flatMap<V1, V2, V3, V4, V5, V6, TRes = V6>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -548,7 +554,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     mapResult: (lastItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
+  flatMap<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -559,7 +565,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     mapResult: (lastItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
+  flatMap<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -571,10 +577,10 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     mapResult: (lastItem: V8, parent: V7, ancestor6: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes>(
+  flatMap<V1, V2, V3, V4, V5, V6, V7, V8, TRes>(
     ...selectorsAndMapResults: (((...args: unknown[]) => Iterable<unknown>) | ((...args: unknown[]) => TRes))[]
   ): any {
-    const mapResult = selectorsAndMapResults.pop() as (...args: unknown[]) => TRes;
+    const mapResult = selectorsAndMapResults.length > 1? selectorsAndMapResults.pop() as (...args: unknown[]) => TRes: IDENTITY;
     const selectors = selectorsAndMapResults as ((...args: unknown[]) => Iterable<unknown>)[];
 
     return this.generate(function* flatHierarchy(items) {
@@ -1149,7 +1155,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   padEnd(length: number, value: T): Seq<T> {
     length = Math.max(Math.trunc(length), 0);
-    if(length === 0) return this;
+    if (length === 0) return this;
     if (SeqTags.optimize(this)) {
       const maxCount = SeqTags.maxCount(this);
       if (maxCount != null) {

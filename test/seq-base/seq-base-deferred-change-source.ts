@@ -226,7 +226,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('filter()', array.oneToTen, seq => seq.filter(n => n % 2));
     test('flat()', array.strings, seq => seq.flat(3));
     test('flatMap()', array.folders, seq => seq.flatMap(f => f.subFolders));
-    test('flatHierarchy()', array.folders, seq => seq.flatHierarchy(f => f.subFolders, f => f.subFolders, f => f.name));
+    test('flatMap<V1, V2>()', array.folders, seq => seq.flatMap(f => f.subFolders, f => f.subFolders, f => f.name));
     test('groupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3));
     test('groupBy().thenGroupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2));
     test('groupBy().thenGroupBy().ungroup()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroup(g => g.first()));

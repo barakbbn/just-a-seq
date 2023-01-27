@@ -1233,207 +1233,207 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           assert.deepEqual(actual, expected);
         });
       });
-    });
 
-    describe('flatHierarchy()', () => {
-      this.it1('should return empty sequence if all items have empty children sequence', [new Folder("1"), new Folder('2'), new Folder('2')], (input) => {
-        const expected: { name: string; v0: Folder; v1: Folder; v2: Folder; v3: Folder; v4: Folder }[] = [];
-        let sut = this.createSut(input);
-        const flattened = sut.flatHierarchy(
-          f => f.subFolders,
-          f => f.subFolders,
-          f => f.subFolders,
-          f => f.subFolders,
-          () => <string[]>[], // Force empty children
-          (name, v4, v3, v2, v1, v0) =>
-            ({name, v0, v1, v2, v3, v4}));
+      describe('deeper hierarchy', () => {
+        this.it1('should return empty sequence if all items have empty children sequence', [new Folder("1"), new Folder('2'), new Folder('2')], (input) => {
+          const expected: { name: string; v0: Folder; v1: Folder; v2: Folder; v3: Folder; v4: Folder }[] = [];
+          let sut = this.createSut(input);
+          const flattened = sut.flatMap(
+            f => f.subFolders,
+            f => f.subFolders,
+            f => f.subFolders,
+            f => f.subFolders,
+            () => <string[]>[], // Force empty children
+            (name, v4, v3, v2, v1, v0) =>
+              ({name, v0, v1, v2, v3, v4}));
 
-        let actual = [...flattened];
-        assert.sameDeepOrderedMembers(actual, expected);
-      });
-
-      this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
-        let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
-        [...input].forEach(v0 => safeChildren(v0)
-          .forEach(v1 => safeChildren(v1)
-            .forEach(v2 => safeChildren(v2)
-              .forEach(v3 => safeChildren(v3)
-                .forEach(v4 => safeChildren(v4)
-                  .forEach(v5 => safeChildren(v5)
-                    .forEach(v6 => safeChildren(v6)
-                      .forEach(v7 => safeChildren(v7)
-                        .forEach(v8 => expected.push({
-                          v0: v0.name,
-                          v1: v1.name,
-                          v2: v2.name,
-                          v3: v3.name,
-                          v4: v4.name,
-                          v5: v5.name,
-                          v6: v6.name,
-                          v7: v7.name,
-                          v8: v8.name
-                        }))))))))));
-
-        let sut = this.createSut(input);
-        const flattened = sut.flatHierarchy(
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          (last, v7, v6, v5, v4, v3, v2, v1, v0) =>
-            ({
-              v0: v0.name,
-              v1: v1.name,
-              v2: v2.name,
-              v3: v3.name,
-              v4: v4.name,
-              v5: v5.name,
-              v6: v6.name,
-              v7: v7.name,
-              v8: last.name
-            }));
-
-        let actual = [...flattened];
-        assert.sameDeepOrderedMembers(actual, expected);
-      });
-
-      this.it1('should call all selector callbacks with expected parameters', array.folders, (input) => {
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
-        let expectedSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
-        const expectedIndexes = new Array<number>(9).fill(0);
-        let actualSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
-
-        [...input].map((v0, index) => {
-          expectedSelectorsParameters[0].push([v0, index, expectedIndexes[0]++]);
-          safeChildren(v0)
-            .forEach((v1, index) => {
-              expectedSelectorsParameters[1].push([v1, v0, index, expectedIndexes[1]++]);
-              safeChildren(v1)
-                .forEach((v2, index) => {
-                  expectedSelectorsParameters[2].push([v2, v1, v0, index, expectedIndexes[2]++]);
-                  safeChildren(v2)
-                    .forEach((v3, index) => {
-                      expectedSelectorsParameters[3].push([v3, v2, v1, v0, index, expectedIndexes[3]++]);
-                      safeChildren(v3)
-                        .forEach((v4, index) => {
-                          expectedSelectorsParameters[4].push([v4, v3, v2, v1, v0, index, expectedIndexes[4]++]);
-                          safeChildren(v4)
-                            .forEach((v5, index) => {
-                              expectedSelectorsParameters[5].push([v5, v4, v3, v2, v1, v0, index, expectedIndexes[5]++]);
-                              safeChildren(v5)
-                                .forEach((v6, index) => {
-                                  expectedSelectorsParameters[6].push([v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[6]++]);
-                                  safeChildren(v6)
-                                    .forEach((v7, index) => {
-                                      expectedSelectorsParameters[7].push([v7, v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[7]++]);
-                                      safeChildren(v7)
-                                        .forEach((v8, index) => {
-                                          expectedSelectorsParameters[8].push([v8, v7, v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[8]++]);
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
+          let actual = [...flattened];
+          assert.sameDeepOrderedMembers(actual, expected);
         });
 
-        let sut = this.createSut(input);
-        const flattened = sut.flatHierarchy(
-          (v0, index, absoluteIndex) => {
-            actualSelectorsParameters[0].push([v0, index, absoluteIndex]);
-            return safeChildren(v0);
-          },
-          (v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[1].push([v1, v0, index, absoluteIndex]);
-            return safeChildren(v1);
-          },
-          (v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[2].push([v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v2);
-          },
-          (v3, v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[3].push([v3, v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v3);
-          },
-          (v4, v3, v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[4].push([v4, v3, v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v4);
-          },
-          (v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[5].push([v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v5);
-          },
-          (v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[6].push([v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v6);
-          },
-          (v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
-            actualSelectorsParameters[7].push([v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
-            return safeChildren(v7);
-          },
-          (v8, v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
-            return actualSelectorsParameters[8].push([v8, v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
+        this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
+          let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
+          const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+          [...input].forEach(v0 => safeChildren(v0)
+            .forEach(v1 => safeChildren(v1)
+              .forEach(v2 => safeChildren(v2)
+                .forEach(v3 => safeChildren(v3)
+                  .forEach(v4 => safeChildren(v4)
+                    .forEach(v5 => safeChildren(v5)
+                      .forEach(v6 => safeChildren(v6)
+                        .forEach(v7 => safeChildren(v7)
+                          .forEach(v8 => expected.push({
+                            v0: v0.name,
+                            v1: v1.name,
+                            v2: v2.name,
+                            v3: v3.name,
+                            v4: v4.name,
+                            v5: v5.name,
+                            v6: v6.name,
+                            v7: v7.name,
+                            v8: v8.name
+                          }))))))))));
+
+          let sut = this.createSut(input);
+          const flattened = sut.flatMap(
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            (last, v7, v6, v5, v4, v3, v2, v1, v0) =>
+              ({
+                v0: v0.name,
+                v1: v1.name,
+                v2: v2.name,
+                v3: v3.name,
+                v4: v4.name,
+                v5: v5.name,
+                v6: v6.name,
+                v7: v7.name,
+                v8: last.name
+              }));
+
+          let actual = [...flattened];
+          assert.sameDeepOrderedMembers(actual, expected);
+        });
+
+        this.it1('should call all selector callbacks with expected parameters', array.folders, (input) => {
+          const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+          let expectedSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
+          const expectedIndexes = new Array<number>(9).fill(0);
+          let actualSelectorsParameters: any[][] = Array.from<any[]>({length: 9}).map(() => []);
+
+          [...input].map((v0, index) => {
+            expectedSelectorsParameters[0].push([v0, index, expectedIndexes[0]++]);
+            safeChildren(v0)
+              .forEach((v1, index) => {
+                expectedSelectorsParameters[1].push([v1, v0, index, expectedIndexes[1]++]);
+                safeChildren(v1)
+                  .forEach((v2, index) => {
+                    expectedSelectorsParameters[2].push([v2, v1, v0, index, expectedIndexes[2]++]);
+                    safeChildren(v2)
+                      .forEach((v3, index) => {
+                        expectedSelectorsParameters[3].push([v3, v2, v1, v0, index, expectedIndexes[3]++]);
+                        safeChildren(v3)
+                          .forEach((v4, index) => {
+                            expectedSelectorsParameters[4].push([v4, v3, v2, v1, v0, index, expectedIndexes[4]++]);
+                            safeChildren(v4)
+                              .forEach((v5, index) => {
+                                expectedSelectorsParameters[5].push([v5, v4, v3, v2, v1, v0, index, expectedIndexes[5]++]);
+                                safeChildren(v5)
+                                  .forEach((v6, index) => {
+                                    expectedSelectorsParameters[6].push([v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[6]++]);
+                                    safeChildren(v6)
+                                      .forEach((v7, index) => {
+                                        expectedSelectorsParameters[7].push([v7, v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[7]++]);
+                                        safeChildren(v7)
+                                          .forEach((v8, index) => {
+                                            expectedSelectorsParameters[8].push([v8, v7, v6, v5, v4, v3, v2, v1, v0, index, expectedIndexes[8]++]);
+                                          });
+                                      });
+                                  });
+                              });
+                          });
+                      });
+                  });
+              });
           });
 
-        for (const item of flattened) {
-        }
-        assert.sameDeepOrderedMembers(actualSelectorsParameters, expectedSelectorsParameters);
-      });
+          let sut = this.createSut(input);
+          const flattened = sut.flatMap(
+            (v0, index, absoluteIndex) => {
+              actualSelectorsParameters[0].push([v0, index, absoluteIndex]);
+              return safeChildren(v0);
+            },
+            (v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[1].push([v1, v0, index, absoluteIndex]);
+              return safeChildren(v1);
+            },
+            (v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[2].push([v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v2);
+            },
+            (v3, v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[3].push([v3, v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v3);
+            },
+            (v4, v3, v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[4].push([v4, v3, v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v4);
+            },
+            (v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[5].push([v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v5);
+            },
+            (v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[6].push([v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v6);
+            },
+            (v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
+              actualSelectorsParameters[7].push([v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
+              return safeChildren(v7);
+            },
+            (v8, v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex) => {
+              return actualSelectorsParameters[8].push([v8, v7, v6, v5, v4, v3, v2, v1, v0, index, absoluteIndex]);
+            });
 
-      this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
-        let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
-        const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
-        [...input].forEach(v0 => safeChildren(v0)
-          .forEach(v1 => safeChildren(v1)
-            .forEach(v2 => safeChildren(v2)
-              .forEach(v3 => safeChildren(v3)
-                .forEach(v4 => safeChildren(v4)
-                  .forEach(v5 => safeChildren(v5)
-                    .forEach(v6 => safeChildren(v6)
-                      .forEach(v7 => expected.push({
-                        v0: `${v0.name} - 0`,
-                        v1: `${v1.name} - 1`,
-                        v2: `${v2.name} - 2`,
-                        v3: `${v3.name} - 3`,
-                        v4: `${v4.name} - 4`,
-                        v5: `${v5.name} - 5`,
-                        v6: `${v6.name} - 6`,
-                        v7: `${v7.name} - 7`,
-                        v8: `${v7.name} - 8` // NOT A MISTAKE: flatHierarchy() is expected to return as v8 the value of v7 since v7 doesn't have children
-                      })))))))));
+          for (const item of flattened) {
+          }
+          assert.sameDeepOrderedMembers(actualSelectorsParameters, expectedSelectorsParameters);
+        });
 
-        let sut = this.createSut(input);
-        const flattened = sut.flatHierarchy(
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => safeChildren(f),
-          f => f.name,
-          (v8, v7, v6, v5, v4, v3, v2, v1, v0) =>
-            ({
-              v0: `${v0.name} - 0`,
-              v1: `${v1.name} - 1`,
-              v2: `${v2.name} - 2`,
-              v3: `${v3.name} - 3`,
-              v4: `${v4.name} - 4`,
-              v5: `${v5.name} - 5`,
-              v6: `${v6.name} - 6`,
-              v7: `${v7.name} - 7`,
-              v8: `${v8} - 8`
-            }));
+        this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
+          let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
+          const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
+          [...input].forEach(v0 => safeChildren(v0)
+            .forEach(v1 => safeChildren(v1)
+              .forEach(v2 => safeChildren(v2)
+                .forEach(v3 => safeChildren(v3)
+                  .forEach(v4 => safeChildren(v4)
+                    .forEach(v5 => safeChildren(v5)
+                      .forEach(v6 => safeChildren(v6)
+                        .forEach(v7 => expected.push({
+                          v0: `${v0.name} - 0`,
+                          v1: `${v1.name} - 1`,
+                          v2: `${v2.name} - 2`,
+                          v3: `${v3.name} - 3`,
+                          v4: `${v4.name} - 4`,
+                          v5: `${v5.name} - 5`,
+                          v6: `${v6.name} - 6`,
+                          v7: `${v7.name} - 7`,
+                          v8: `${v7.name} - 8` // NOT A MISTAKE: flatMap() is expected to return as v8 the value of v7 since v7 doesn't have children
+                        })))))))));
 
-        let actual = [...flattened];
-        assert.sameDeepOrderedMembers(actual, expected);
+          let sut = this.createSut(input);
+          const flattened = sut.flatMap(
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => safeChildren(f),
+            f => f.name,
+            (v8, v7, v6, v5, v4, v3, v2, v1, v0) =>
+              ({
+                v0: `${v0.name} - 0`,
+                v1: `${v1.name} - 1`,
+                v2: `${v2.name} - 2`,
+                v3: `${v3.name} - 3`,
+                v4: `${v4.name} - 4`,
+                v5: `${v5.name} - 5`,
+                v6: `${v6.name} - 6`,
+                v7: `${v7.name} - 7`,
+                v8: `${v8} - 8`
+              }));
+
+          let actual = [...flattened];
+          assert.sameDeepOrderedMembers(actual, expected);
+        });
       });
     });
 

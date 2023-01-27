@@ -145,22 +145,27 @@ export interface Seq<T> extends Iterable<T> {
 
   flat<D extends number>(depth?: D): Seq<FlatSeq<T, D>>;
 
-  flatMap<U, R = U>(selector: Selector<T, Iterable<U>>, mapResult?: (subItem: U, parent: T, index: number) => R): Seq<R>;  // JS2019, Scala (extra C#)
+  flatMap<U>(selector: Selector<T, Iterable<U>>): Seq<U>;
 
-  flatHierarchy<V1, V2, TRes = V2>(
+  flatMap<V1, TRes = V1>(
+    selector: Selector<T, Iterable<V1>>,
+    mapResult: (subItem: V1, parent: T, index: number) => TRes
+  ): Seq<TRes>;
+
+  flatMap<V1, V2, TRes = V2>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     mapResult: (lastItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, TRes = V3>(
+  flatMap<V1, V2, V3, TRes = V3>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
     mapResult: (lastItem: V3, parent: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, TRes = V4>(
+  flatMap<V1, V2, V3, V4, TRes = V4>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -168,7 +173,7 @@ export interface Seq<T> extends Iterable<T> {
     mapResult: (lastItem: V4, parent: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, TRes = V5>(
+  flatMap<V1, V2, V3, V4, V5, TRes = V5>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -177,7 +182,7 @@ export interface Seq<T> extends Iterable<T> {
     mapResult: (lastItem: V5, parent: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, TRes = V6>(
+  flatMap<V1, V2, V3, V4, V5, V6, TRes = V6>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -187,7 +192,7 @@ export interface Seq<T> extends Iterable<T> {
     mapResult: (lastItem: V6, parent: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
+  flatMap<V1, V2, V3, V4, V5, V6, V7, TRes = V7>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
@@ -198,7 +203,7 @@ export interface Seq<T> extends Iterable<T> {
     mapResult: (lastItem: V7, parent: V6, ancestor5: V5, ancestor4: V4, ancestor3: V3, ancestor2: V2, ancestor1: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => TRes
   ): Seq<TRes>;
 
-  flatHierarchy<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
+  flatMap<V1, V2, V3, V4, V5, V6, V7, V8, TRes = V8>(
     selector1: (item: T, relativeIndex: number, absoluteIndex: number) => Iterable<V1>,
     selector2: (subItem: V1, parent: T, relativeIndex: number, absoluteIndex: number) => Iterable<V2>,
     selector3: (subItem: V2, parent: V1, ancestor0: T, relativeIndex: number, absoluteIndex: number) => Iterable<V3>,
