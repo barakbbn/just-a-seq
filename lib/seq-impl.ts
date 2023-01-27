@@ -164,11 +164,11 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
 
   slice(start: number, end: number): Seq<T> {
     return this.generateForSource(this.source, function* slice(source: T[]) {
-      if (start < 0) start += this.source.length;
+      if (start < 0) start += source.length;
       if (start < 0) start = 0;
-      if (end < 0) end += this.source.length;
+      if (end < 0) end += source.length;
       if (end < 0) end = 0;
-      else if (end > this.source.length) end = this.source.length;
+      else if (end > source.length) end = source.length;
 
       if (end === 0 || end - start <= 0) return;
 
