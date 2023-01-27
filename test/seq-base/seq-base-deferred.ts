@@ -2455,22 +2455,22 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
     });
 
     describe('padEnd()', () => {
-      this.it1('should append "pad value" items as many as the "count" parameter when source sequence is empty',
+      this.it1('should append "pad value" items as many as the "length" parameter when source sequence is empty',
         [] as number[], (input, inputArray) => {
           const padValue = 0;
           const paddingCount = 2;
           const expected = new Array<number>(paddingCount).fill(padValue);
-          const sut = this.createSut(input).padEnd(padValue, paddingCount);
+          const sut = this.createSut(input).padEnd(paddingCount, padValue);
           const actual = [...sut];
           assert.deepEqual(actual, expected);
         });
 
-      this.it1('should append "pad value" as the number of the "count" parameter minus the length of the source sequence when source sequence length is less than count parameter',
+      this.it1('should append "pad value" as the number of the "length" parameter minus the length of the source sequence when source sequence length is less than length parameter',
         array.oneToTen, (input, inputArray) => {
           const padValue = 0;
           const paddingCount = inputArray.length * 2;
           const expected = inputArray.concat(new Array<number>(inputArray.length).fill(padValue));
-          const sut = this.createSut(input).padEnd(padValue, paddingCount);
+          const sut = this.createSut(input).padEnd(paddingCount, padValue);
           const actual = [...sut];
           assert.deepEqual(actual, expected);
         });

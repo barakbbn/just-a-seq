@@ -95,9 +95,9 @@ export class DerivedSeq_Tests extends TestIt {
         this.it1('should return the source sequence instance, when padding count is known to be less than or same as the source sequence length',
           array.oneToTen, (input, inputArray) => {
             const expected = this.createSut(input).take(inputArray.length);
-            let actual = expected.padEnd(0, 1); // less than source sequence length
+            let actual = expected.padEnd(1, 0); // less than source sequence length
             assert.equal(actual, expected);
-            actual = expected.padEnd(0, inputArray.length); // same length as source sequence
+            actual = expected.padEnd(inputArray.length, 0); // same length as source sequence
             assert.equal(actual, expected);
           });
       });

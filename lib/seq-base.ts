@@ -1147,14 +1147,14 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.createDefaultSeq<any>();
   }
 
-  padEnd(value: T, count: number): Seq<T> {
-    count = Math.max(Math.trunc(count), 0);
-    if(count === 0) return this;
+  padEnd(length: number, value: T): Seq<T> {
+    length = Math.max(Math.trunc(length), 0);
+    if(length === 0) return this;
     if (SeqTags.optimize(this)) {
       const maxCount = SeqTags.maxCount(this);
       if (maxCount != null) {
-        if (count <= maxCount) return this;
-        if (maxCount === 0) return SeqFactory.repeat(value, count);
+        if (length <= maxCount) return this;
+        if (maxCount === 0) return SeqFactory.repeat(value, length);
       }
     }
 
@@ -1164,7 +1164,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         yield item;
         counted++;
       }
-      for (; count > counted; counted++) yield value;
+      for (; length > counted; counted++) yield value;
     });
   }
 

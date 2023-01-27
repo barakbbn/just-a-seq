@@ -323,7 +323,7 @@ export interface Seq<T> extends Iterable<T> {
   ofType(type: typeof Object): Seq<object>; // Overload
   ofType<V extends Class>(type: V): Seq<InstanceType<V>>;
 
-  padEnd(value: T, count: number): Seq<T>;
+  padEnd(length: number, value: T): Seq<T>;
 
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
 
