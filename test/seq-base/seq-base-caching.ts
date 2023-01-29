@@ -117,6 +117,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('reverse()', (input) => test(input, sut => sut.reverse()));
 
+      it1('scan()', (input) => test(input, sut => sut.scan((prev, curr) => prev + curr)));
+
       it1('skip()', (input) => test(input, sut => sut.skip(2)));
 
       it1('skipFirst()', (input) => test(input, sut => sut.skipFirst()));

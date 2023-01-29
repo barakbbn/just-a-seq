@@ -380,6 +380,10 @@ export interface Seq<T> extends Iterable<T> {
 
   sameOrderedItems<U = T>(second: Iterable<U>, equals?: (first: T, second: U, index: number) => boolean): boolean;
 
+  scan(accumulator: (previousValue: T, currentValue: T, currentIndex: number) => T): Seq<T>;
+
+  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): Seq<U>;
+
   skip(count: number): Seq<T>;
 
   skipFirst(): Seq<T>;

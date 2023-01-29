@@ -136,6 +136,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('last()', array.oneToTen, seq => seq.last());
     test('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
+    test('padEnd()', array.oneToTen, seq => seq.padEnd(11));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -161,6 +162,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test2('sameOrderedItems() => true', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
     test2('sameOrderedItems() => first is longer', array.zeroToTen, array.zeroToNine, (seq, other) => seq.sameOrderedItems(other));
     test2('sameOrderedItems() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
+    test('scan()', array.zeroToTen, seq => seq.scan((prev, curr) => prev + curr, 0));
     test('skip()', array.zeroToTen, seq => seq.skip(1));
     test('skipFirst()', array.zeroToTen, seq => seq.skipFirst());
     test('skipLast()', array.zeroToTen, seq => seq.skipLast());

@@ -1448,6 +1448,29 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return next.done ?? false;
   }
 
+  scan(accumulator: (previousValue: T, currentValue: T, currentIndex: number) => T): Seq<T>;
+  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): Seq<U>;
+  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue? : U): Seq<U> {
+
+    let actualScanFn: (a: any, b: any, index: number) => any = accumulator;
+
+    if(initialValue === undefined) {
+      actualScanFn = (a: any, b: any) => {
+        actualScanFn = accumulator;
+        return b;
+      };
+    }
+
+    return this.generate(function* scan(items) {
+      if (initialValue !== undefined) yield initialValue;
+      let accumulated = initialValue;
+      for (const {value, index} of entries(items)) {
+        accumulated = actualScanFn(accumulated, value, index);
+        yield accumulated!;
+      }
+    });
+  }
+
   skip(count: number): Seq<T> {
     count = Math.trunc(count);
     if (count <= 0) return this;

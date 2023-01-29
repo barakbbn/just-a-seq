@@ -3090,18 +3090,6 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         assert.strictEqual(actual2, expected, `actual: ${actual2} , expected: ${expected}  with reducer: ${reducer}`);
       });
 
-      it('should not affect input array', () => {
-        const input = array.oneToTen;
-        const inputCopy = input.slice();
-        const sut = this.createSut(input);
-        sut.reduce(() => 0);
-        assert.sameOrderedMembers(input, inputCopy);
-
-        const sut2 = this.createSut(generator.from(input));
-        sut2.reduce(() => 0);
-        assert.sameOrderedMembers(input, inputCopy);
-      });
-
       describe('should provide parameters to reducer in correct order and values and return reducer final result', () => {
         it('without initial value', () => test());
         it('with initial value', () => test(-10));

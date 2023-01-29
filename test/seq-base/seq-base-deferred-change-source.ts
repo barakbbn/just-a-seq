@@ -243,6 +243,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     test('intersperseBy()', array.oneToTen, seq => seq.intersperseBy(() => ','));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
+    test('padEnd()', array.oneToTen, seq => seq.padEnd(11));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -256,6 +257,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('removeNulls()', array.zeroToTen, seq => seq.removeNulls());
     test('repeat()', array.zeroToTen, seq => seq.repeat(1));
     test('reverse()', array.zeroToTen, seq => seq.reverse());
+    test('scan()', array.zeroToTen, seq => seq.scan((prev, curr) => prev + curr, 0));
     test('skip()', array.zeroToTen, seq => seq.skip(1));
     test('skipFirst()', array.zeroToTen, seq => seq.skipFirst());
     test('skipLast()', array.zeroToTen, seq => seq.skipLast());

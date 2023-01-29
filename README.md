@@ -238,7 +238,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | prepend      | push         |              |                      |                |              |
 | reduce       | reduceRight  | remove       | removeAll            | removeFalsy    |              |
 | removeKeys   | removeNulls  | repeat       | reverse              |                |              |
-| skip         | skipFirst    | skipLast     |                      |                |              |
+| scan         | skip         | skipFirst    | skipLast             |                |              |              
 | skipWhile    | slice        | sort         | sortBy               | [thenGroupBy]  | <thenSortBy> |
 | sorted       | split        | splitAt      |                      |                |              |
 | take         | takeLast     | takeOnly     | takeWhile            | **tap**        |              |

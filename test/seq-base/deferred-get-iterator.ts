@@ -109,6 +109,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
 
+    describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1)));
+
     describe('partition()', () => testGetIterator(sut => sut.partition(x => x)));
 
     describe('partition().matched', () => testGetIterator(sut => sut.partition(x => x).matched));
@@ -138,6 +140,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('repeat()', () => testGetIterator(sut => sut.repeat(2)));
 
     describe('reverse()', () => testGetIterator(sut => sut.reverse()));
+
+    describe('scan()', () => testGetIterator(sut => sut.scan((prev, curr) => prev + curr, 0)));
 
     describe('skip()', () => testGetIterator(sut => sut.skip(2)));
 

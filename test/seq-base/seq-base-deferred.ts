@@ -2935,6 +2935,59 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('scan()', () => {
+      this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+        const sut = this.createSut(input).scan((a, b) => a + b);
+        const actual = [...sut];
+        assert.isEmpty(actual);
+      });
+
+      this.it1('should return sequence having its first item the source sequence first item',
+        array.oneToTen, (input, inputArray) => {
+          const expected = inputArray[0];
+          const sut = this.createSut(input).scan((a, b) => a + b);
+          const actual = [...sut][0];
+          assert.equal(actual, expected);
+        });
+
+      this.it1('should return sequence having its items the value of the intermediate result of the accumulator function',
+        array.oneToTen, (input, inputArray) => {
+          const expected = inputArray.slice(0, 1);
+          inputArray.reduce((a, b) => {
+            const res = a + b;
+            expected.push(res);
+            return res;
+          });
+          const sut = this.createSut(input).scan((a, b) => a + b);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      describe('with initialValue', () => {
+        this.it1('should return sequence only with the initialValue when source sequence is empty', [] as number[], input => {
+          const expected = -1;
+          const sut = this.createSut(input).scan((a, b) => a + b, expected);
+          const actual = [...sut][0];
+          assert.equal(actual, expected);
+        });
+
+        this.it1('should return sequence having its items the value of the intermediate result of the accumulator function',
+          array.oneToTen, (input, inputArray) => {
+            const initialValue = -1;
+            const expected = [initialValue];
+            inputArray.reduce((a, b) => {
+              const res = a + b;
+              expected.push(res);
+              return res;
+            }, initialValue);
+
+            const sut = this.createSut(input).scan((a, b) => a + b, initialValue);
+            const actual = [...sut];
+            assert.deepEqual(actual, expected);
+          });
+      });
+    });
+
     describe("skip()", () => {
       this.it1("Return rest of items when skipping only part of the items", array.oneToTen, (input) => {
         const sut = this.createSut(input);
