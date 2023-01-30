@@ -85,7 +85,7 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('groupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2)));
     describe('groupBy().thanGroupBy().thanGroupBy()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).thenGroupBy(() => 3)));
     describe('groupBy().thanGroupBy().ungroup()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).ungroup(g => g.first())));
-    describe('groupBy().thanGroupBy().aggregate()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).aggregate(g => g.first())));
+    describe('groupBy().thanGroupBy().ungroupAll()', () => testGetIterator(sut => sut.groupBy(() => 1).thenGroupBy(() => 2).ungroupAll(g => g.first())));
 
     describe('groupJoin()', () => testGetIterator(sut => sut.groupJoin([1], () => 1, () => 1)));
 
@@ -109,7 +109,7 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
 
-    describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1)));
+    describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1, 0)));
 
     describe('partition()', () => testGetIterator(sut => sut.partition(x => x)));
 

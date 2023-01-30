@@ -210,6 +210,8 @@ export abstract class SeqBase_Immediate_Change_Source_Tests extends TestIt {
       });
     };
 
+    test('aggregate()', array.oneToTen, seq => seq.aggregate(0, (prev, curr) => prev + curr, x => x));
+    test('aggregateRight()', array.oneToTen, seq => seq.aggregateRight(0, (prev, curr) => prev + curr, x => x));
     test('all()', array.oneToTen, seq => seq.all(n => n > 5));
     test('any()', array.oneToTen, seq => seq.any(n => n > 5));
     test('at()', array.oneToTen, seq => seq.at(-1));

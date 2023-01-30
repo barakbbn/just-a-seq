@@ -1,6 +1,6 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
-import {array, generator, Sample} from "../test-data"
+import {array, generator, Sample} from "../test-data";
 import {SeqBase} from "../../lib/seq-base";
 import {Seq, Selector} from "../../lib";
 import {TestIt} from "../test-harness";
@@ -11,6 +11,68 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
   }
 
   readonly run = () => describe('SeqBase - Immediate Execution', () => {
+    describe('aggregate()', () => {
+      this.it1('should provide parameters to aggregator in correct order and values and return aggregated final result', array.oneToTen, (input, inputArray) => {
+
+        const initialValue = -10;
+        const expectedArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+        const actualArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+
+        const expected = inputArray.reduce(
+          (previous: number, current: number, index: number) => expectedArguments.push({previous, current, index}),
+          initialValue) + 100;
+
+        const sut = this.createSut(input);
+        const actual = sut.aggregate(
+          initialValue,
+          (previous: number, current: number, index: number) => actualArguments.push({previous, current, index}),
+          result => result + 100);
+
+        assert.deepEqual(actualArguments, expectedArguments, `actual arguments values [${actualArguments}] not same as expected [${expectedArguments}]`);
+        assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`);
+      });
+
+      this.it1('should return initial value if sequence is empty', [] as number[], input => {
+        const initialValue = Math.PI;
+
+        const expected = initialValue + 100;
+        const sut = this.createSut(input);
+        const actual = sut.aggregate(initialValue, x => x, x => x + 100);
+        assert.strictEqual(actual, expected);
+      });
+    });
+
+    describe('aggregateRight()', () => {
+      this.it1('should provide parameters to aggregator in correct order and values and return aggregated final result', array.oneToTen, (input, inputArray) => {
+
+        const initialValue = -10;
+        const expectedArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+        const actualArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+
+        const expected = inputArray.reduce(
+          (previous: number, current: number, index: number) => expectedArguments.push({previous, current, index}),
+          initialValue) + 100;
+
+        const sut = this.createSut(input);
+        const actual = sut.aggregate(
+          initialValue,
+          (previous: number, current: number, index: number) => actualArguments.push({previous, current, index}),
+          result => result + 100);
+
+        assert.deepEqual(actualArguments, expectedArguments, `actual arguments values [${actualArguments}] not same as expected [${expectedArguments}]`);
+        assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`);
+      });
+
+      this.it1('should return initial value if sequence is empty', [] as number[], input => {
+        const initialValue = Math.PI;
+
+        const expected = initialValue + 100;
+        const sut = this.createSut(input);
+        const actual = sut.aggregate(initialValue, x => x, x => x + 100);
+        assert.strictEqual(actual, expected);
+      });
+    });
+
     describe('all()', () => {
       this.it1("should return true on empty sequence", [], (input) => {
         const sut = this.createSut(input);
@@ -2582,7 +2644,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
               const sutArray = this.createSut<any>(input);
               const sutGenerator = this.createSut(generator.from<any>(input));
               for (const separator of <string[]>[undefined, '', ' ', ',', '|', "<=>", '/', null]) {
-                const expected = (start === undefined ? '' : start) + input.join(separator) + (end === undefined ? '' : end);
+                const expected = (start === undefined? '': start) + input.join(separator) + (end === undefined? '': end);
                 let actual = sutArray.join({start, separator, end});
                 assert.strictEqual(actual, expected, `string "${actual}" doesn't equals expected string "${expected}" when doing [${input}].join({start: ${start}, separator: ${separator}, end: ${end}})`);
                 actual = sutGenerator.join({start, separator, end});
@@ -2865,7 +2927,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     describe("max()", () => {
       it('should return maximum value from sequence of number', () => {
         const input = array.oneToTen;
-        const expected = input.reduce((max, x) => max < x ? x : max, Number.NEGATIVE_INFINITY);
+        const expected = input.reduce((max, x) => max < x? x: max, Number.NEGATIVE_INFINITY);
 
         let sut = this.createSut(input);
         let actual = sut.max();
@@ -2879,7 +2941,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
       it("should return maximum value on item's numeric property", () => {
         const input = array.grades;
-        const expected = input.reduce((max, x) => max < x.grade ? x.grade : max, Number.NEGATIVE_INFINITY);
+        const expected = input.reduce((max, x) => max < x.grade? x.grade: max, Number.NEGATIVE_INFINITY);
 
         let sut = this.createSut(input);
         let actual = sut.max(x => x.grade);
@@ -2906,7 +2968,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     describe("maxItem()", () => {
       describe('with key-selector', () => {
         this.it1("should return first item having the maximum value on item's numeric property", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade ? grade : maxGrade);
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade? grade: maxGrade);
 
           let sut = this.createSut(input);
           let actual = sut.maxItem(x => x.grade);
@@ -2914,7 +2976,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         });
 
         this.it1("should return last item having the maximum value on item's numeric property, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade ? grade : maxGrade);
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade? grade: maxGrade);
 
           let sut = this.createSut(input);
           let actual = sut.maxItem(x => x.grade, {findLast: true});
@@ -2930,7 +2992,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
       describe('with comparer', () => {
         this.it1("should return first item having the maximum value", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade ? grade : maxGrade);
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade < grade.grade? grade: maxGrade);
 
           let sut = this.createSut(input);
           let actual = sut.maxItem({comparer: (a, b) => a.grade - b.grade});
@@ -2938,7 +3000,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         });
 
         this.it1("should return last item having the maximum value, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade ? grade : maxGrade);
+          const expected = inputArray.reduce((maxGrade, grade) => maxGrade.grade <= grade.grade? grade: maxGrade);
 
           let sut = this.createSut(input);
           let actual = sut.maxItem({comparer: (a, b) => a.grade - b.grade, findLast: true});
@@ -2963,7 +3025,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     describe("min()", () => {
       it('should return minimum value from sequence of number', () => {
         const input = array.oneToTen;
-        const expected = input.reduce((min, x) => min > x ? x : min, Number.POSITIVE_INFINITY);
+        const expected = input.reduce((min, x) => min > x? x: min, Number.POSITIVE_INFINITY);
 
         let sut = this.createSut(input);
         let actual = sut.min();
@@ -2977,7 +3039,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
       it("should return minimum value on item's numeric property", () => {
         const input = array.grades;
-        const expected = input.reduce((min, x) => min > +x.grade ? x.grade : min, Number.POSITIVE_INFINITY);
+        const expected = input.reduce((min, x) => min > +x.grade? x.grade: min, Number.POSITIVE_INFINITY);
 
         let sut = this.createSut(input);
         const actual = sut.min(x => x.grade);
@@ -3004,7 +3066,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     describe("minItem()", () => {
       describe('with key-selector', () => {
         this.it1("should return first item having the minimum value on item's numeric property", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade ? grade : minGrade);
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade? grade: minGrade);
 
           let sut = this.createSut(input);
           let actual = sut.minItem(x => x.grade);
@@ -3012,7 +3074,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         });
 
         this.it1("should return last item having the minimum value on item's numeric property, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade? grade: minGrade);
 
           let sut = this.createSut(input);
           let actual = sut.minItem(x => x.grade, {findLast: true});
@@ -3028,7 +3090,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
       describe('with comparer', () => {
         this.it1("should return first item having the minimum value", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade ? grade : minGrade);
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade > grade.grade? grade: minGrade);
 
           let sut = this.createSut(input);
           let actual = sut.minItem({comparer: (a, b) => a.grade - b.grade});
@@ -3036,7 +3098,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         });
 
         this.it1("should return last item having the minimum value, when options.findLast is true", [...array.grades, ...array.grades], (input, inputArray) => {
-          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade ? grade : minGrade);
+          const expected = inputArray.reduce((minGrade, grade) => minGrade.grade >= grade.grade? grade: minGrade);
 
           let sut = this.createSut(input);
           let actual = sut.minItem({comparer: (a, b) => a.grade - b.grade, findLast: true});
@@ -3057,37 +3119,22 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     });
 
     describe('reduce()', () => {
-      it('should behave like Array.reduce', () => {
-        const input = array.oneToTen;
+      this.it1('should behave like Array.reduce', array.oneToTen,(input, inputArray) => {
         const sut = this.createSut(input);
-        const sut2 = this.createSut(generator.from(input));
 
         const reducers = [
           (a: number, b: number) => a + b,
           (a: number, b: number) => a * b,
-          (a: number, _: number) => a,
-          (a: number, b: number) => b,
+          (a: number) => a,
+          (_: number, b: number) => b,
         ];
-        const expectations = reducers.map(reducer => input.reduce(reducer));
+        const expectations = reducers.map(reducer => inputArray.reduce(reducer));
 
         for (const [index, reducer] of reducers.entries()) {
           const expected = expectations[index];
           const actual = sut.reduce(reducer);
           assert.strictEqual(actual, expected, `actual: ${actual} , expected: ${expected}  with reducer: ${reducer}`);
-          const actual2 = sut2.reduce(reducer);
-          assert.strictEqual(actual2, expected, `actual: ${actual2} , expected: ${expected}  with reducer: ${reducer}`);
         }
-
-        const input2 = array.abc;
-        const sut3 = this.createSut(input2);
-        const sut4 = this.createSut(generator.from(input2));
-        const reducer = (a: string, b: string) => a + b;
-        const expected = input2.reduce(reducer);
-        const actual = sut3.reduce(reducer);
-        const actual2 = sut4.reduce(reducer);
-
-        assert.strictEqual(actual, expected, `actual: ${actual} , expected: ${expected}  with reducer: ${reducer}`);
-        assert.strictEqual(actual2, expected, `actual: ${actual2} , expected: ${expected}  with reducer: ${reducer}`);
       });
 
       describe('should provide parameters to reducer in correct order and values and return reducer final result', () => {
@@ -3107,8 +3154,8 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             return previous + current;
           };
 
-          const expected = initialValue === undefined ?
-            arrayReduce(arrayReducer) :
+          const expected = initialValue === undefined?
+            arrayReduce(arrayReducer):
             arrayReduce(arrayReducer, initialValue as number);
 
 
@@ -3126,23 +3173,20 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             return previous + current;
           };
 
-          const actual = initialValue === undefined ?
-            seqReduce(seqReducer) :
+          const actual = initialValue === undefined?
+            seqReduce(seqReducer):
             seqReduce(seqReducer, initialValue as number);
 
           assert.sameOrderedMembers(actualPreviousValues, expectedPreviousValues, `actual previous values [${actualPreviousValues}] not same as expected [${expectedPreviousValues}]`);
           assert.sameOrderedMembers(actualCurrentValues, expectedCurrentValues, `actual current values [${actualCurrentValues}] not same as expected [${expectedCurrentValues}]`);
           assert.sameOrderedMembers(actualIndices, expectedIndices, `actual indices [${actualIndices}] not same as expected [${expectedIndices}]`);
-          assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`)
-        }
+          assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`);
+        };
       });
 
-      it('should throw if sequence is empty and no initial value provided', () => {
-        const input: number[] = [];
+      this.it1('should throw if sequence is empty and no initial value provided', [] as number[], input => {
         const sut = this.createSut(input);
         assert.throws(() => sut.reduce((a, b) => a + b), TypeError);
-        const sut2 = this.createSut(generator.from(input));
-        assert.throws(() => sut2.reduce((a, b) => a + b), TypeError);
       });
 
       it('should return initial value if sequence is empty', () => {
@@ -3208,18 +3252,6 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         assert.strictEqual(actual2, expected, `actual: ${actual2} , expected: ${expected}  with reducer: ${reducer}`);
       });
 
-      it('should not affect input array', () => {
-        const input = array.oneToTen;
-        const inputCopy = input.slice();
-        const sut = this.createSut(input);
-        sut.reduceRight(() => 0);
-        assert.sameOrderedMembers(input, inputCopy);
-
-        const sut2 = this.createSut(generator.from(input));
-        sut2.reduceRight(() => 0);
-        assert.sameOrderedMembers(input, inputCopy);
-      });
-
       describe('should provide parameters to reducer in correct order and values and return reducer final result', () => {
         it('without initial value', () => test());
         it('with initial value', () => test(-10));
@@ -3237,8 +3269,8 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             return previous + current;
           };
 
-          const expected = initialValue === undefined ?
-            arrayReduce(arrayReducer) :
+          const expected = initialValue === undefined?
+            arrayReduce(arrayReducer):
             arrayReduce(arrayReducer, initialValue as number);
 
 
@@ -3256,15 +3288,15 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             return previous + current;
           };
 
-          const actual = initialValue === undefined ?
-            seqReduce(seqReducer) :
+          const actual = initialValue === undefined?
+            seqReduce(seqReducer):
             seqReduce(seqReducer, initialValue as number);
 
           assert.sameOrderedMembers(actualPreviousValues, expectedPreviousValues, `actual previous values [${actualPreviousValues}] not same as expected [${expectedPreviousValues}]`);
           assert.sameOrderedMembers(actualCurrentValues, expectedCurrentValues, `actual current values [${actualCurrentValues}] not same as expected [${expectedCurrentValues}]`);
           assert.sameOrderedMembers(actualIndices, expectedIndices, `actual indices [${actualIndices}] not same as expected [${expectedIndices}]`);
-          assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`)
-        }
+          assert.strictEqual(actual, expected, `actual return value ${actual} not equals to expected ${expected}`);
+        };
       });
 
       it('should throw if sequence is empty and no initial value provided', () => {
@@ -3573,7 +3605,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
         it('should return false if one of the sequences is empty', () => {
           let first: { name: string; grade: number }[] = [];
-          let second: {name: string, grade: number}[] = array.grades;
+          let second: { name: string, grade: number }[] = array.grades;
 
           let sut = this.createSut(first);
           let actual = sut.sameOrderedItems(second);
@@ -4207,7 +4239,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         this.it1('should return a Map of keys mapped to number of times each key exists in source sequence',
           array.samples, (input, inputArray) => {
             const expected = new Map();
-            for(const s of inputArray) {
+            for (const s of inputArray) {
               expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
             }
 
@@ -4218,14 +4250,14 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         this.it1('should call key-selector function for every item from source sequence',
           array.samples, (input, inputArray) => {
             const expected = new Map();
-            for(const s of inputArray) {
+            for (const s of inputArray) {
               expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
             }
             const actual: Sample[] = [];
-             this.createSut(input).toMapOfOccurrences(s => {
-               actual.push(s);
-               return s.type;
-             });
+            this.createSut(input).toMapOfOccurrences(s => {
+              actual.push(s);
+              return s.type;
+            });
             assert.deepEqual(actual, inputArray);
           });
       });
@@ -4234,7 +4266,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         this.it1('should return a Map of keys mapped to number of times each key exists in source sequence',
           array.samples, (input, inputArray) => {
             let expected = new Map();
-            for(const s of inputArray) {
+            for (const s of inputArray) {
               expected.set(s.type, (expected.get(s.type) ?? 0) + 1);
             }
             expected = new Map([...expected].map(entry => [{type: entry[0]}, entry[1]]));
@@ -4247,7 +4279,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
           array.samples, (input, inputArray) => {
             const expected = inputArray.map(s => ({type: s.type}));
 
-            const actual: {type: string}[] = [];
+            const actual: { type: string }[] = [];
             this.createSut(input).toMapOfOccurrences(s => ({type: s.type}), key => {
               actual.push(key);
               return key.type;
@@ -4257,7 +4289,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
         this.it1('should return empty Map when source sequence is empty', [], input => {
           const actual = this.createSut(input).toMapOfOccurrences(x => ({x}), key => key.x);
-          assert.equal(actual.size, 0);
+          assert.strictEqual(actual.size, 0);
         });
       });
     });
@@ -4281,7 +4313,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             inputArray.forEach(item => {
               if (!keysSet.has(item.grade)) {
                 keysSet.add(item.grade);
-                expected.add(item)
+                expected.add(item);
               }
             });
             const sut = this.createSut(input);

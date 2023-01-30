@@ -34,9 +34,21 @@ import {Seq as SeqFactory} from './seq-factory';
 import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
-
   readonly [SeqTags.$seq] = true;
   readonly length = this.count;
+
+  aggregate<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    let previousValue = initialValue;
+    for (const {value, index} of entries(this)) {
+      previousValue = aggregator(previousValue, value, index);
+    }
+
+    return resultSelector(previousValue);
+  }
+
+  aggregateRight<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    return resultSelector([...this].reduceRight(aggregator, initialValue));
+  }
 
   all(condition: Condition<T>): boolean {
     return this.allInternal(condition);
@@ -1450,11 +1462,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   scan(accumulator: (previousValue: T, currentValue: T, currentIndex: number) => T): Seq<T>;
   scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): Seq<U>;
-  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue? : U): Seq<U> {
+  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): Seq<U> {
 
     let actualScanFn: (a: any, b: any, index: number) => any = accumulator;
 
-    if(initialValue === undefined) {
+    if (initialValue === undefined) {
       actualScanFn = (a: any, b: any) => {
         actualScanFn = accumulator;
         return b;
