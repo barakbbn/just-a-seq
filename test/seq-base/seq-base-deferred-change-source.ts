@@ -277,6 +277,8 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));
     test('tap()', array.zeroToTen, seq => seq.tap(n => n));
+    test('traverseBreadthFirst()', array.zeroToTen, seq => seq.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: []));
+    test('traverseDepthFirst()', array.zeroToTen, seq => seq.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: []));
     test2('union()', array.oneToTen, array.zeroToNine, (seq, other) => seq.union(other));
     test2('unionRight()', array.oneToTen, array.zeroToNine, (seq, other) => seq.unionRight(other));
     test2('unshift()', array.oneToTen, [0, -1, -2], (seq, other) => seq.unshift(...other));

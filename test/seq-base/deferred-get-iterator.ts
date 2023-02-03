@@ -177,6 +177,10 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('tap()', () => testGetIterator(sut => sut.tap(x => x)));
 
+    describe('traverseBreadthFirst()', () => testGetIterator(sut => sut.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
+    describe('traverseDepthFirst()', () => testGetIterator(sut => sut.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
     describe('union()', () => testGetIterator(sut => sut.union([1])));
 
     describe('unionRight()', () => testGetIterator(sut => sut.unionRight([1])));

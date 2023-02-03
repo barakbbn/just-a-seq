@@ -1849,6 +1849,46 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return transformer(this);
   }
 
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+
+    if (!filter) filter = () => true;
+    return this.generate(function* tree(items): Generator<T> {
+      const queue: {items: Iterable<T>, depth: number, parent: T}[] = [{items, depth: 0, parent: undefined as unknown as T}];
+      while (queue.length){
+        const nextBatch = queue.shift()!;
+        for (const item of nextBatch.items) {
+          const includeItem = filter!(item, nextBatch.parent!, nextBatch.depth);
+          if (includeItem) yield item;
+          const children = childrenSelector(item, nextBatch.parent!, nextBatch.depth, !includeItem);
+          queue.push({items:children,parent: item, depth: nextBatch.depth + 1});
+        }
+      }
+    });
+  }
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+
+    if (!filter) filter = () => true;
+    return this.generate(function* tree(items, iterationContext, parent?: T, depth = 0): Generator<T> {
+      for (const item of items) {
+        const includeItem = filter!(item, parent!, depth);
+        if (includeItem) yield item;
+        const children = childrenSelector(item, parent!, depth, !includeItem);
+        yield* tree(children, iterationContext, item, depth + 1);
+      }
+    });
+  }
+
   union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T> {
     return this.unionInternal(second, keySelector, false);
   }

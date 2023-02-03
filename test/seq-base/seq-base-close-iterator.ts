@@ -189,6 +189,8 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     test('toMapOfOccurrences()', array.zeroToTen, seq => seq.toMapOfOccurrences(n => n % 3));
     test('toSet()', array.zeroToTen, seq => seq.toSet());
+    test('traverseBreadthFirst()', array.zeroToTen, seq => seq.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: []));
+    test('traverseDepthFirst()', array.zeroToTen, seq => seq.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: []));
     test2('union()', array.oneToTen, array.zeroToNine, (seq, other) => seq.union(other));
     test2('unionRight()', array.oneToTen, array.zeroToNine, (seq, other) => seq.unionRight(other));
     test2('unshift()', array.oneToTen, [0, -1, -2], (seq, other) => seq.unshift(...other));

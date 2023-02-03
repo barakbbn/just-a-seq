@@ -119,7 +119,7 @@ export const array = new class {
     ];
   }
 
-  get flatFolders(): Folder[] {
+  get flatFoldersDepthFirst(): Folder[] {
     const folders = this.folders;
 
     function* folderChildren(folder: Folder): Generator<Folder> {
@@ -135,6 +135,10 @@ export const array = new class {
     }
 
     return flattened;
+  }
+
+  get flatFoldersBreadthFirst(): Folder[] {
+    return this.flatFoldersDepthFirst.sort((a, b) => a.depth - b.depth);
   }
 
   // buildFoldersTree(): Folder[] {
@@ -183,7 +187,7 @@ export const array = new class {
   };
 
   reverse<T>(value: T[]): T[] {
-    return value.slice().reverse()
+    return value.slice().reverse();
   }
 
   random(count: number, min = 0, max = 1.0, seed?: number): TestableArray<number> {
@@ -243,13 +247,13 @@ export const generator = new class {
   endlessTruthySequence() {
     return new ReusableGenerator(function* endlessTruthySequence() {
       while (true) yield 1;
-    })
+    });
   };
 
   endlessFalsySequence() {
     return new ReusableGenerator(function* endlessFalsySequence() {
       while (true) yield 0;
-    })
+    });
   };
 
   from<T>(array: readonly T[]): Iterable<T>
@@ -269,10 +273,10 @@ export const generator = new class {
       let count = 0;
       while (true) {
         const value = from + step * count++;
-        if (!(step > 0 ? value <= to : to <= value)) break;
+        if (!(step > 0? value <= to: to <= value)) break;
         yield value;
       }
-    })
+    });
   };
 
   repeat<T>(value: T, count: number): Iterable<T> {
@@ -302,7 +306,7 @@ class Random {
   }
 }
 
-type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T> ? Iterable<T> : never; };
+type ArraysOnly = { [k in keyof typeof array]: (typeof array)[k] extends ArrayLike<infer T>? Iterable<T>: never; };
 export const iterables: ArraysOnly = new Proxy(array, {
   get(target: any, p: PropertyKey, receiver: any): any {
     const array = Reflect.get(target, p, receiver);
@@ -389,6 +393,8 @@ Object.defineProperty(TestableArray, 'getIteratorCount', {enumerable: false});
 Object.defineProperty(TestableArray, 'yieldCount', {enumerable: false});
 
 export class TestableDerivedSeq<T> extends SeqBase<T> {
+  private _wasIterated = false;
+
   constructor(
     protected readonly source: Iterable<T> = EMPTY_ARRAY,
     tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
@@ -397,8 +403,6 @@ export class TestableDerivedSeq<T> extends SeqBase<T> {
 
     SeqTags.setTagsIfMissing(this, tags);
   }
-
-  private _wasIterated = false;
 
   get wasIterated(): boolean {
     return this._wasIterated;

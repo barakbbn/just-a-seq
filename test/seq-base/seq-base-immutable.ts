@@ -125,6 +125,8 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('toArray()', array.zeroToTen, seq => seq.toArray());
     testImmutable('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     testImmutable('toSet()', array.zeroToTen, seq => seq.toSet());
+    testImmutable('traverseBreadthFirst()', array.zeroToTen, seq => seq.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: []));
+    testImmutable('traverseDepthFirst()', array.zeroToTen, seq => seq.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: []));
     testImmutable('union()', array.oneToTen, seq => seq.union(array.zeroToNine));
     testImmutable('unionRight()', array.oneToTen, seq => seq.unionRight(array.zeroToNine));
     testImmutable('unshift()', array.oneToTen, seq => seq.unshift(0, -1, -2));

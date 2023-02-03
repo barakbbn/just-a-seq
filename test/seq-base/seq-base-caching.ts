@@ -151,6 +151,10 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('tap()', (input) => test(input, sut => sut.tap(x => x)));
 
+      it1('traverseBreadthFirst()', (input) => test(input, sut => sut.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
+      it1('traverseDepthFirst()', (input) => test(input, sut => sut.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
       it1('union()', (input) => test(input, sut => sut.union([1])));
 
       it1('unshift()', (input) => test(input, sut => sut.unshift(1)));

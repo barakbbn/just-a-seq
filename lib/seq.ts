@@ -26,6 +26,7 @@ export type FlatSeq<Arr, Depth extends number> = {
 
 export interface Seq<T> extends Iterable<T> {
   aggregate<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes;
+
   aggregateRight<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes;
 
   // same as every
@@ -470,6 +471,17 @@ export interface Seq<T> extends Iterable<T> {
   toString(): string;
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                       filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
 
   union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
 
