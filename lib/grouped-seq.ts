@@ -194,8 +194,8 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
     return new SeqOfMultiGroupsImpl<[K], TIn, TOut>(source, [selector]);
   }
 
-  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>
-  aggregate<U = TOut>({reducer, initialValue}: {
+  ungroupAll<U>(aggregator: (group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>
+  ungroupAll<U = TOut>({reducer, initialValue}: {
     reducer: (previousValue: U,
               currentValue: TOut,
               currentIndex: number,
@@ -203,7 +203,7 @@ export class SeqOfMultiGroupsImpl<Ks extends any[], TIn, TOut = TIn>
               keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U;
     initialValue?: U;
   }): Seq<U>;
-  aggregate<U>(aggregator:
+  ungroupAll<U>(aggregator:
                  ((group: GroupedSeq<Last<Ks>, TOut>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U) |
                  {
                    reducer: (previousValue: U,

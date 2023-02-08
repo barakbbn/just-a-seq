@@ -101,6 +101,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('ofType()', (input) => test(input, sut => sut.ofType(Number)));
 
+      it1('padEnd()', (input) => test(input, sut => sut.padEnd(3, 0)));
+
       it1('prepend()', (input) => test(input, sut => sut.prepend([1])));
 
       it1('push()', (input) => test(input, sut => sut.push(1)));
@@ -149,9 +151,15 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('tap()', (input) => test(input, sut => sut.tap(x => x)));
 
+      it1('traverseBreadthFirst()', (input) => test(input, sut => sut.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
+      it1('traverseDepthFirst()', (input) => test(input, sut => sut.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: [])));
+
       it1('union()', (input) => test(input, sut => sut.union([1])));
 
       it1('unshift()', (input) => test(input, sut => sut.unshift(1)));
+
+      it1('window()', (input) => test(input, sut => sut.window(1)));
 
       it1('zip()', (input) => test(input, sut => sut.zip([1])));
 

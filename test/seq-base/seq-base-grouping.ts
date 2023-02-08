@@ -1119,7 +1119,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
         });
       });
 
-      describe('aggregate', () => {
+      describe('ungroupAll', () => {
         this.it1('should return sequence of the results of the aggregator function on each inner group',
           array.samples,
           (input, inputArray) => {
@@ -1129,7 +1129,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
               .thenGroupBy(s => s.type)
               .thenGroupBy(s => s.period);
 
-            const sut = grouped.aggregate(group => group.sum(s => s.score));
+            const sut = grouped.ungroupAll(group => group.sum(s => s.score));
 
             const distinctKeys = [...new Set(inputArray.map(s => `${s.ok}|${s.type}|${s.period}`))];
             const expected = distinctKeys.map(key => {
@@ -1154,7 +1154,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
             const expectedKeys = distinctKeys.map(s => [s.ok, s.type, s.period]);
 
             const actualKeys: [boolean, string, number][] = [];
-            const sut = grouped.aggregate((group, keys) => actualKeys.push(keys));
+            const sut = grouped.ungroupAll((group, keys) => actualKeys.push(keys));
             materialize(sut);
 
             assert.sameDeepMembers(actualKeys, expectedKeys);
@@ -1170,7 +1170,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                 .thenGroupBy(s => s.type)
                 .thenGroupBy(s => s.period);
 
-              const sut = grouped.aggregate({
+              const sut = grouped.ungroupAll({
                   reducer: (prev, sample) => prev + sample.score,
                   initialValue: 0
                 }
@@ -1199,7 +1199,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
 
               const actualKeys: [boolean, string, number][] = [];
 
-              const sut = grouped.aggregate({
+              const sut = grouped.ungroupAll({
                   reducer: (prev, sample, index, group, keys) => actualKeys.push(keys),
                   initialValue: 0
                 }
@@ -1224,7 +1224,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                 .thenGroupBy(s => s.period);
 
               const actualItems = new Map<string, Sample[]>();
-              const sut = grouped.aggregate({
+              const sut = grouped.ungroupAll({
                   reducer(prev, currentValue, index, group, keys) {
                     const key = keys.join('|');
                     (actualItems.get(key) ?? actualItems.set(key, []).get(key)!).push(currentValue);

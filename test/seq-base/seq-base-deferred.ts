@@ -2456,7 +2456,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
     describe('padEnd()', () => {
       this.it1('should append "pad value" items as many as the "length" parameter when source sequence is empty',
-        [] as number[], (input, inputArray) => {
+        [] as number[], input => {
           const padValue = 0;
           const paddingCount = 2;
           const expected = new Array<number>(paddingCount).fill(padValue);
@@ -2476,7 +2476,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
       this.it1('should return the source sequence instance, when padding count is zero',
-        array.oneToTen, (input, inputArray) => {
+        array.oneToTen, input => {
           const expected = this.createSut(input);
           const actual = expected.padEnd(0, 0);
           assert.equal(actual, expected);
@@ -3636,6 +3636,120 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         let actual = sut.transform(transformer);
 
         assert.strictEqual(actual, sut);
+      });
+    });
+
+    describe('traverseBreadthFirst()', () => {
+      this.it1('should flatten all items in deep tree', array.folders, input => {
+        const expected = array.flatFoldersBreadthFirst;
+        const sut = this.createSut(input).traverseBreadthFirst((folder) => folder.subFolders);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should flatten all items in deep tree without filtered-out items', array.folders, input => {
+        const expected = array.flatFoldersBreadthFirst.filter(folder => +folder.name[0] > 1);
+        const sut = this.createSut(input).traverseBreadthFirst(
+          (folder) => folder.subFolders,
+          (folder) => +folder.name[0] > 1
+        );
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should provide correct arguments to selectChildren parameter', array.folders, input => {
+        const expected = array.flatFoldersBreadthFirst.map(item => ({
+          item,
+          parent: item.parent,
+          depth: item.depth
+        }));
+
+        const actual: any[] = [];
+        const sut = this.createSut(input).traverseBreadthFirst((item, parent, depth) => {
+          actual.push({item, parent, depth});
+          return item.subFolders;
+        });
+        TestHarness.materialize(sut);
+
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should provide correct arguments to selectChildren function anf filter function when filtering', array.folders, input => {
+
+        const expectedFilter = array.flatFoldersBreadthFirst.map(item => ({item, parent: item.parent, depth: item.depth}));
+        const expectedChildrenSelector = expectedFilter.map(expected => ({...expected, filteredOut: !(+expected.item.name[0] > 1)}));
+
+        const actualChildrenSelector: any[] = [];
+        const actualFilter: any[] = [];
+        const sut = this.createSut(input).traverseBreadthFirst((item, parent, depth, filteredOut) => {
+            actualChildrenSelector.push({item, parent, depth, filteredOut});
+            return item.subFolders;
+          },
+          (item, parent, depth) => {
+            actualFilter.push({item, parent, depth})
+            return +item.name[0] > 1;
+          });
+
+        TestHarness.materialize(sut);
+
+        assert.deepEqual(actualChildrenSelector, expectedChildrenSelector);
+      });
+    });
+
+    describe('traverseDepthFirst()', () => {
+      this.it1('should flatten all items in deep tree', array.folders, input => {
+        const expected = array.flatFoldersDepthFirst;
+        const sut = this.createSut(input).traverseDepthFirst((folder) => folder.subFolders);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should flatten all items in deep tree without filtered-out items', array.folders, input => {
+        const expected = array.flatFoldersDepthFirst.filter(folder => +folder.name[0] > 1);
+        const sut = this.createSut(input).traverseDepthFirst(
+          (folder) => folder.subFolders,
+          (folder) => +folder.name[0] > 1
+        );
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should provide correct arguments to selectChildren parameter', array.folders, input => {
+        const expected = array.flatFoldersDepthFirst.map(item => ({
+          item,
+          parent: item.parent,
+          depth: item.depth
+        }));
+
+        const actual: any[] = [];
+        const sut = this.createSut(input).traverseDepthFirst((item, parent, depth) => {
+          actual.push({item, parent, depth});
+          return item.subFolders;
+        });
+        TestHarness.materialize(sut);
+
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should provide correct arguments to selectChildren function anf filter function when filtering', array.folders, input => {
+
+        const expectedFilter = array.flatFoldersDepthFirst.map(item => ({item, parent: item.parent, depth: item.depth}));
+        const expectedChildrenSelector = expectedFilter.map(expected => ({...expected, filteredOut: !(+expected.item.name[0] > 1)}));
+
+        const actualChildrenSelector: any[] = [];
+        const actualFilter: any[] = [];
+        const sut = this.createSut(input).traverseDepthFirst((item, parent, depth, filteredOut) => {
+            actualChildrenSelector.push({item, parent, depth, filteredOut});
+            return item.subFolders;
+          },
+          (item, parent, depth) => {
+            actualFilter.push({item, parent, depth})
+            return +item.name[0] > 1;
+          });
+
+        TestHarness.materialize(sut);
+
+        assert.deepEqual(actualChildrenSelector, expectedChildrenSelector);
       });
     });
 

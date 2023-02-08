@@ -34,9 +34,21 @@ import {Seq as SeqFactory} from './seq-factory';
 import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
-
   readonly [SeqTags.$seq] = true;
   readonly length = this.count;
+
+  aggregate<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    let previousValue = initialValue;
+    for (const {value, index} of entries(this)) {
+      previousValue = aggregator(previousValue, value, index);
+    }
+
+    return resultSelector(previousValue);
+  }
+
+  aggregateRight<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    return resultSelector([...this].reduceRight(aggregator, initialValue));
+  }
 
   all(condition: Condition<T>): boolean {
     return this.allInternal(condition);
@@ -1450,11 +1462,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   scan(accumulator: (previousValue: T, currentValue: T, currentIndex: number) => T): Seq<T>;
   scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): Seq<U>;
-  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue? : U): Seq<U> {
+  scan<U>(accumulator: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): Seq<U> {
 
     let actualScanFn: (a: any, b: any, index: number) => any = accumulator;
 
-    if(initialValue === undefined) {
+    if (initialValue === undefined) {
       actualScanFn = (a: any, b: any) => {
         actualScanFn = accumulator;
         return b;
@@ -1812,18 +1824,20 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return map;
   }
+  toSet(keySelector?: Selector<T, unknown>): Set<T>;
+  toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
-  toSet<K>(keySelector?: Selector<T, K>): Set<T> {
+  toSet<V>(keySelector?: Selector<T, unknown>, valueSelector: Selector<T, V> = IDENTITY): Set<V> {
     if (!keySelector) return new Set<T>(this);
 
-    const keys = new Set<K>();
-    const set = new Set<T>();
+    const keys = new Set<unknown>();
+    const set = new Set<V>();
     let index = 0;
     for (const item of this) {
       const key = keySelector(item, index++);
       if (keys.has(key)) continue;
       keys.add(key);
-      set.add(item);
+      set.add(valueSelector(item));
     }
 
     return set;
@@ -1835,6 +1849,46 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U> {
     return transformer(this);
+  }
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+
+    if (!filter) filter = () => true;
+    return this.generate(function* tree(items): Generator<T> {
+      const queue: {items: Iterable<T>, depth: number, parent: T}[] = [{items, depth: 0, parent: undefined as unknown as T}];
+      while (queue.length){
+        const nextBatch = queue.shift()!;
+        for (const item of nextBatch.items) {
+          const includeItem = filter!(item, nextBatch.parent!, nextBatch.depth);
+          if (includeItem) yield item;
+          const children = childrenSelector(item, nextBatch.parent!, nextBatch.depth, !includeItem);
+          queue.push({items:children,parent: item, depth: nextBatch.depth + 1});
+        }
+      }
+    });
+  }
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+
+    if (!filter) filter = () => true;
+    return this.generate(function* tree(items, iterationContext, parent?: T, depth = 0): Generator<T> {
+      for (const item of items) {
+        const includeItem = filter!(item, parent!, depth);
+        if (includeItem) yield item;
+        const children = childrenSelector(item, parent!, depth, !includeItem);
+        yield* tree(children, iterationContext, item, depth + 1);
+      }
+    });
   }
 
   union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T> {
@@ -2124,6 +2178,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected allOptimized(source: Iterable<any>, condition: Condition<T>): boolean {
+
     if (!SeqTags.optimize(this)) return this.allInternal(condition);
     if (SeqTags.infinite(this)) throw RangeError('Cannot check all items of infinite sequence');
     if (SeqTags.empty(this)) return true;

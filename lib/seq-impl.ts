@@ -68,6 +68,14 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     SeqTags.setTagsIfMissing(this, tags);
   }
 
+  aggregate<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    return resultSelector(this.reduce(aggregator, initialValue));
+  }
+
+  aggregateRight<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes {
+    return resultSelector(this.reduceRight(aggregator, initialValue));
+  }
+
   all(condition: Condition<T>): boolean {
     return this.every(condition);
   }
@@ -137,6 +145,30 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     return fromIndex == null?
       this.source.lastIndexOf(itemToFind):
       this.source.lastIndexOf(itemToFind, fromIndex);
+  }
+
+  reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T;
+  reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
+
+  reduce<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
+
+  reduce<U = T>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): U {
+
+    return arguments.length > 1?
+      this.source.reduce<U>(reducer, initialValue!):
+      this.source.reduce(reducer as unknown as (previousValue: T, currentValue: T, currentIndex: number) => T) as unknown as U;
+  }
+
+  reduceRight(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T;
+
+  reduceRight(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
+
+  reduceRight<U>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue: U): U;
+
+  reduceRight<U = T>(reducer: (previousValue: U, currentValue: T, currentIndex: number) => U, initialValue?: U): U {
+    return arguments.length > 1?
+      this.source.reduceRight<U>(reducer, initialValue!):
+      this.source.reduceRight(reducer as unknown as (previousValue: T, currentValue: T, currentIndex: number) => T) as unknown as U;
   }
 
   reverse(): Seq<T> {

@@ -25,6 +25,10 @@ export type FlatSeq<Arr, Depth extends number> = {
 }[Depth extends 0? "done": "recur"];
 
 export interface Seq<T> extends Iterable<T> {
+  aggregate<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes;
+
+  aggregateRight<U, TRes>(initialValue: U, aggregator: (previousValue: U, currentValue: T, currentIndex: number) => U, resultSelector: (aggregatedValue: U) => TRes): TRes;
+
   // same as every
   all(condition: Condition<T>): boolean;
 
@@ -462,11 +466,24 @@ export interface Seq<T> extends Iterable<T> {
 
   toMapOfOccurrences<K = T>(keySelector?: Selector<T, K>, toComparableKey?: ToComparableKey<K>): Map<K, number>;
 
-  toSet<K>(keySelector?: Selector<T, K>): Set<T>;
+  toSet(keySelector?: Selector<T, unknown>): Set<T>;
+
+  toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
   toString(): string;
 
   transform<U = T>(transformer: (seq: Seq<T>) => Seq<U>): Seq<U>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                       filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
+
+  traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
+                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
 
   union(second: Iterable<T>, keySelector?: (value: T) => unknown): Seq<T>;
 
@@ -546,9 +563,9 @@ export interface SeqOfGroups<K, T> extends Seq<GroupedSeq<K, T>> {
 }
 
 export interface SeqOfMultiGroups<Ks extends any[], T> extends Seq<MultiGroupedSeq<Ks, T>> {
-  aggregate<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>;
+  ungroupAll<U>(aggregator: (group: GroupedSeq<Last<Ks>, T>, keys: Ks & { outer: Ks[0]; inner: Last<Ks>; parent: Last<Tailless<Ks>>; }) => U): Seq<U>;
 
-  aggregate<U = T>({reducer, initialValue}: {
+  ungroupAll<U = T>({reducer, initialValue}: {
     reducer: (previousValue: U,
               currentValue: T,
               currentIndex: number,

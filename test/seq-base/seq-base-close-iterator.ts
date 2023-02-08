@@ -1,4 +1,3 @@
-import {SeqBase} from "../../lib/seq-base";
 import {describe} from "mocha";
 import {Seq} from "../../lib";
 import {assert} from "chai";
@@ -79,6 +78,8 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
         });
       });
     };
+    test('aggregate()', array.oneToTen, seq => seq.aggregate(0, (prev, curr) => prev + curr, x => x));
+    test('aggregateRight()', array.oneToTen, seq => seq.aggregateRight(0, (prev, curr) => prev + curr, x => x));
     test('all()', array.oneToTen, seq => seq.all(n => n > 5));
     test('any()', array.oneToTen, seq => seq.any(n => n > 5));
     test('at()', array.oneToTen, seq => seq.at(-1));
@@ -112,7 +113,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('groupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3));
     test('groupBy().thenGroupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2));
     test('groupBy().thenGroupBy().ungroup()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroup(g => g.first()));
-    test('groupBy().thenGroupBy().aggregate()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).aggregate(g => g.first()));
+    test('groupBy().thenGroupBy().ungroupAll()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroupAll(g => g.first()));
     test2('groupJoin()', array.oneToTen, array.tenOnes, (seq, other) => seq.groupJoin(other, n => n, n => n));
     test2('groupJoinRight()', array.oneToTen, array.tenOnes, (seq, other) => seq.groupJoinRight(other, n => n, n => n));
     test('hasAtLeast()', array.oneToTen, seq => seq.hasAtLeast(9));
@@ -188,6 +189,8 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     test('toMapOfOccurrences()', array.zeroToTen, seq => seq.toMapOfOccurrences(n => n % 3));
     test('toSet()', array.zeroToTen, seq => seq.toSet());
+    test('traverseBreadthFirst()', array.zeroToTen, seq => seq.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: []));
+    test('traverseDepthFirst()', array.zeroToTen, seq => seq.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: []));
     test2('union()', array.oneToTen, array.zeroToNine, (seq, other) => seq.union(other));
     test2('unionRight()', array.oneToTen, array.zeroToNine, (seq, other) => seq.unionRight(other));
     test2('unshift()', array.oneToTen, [0, -1, -2], (seq, other) => seq.unshift(...other));

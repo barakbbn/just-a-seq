@@ -1,4 +1,3 @@
-import {SeqBase} from "../../lib/seq-base";
 import {describe} from "mocha";
 import {Seq} from "../../lib";
 import {assert} from "chai";
@@ -22,6 +21,8 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
       it(`${title} should not change source input`, () => assert.deepEqual(source, sourceBeforeTest));
     };
 
+    testImmutable('aggregate()', array.oneToTen, seq => seq.aggregate(0, (prev, curr) => prev + curr, x => x));
+    testImmutable('aggregateRight()', array.oneToTen, seq => seq.aggregateRight(0, (prev, curr) => prev + curr, x => x));
     testImmutable('all()', array.oneToTen, seq => seq.all(n => n + 1));
     testImmutable('any()', array.oneToTen, seq => seq.any(() => 0));
     testImmutable('at()', array.oneToTen, seq => seq.at(-1));
@@ -55,7 +56,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('groupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3));
     testImmutable('groupBy().thenGroupBy()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2));
     testImmutable('groupBy().thenGroupBy().ungroup()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroup(g => g.first()));
-    testImmutable('groupBy().thenGroupBy().aggregate()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).aggregate(g => g.first()));
+    testImmutable('groupBy().thenGroupBy().ungroupAll()', array.oneToTen, seq => seq.groupBy(n => n % 3).thenGroupBy(n => n % 2).ungroupAll(g => g.first()));
     testImmutable('groupJoin()', array.oneToTen, seq => seq.groupJoin(array.tenOnes, n => n, n => n));
     testImmutable('groupJoinRight()', array.oneToTen, seq => seq.groupJoinRight(array.tenOnes, n => n, n => n));
     testImmutable('hasAtLeast()', array.oneToTen, seq => seq.hasAtLeast(10));
@@ -124,6 +125,8 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('toArray()', array.zeroToTen, seq => seq.toArray());
     testImmutable('toMap()', array.zeroToTen, seq => seq.toMap(n => n % 3));
     testImmutable('toSet()', array.zeroToTen, seq => seq.toSet());
+    testImmutable('traverseBreadthFirst()', array.zeroToTen, seq => seq.traverseBreadthFirst((x, parent, depth) => depth < 3? [x]: []));
+    testImmutable('traverseDepthFirst()', array.zeroToTen, seq => seq.traverseDepthFirst((x, parent, depth) => depth < 3? [x]: []));
     testImmutable('union()', array.oneToTen, seq => seq.union(array.zeroToNine));
     testImmutable('unionRight()', array.oneToTen, seq => seq.unionRight(array.zeroToNine));
     testImmutable('unshift()', array.oneToTen, seq => seq.unshift(0, -1, -2));
