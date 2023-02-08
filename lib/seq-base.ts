@@ -1828,7 +1828,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
   toSet<V>(keySelector?: Selector<T, unknown>, valueSelector: Selector<T, V> = IDENTITY): Set<V> {
-    if (!keySelector) return new Set<T>(this);
+    if (!keySelector) return new Set<V>(this as unknown as Iterable<V>);
 
     const keys = new Set<unknown>();
     const set = new Set<V>();
@@ -1837,7 +1837,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       const key = keySelector(item, index++);
       if (keys.has(key)) continue;
       keys.add(key);
-      set.add(valueSelector(item));
+      set.add(valueSelector(item, index - 1));
     }
 
     return set;
