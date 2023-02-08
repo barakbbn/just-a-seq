@@ -1824,18 +1824,20 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return map;
   }
+  toSet(keySelector?: Selector<T, unknown>): Set<T>;
+  toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
-  toSet<K>(keySelector?: Selector<T, K>): Set<T> {
+  toSet<V>(keySelector?: Selector<T, unknown>, valueSelector: Selector<T, V> = IDENTITY): Set<V> {
     if (!keySelector) return new Set<T>(this);
 
-    const keys = new Set<K>();
-    const set = new Set<T>();
+    const keys = new Set<unknown>();
+    const set = new Set<V>();
     let index = 0;
     for (const item of this) {
       const key = keySelector(item, index++);
       if (keys.has(key)) continue;
       keys.add(key);
-      set.add(item);
+      set.add(valueSelector(item));
     }
 
     return set;
@@ -2176,6 +2178,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   protected allOptimized(source: Iterable<any>, condition: Condition<T>): boolean {
+
     if (!SeqTags.optimize(this)) return this.allInternal(condition);
     if (SeqTags.infinite(this)) throw RangeError('Cannot check all items of infinite sequence');
     if (SeqTags.empty(this)) return true;

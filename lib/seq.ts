@@ -466,7 +466,9 @@ export interface Seq<T> extends Iterable<T> {
 
   toMapOfOccurrences<K = T>(keySelector?: Selector<T, K>, toComparableKey?: ToComparableKey<K>): Map<K, number>;
 
-  toSet<K>(keySelector?: Selector<T, K>): Set<T>;
+  toSet(keySelector?: Selector<T, unknown>): Set<T>;
+
+  toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
   toString(): string;
 

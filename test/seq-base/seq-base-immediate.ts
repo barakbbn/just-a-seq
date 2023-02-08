@@ -15,8 +15,8 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
       this.it1('should provide parameters to aggregator in correct order and values and return aggregated final result', array.oneToTen, (input, inputArray) => {
 
         const initialValue = -10;
-        const expectedArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
-        const actualArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+        const expectedArguments: { previous: number; current: number; index: number; }[] = [];
+        const actualArguments: { previous: number; current: number; index: number; }[] = [];
 
         const expected = inputArray.reduce(
           (previous: number, current: number, index: number) => expectedArguments.push({previous, current, index}),
@@ -46,8 +46,8 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
       this.it1('should provide parameters to aggregator in correct order and values and return aggregated final result', array.oneToTen, (input, inputArray) => {
 
         const initialValue = -10;
-        const expectedArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
-        const actualArguments: { previousValue: number; currentValue: number; currentIndex: number; }[] = [];
+        const expectedArguments: { previous: number; current: number; index: number; }[] = [];
+        const actualArguments: { previous: number; current: number; index: number; }[] = [];
 
         const expected = inputArray.reduce(
           (previous: number, current: number, index: number) => expectedArguments.push({previous, current, index}),
@@ -3119,7 +3119,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     });
 
     describe('reduce()', () => {
-      this.it1('should behave like Array.reduce', array.oneToTen,(input, inputArray) => {
+      this.it1('should behave like Array.reduce', array.oneToTen, (input, inputArray) => {
         const sut = this.createSut(input);
 
         const reducers = [
@@ -4320,6 +4320,22 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             const actual = sut.toSet(x => x.grade);
             assert.sameOrderedMembers([...actual], [...expected]);
           });
+
+        describe('with value selector', () => {
+          this.it1('should return an instance of Set with the sequence distinct values',
+            array.grades.concat(array.gradesFiftyAndAbove), (input, inputArray) => {
+              const keysSet = new Set<number>();
+              const expected = new Set<string>();
+              for(const item of inputArray) {
+                if (keysSet.has(item.grade)) continue;
+                keysSet.add(item.grade);
+                expected.add(item.name);
+              };
+              const sut = this.createSut(input);
+              const actual = sut.toSet(x => x.grade, x => x.name);
+              assert.sameOrderedMembers([...actual], [...expected]);
+            });
+        });
       });
     });
 
