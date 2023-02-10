@@ -81,7 +81,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     testImmutable('map()', array.oneToTen, seq => seq.map(n => n - n));
     testImmutable('max()', array.oneToTen, seq => seq.max());
-    testImmutable('padEnd()', array.oneToTen, seq => seq.padEnd(11));
+    testImmutable('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     testImmutable('partition({matched}})', array.grades, seq => seq.partition(() => true).matched);
     testImmutable('partition({unmatched}})', array.grades, seq => seq.partition(() => false).unmatched);
     testImmutable('partition({matched+unmatched}})', array.grades, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -118,6 +118,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('startsWith()', array.zeroToTen, seq => seq.startsWith(array.zeroToTen));
     testImmutable('sum()', array.zeroToTen, seq => seq.sum());
     testImmutable('take()', array.zeroToTen, seq => seq.take(10));
+    testImmutable('takeByKeys()', array.zeroToTen, seq => seq.takeByKeys(array.zeroToTen, n => n));
     testImmutable('takeLast()', array.zeroToTen, seq => seq.takeLast(10));
     testImmutable('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     testImmutable('takeOnly()', array.zeroToTen, seq => seq.takeOnly(array.zeroToTen, n => n));

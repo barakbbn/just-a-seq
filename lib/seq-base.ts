@@ -1733,6 +1733,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.takeInternal(count);
   }
 
+  takeByKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeByKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeByKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
+  takeByKeys<K>(keys: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T> {
+    return (isHashable(keys))?
+      this.filter(item => keys.has(keySelector(item))):
+      this.takeItemsInternal(keys, keySelector, IDENTITY, true);
+  }
+
   takeLast(count: number): Seq<T> {
     count = Math.trunc(count);
     if (count <= 0) return internalEmpty<T>();
@@ -1758,20 +1770,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
-    return this.generate(function* takeOnly(self, iterationContext) {
-      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
-      iterationContext.onClose(() => lazyScan.dispose());
-
-
-      let firstIndex = 0;
-      for (const first of self) {
-        const firstKey = firstKeySelector? firstKeySelector(first, firstIndex++): first as unknown as K;
-        const exists = lazyScan.includesNext(firstKey);
-        if (exists) yield first;
-      }
-
-      lazyScan.dispose();
-    });
+    return this.takeItemsInternal(items, firstKeySelector, secondKeySelector, false);
   }
 
   takeWhile(condition: Condition<T>): Seq<T> {
@@ -1824,7 +1823,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return map;
   }
+
   toSet(keySelector?: Selector<T, unknown>): Set<T>;
+
   toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
   toSet<V>(keySelector?: Selector<T, unknown>, valueSelector: Selector<T, V> = IDENTITY): Set<V> {
@@ -1854,20 +1855,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
 
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
-                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+                       filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
-                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+                       filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
 
     if (!filter) filter = () => true;
     return this.generate(function* tree(items): Generator<T> {
-      const queue: {items: Iterable<T>, depth: number, parent: T}[] = [{items, depth: 0, parent: undefined as unknown as T}];
-      while (queue.length){
+      const queue: { items: Iterable<T>, depth: number, parent: T }[] = [{
+        items,
+        depth: 0,
+        parent: undefined as unknown as T
+      }];
+      while (queue.length) {
         const nextBatch = queue.shift()!;
         for (const item of nextBatch.items) {
           const includeItem = filter!(item, nextBatch.parent!, nextBatch.depth);
           if (includeItem) yield item;
           const children = childrenSelector(item, nextBatch.parent!, nextBatch.depth, !includeItem);
-          queue.push({items:children,parent: item, depth: nextBatch.depth + 1});
+          queue.push({items: children, parent: item, depth: nextBatch.depth + 1});
         }
       }
     });
@@ -1877,6 +1883,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
                      filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
   traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
                      filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
 
@@ -1904,11 +1911,17 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   window(size: number): Seq<Seq<T>>;
+
   window(size: number, step: number): Seq<Seq<T>>;
+
   window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+
   window(size: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
+
   window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+
   window(size: number, step: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
+
   window(size: number, stepOrOpts?: number | { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }, opts?: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }): Seq<Seq<T>> {
     if (size < 1) return internalEmpty<Seq<T>>();
     const defaultOpts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; } = {
@@ -2489,6 +2502,26 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       lazyScan.dispose();
     });
   }
+
+  private takeItemsInternal<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K> = IDENTITY, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>, all: boolean): Seq<T> {
+    return this.generate(function* takeItemsInternal(self, iterationContext) {
+      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
+      iterationContext.onClose(() => lazyScan.dispose());
+
+
+      let firstIndex = 0;
+      for (const first of self) {
+        const key = firstKeySelector? firstKeySelector(first, firstIndex++): first as unknown as K;
+        const exists = all?
+          lazyScan.everExistedNext(key):
+          lazyScan.includesNext(key);
+        if (exists) yield first;
+      }
+
+      lazyScan.dispose();
+    });
+  }
+
 }
 
 class CyclicBuffer<T> implements Iterable<T> {

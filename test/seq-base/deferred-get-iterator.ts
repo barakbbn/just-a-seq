@@ -169,6 +169,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('take()', () => testGetIterator(sut => sut.take(2)));
 
+    describe('takeByKeys()', () => testGetIterator(sut => sut.takeByKeys([1], x => x)));
+
     describe('takeLast()', () => testGetIterator(sut => sut.takeLast(2)));
 
     describe('takeWhile()', () => testGetIterator(sut => sut.takeWhile(() => true)));

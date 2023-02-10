@@ -447,6 +447,12 @@ export interface Seq<T> extends Iterable<T> {
 
   take(count: number): Seq<T>; // negative count is like takeLast
 
+  takeByKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeByKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeByKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
   takeLast(count: number): Seq<T>;
 
   // Similar to intersect() by not distinct items, rather as they appear in second iterable

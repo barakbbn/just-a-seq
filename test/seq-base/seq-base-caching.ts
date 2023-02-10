@@ -143,6 +143,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('take()', (input) => test(input, sut => sut.take(2)));
 
+      it1('takeByKeys()', (input) => test(input, sut => sut.takeByKeys([1], x => x)));
+
       it1('takeLast()', (input) => test(input, sut => sut.takeLast(2)));
 
       it1('takeWhile()', (input) => test(input, sut => sut.takeWhile(() => true)));

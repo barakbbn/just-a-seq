@@ -1,7 +1,6 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
 import {array, generator, Sample} from "../test-data";
-import {SeqBase} from "../../lib/seq-base";
 import {Seq, Selector} from "../../lib";
 import {TestIt} from "../test-harness";
 
@@ -4330,7 +4329,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
                 if (keysSet.has(item.grade)) continue;
                 keysSet.add(item.grade);
                 expected.add(item.name);
-              };
+              }
               const sut = this.createSut(input);
               const actual = sut.toSet(x => x.grade, x => x.name);
               assert.sameOrderedMembers([...actual], [...expected]);

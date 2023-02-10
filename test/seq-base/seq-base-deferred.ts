@@ -3302,6 +3302,48 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('takeByKeys()', () => {
+
+      this.it2('should keep all occurrences of items from the source sequence that exists on the seconds sequence according to key-selector',
+        array.grades,
+        array.gradesAboveFifty.map(x => x.grade),
+        (first, second) => {
+          const expected = array.gradesAboveFifty;
+
+          const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+          const actual = [...sut];
+
+          assert.deepEqual(actual, expected);
+        });
+
+      describe('by Set', () => {
+        this.it1('should remove all occurrences of items from the source sequence that exists in the Set of keys, according to key-selector',
+          array.grades.x( 2), first => {
+
+            const expected = array.gradesAboveFifty.x(2);
+            const second = new Set(array.gradesAboveFifty.map(x => x.grade));
+            const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+            const actual = [...sut];
+
+            assert.deepEqual(actual, expected);
+          });
+      });
+
+      describe('by Map', () => {
+        this.it1('should remove all occurrences of items from the source sequence that exists in the Map parameter, according to key-selector',
+          array.grades.x( 2), first => {
+
+            const expected = array.gradesAboveFifty.x(2);
+            const second = new Map(array.gradesAboveFifty.map(x => [x.grade, x]));
+
+            const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+            const actual = [...sut];
+
+            assert.deepEqual(actual, expected);
+          });
+      });
+    });
+
     describe('takeLast()', () => {
       this.it1('should return new sequence only with last N items', array.oneToTen, (source) => {
         const input = [...source];
@@ -3322,38 +3364,6 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const expected = [] as number[];
         const sut = this.createSut(input).takeLast(10);
         const actual = [...sut];
-        assert.sameOrderedMembers(actual, expected);
-      });
-    });
-
-    describe('takeWhile()', () => {
-      this.it1("should return empty sequence when condition never met", array.oneToTen, (input) => {
-        const expected: number[] = [];
-        const alwaysFalseCondition = () => false;
-
-        const sut = this.createSut(input);
-
-        const actual = [...sut.takeWhile(alwaysFalseCondition)];
-
-        assert.sameOrderedMembers(actual, expected);
-      });
-
-      this.it1("should return empty sequence when source sequence is empty", [], (input) => {
-        const expected: number[] = [];
-        const alwaysTrueCondition = () => false;
-
-        const sut = this.createSut(input);
-
-        const actual = [...sut.takeWhile(alwaysTrueCondition)];
-
-        assert.sameOrderedMembers(actual, expected);
-      });
-
-
-      this.it1('should return sub sequence from beginning of source sequence up to the one item before condition no longer met', array.oneToTen.concat(array.oneToTen), (input) => {
-        const expected = array.range(1, 5);
-        let sut = this.createSut(input);
-        let actual = [...sut.takeWhile(x => x <= 5)];
         assert.sameOrderedMembers(actual, expected);
       });
     });
@@ -3568,6 +3578,38 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           assert.equal(takeOnly.length, 0);
         });
 
+    });
+
+    describe('takeWhile()', () => {
+      this.it1("should return empty sequence when condition never met", array.oneToTen, (input) => {
+        const expected: number[] = [];
+        const alwaysFalseCondition = () => false;
+
+        const sut = this.createSut(input);
+
+        const actual = [...sut.takeWhile(alwaysFalseCondition)];
+
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+      this.it1("should return empty sequence when source sequence is empty", [], (input) => {
+        const expected: number[] = [];
+        const alwaysTrueCondition = () => false;
+
+        const sut = this.createSut(input);
+
+        const actual = [...sut.takeWhile(alwaysTrueCondition)];
+
+        assert.sameOrderedMembers(actual, expected);
+      });
+
+
+      this.it1('should return sub sequence from beginning of source sequence up to the one item before condition no longer met', array.oneToTen.concat(array.oneToTen), (input) => {
+        const expected = array.range(1, 5);
+        let sut = this.createSut(input);
+        let actual = [...sut.takeWhile(x => x <= 5)];
+        assert.sameOrderedMembers(actual, expected);
+      });
     });
 
     describe('tap()', () => {

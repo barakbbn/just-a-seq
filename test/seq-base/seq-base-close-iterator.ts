@@ -137,7 +137,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('last()', array.oneToTen, seq => seq.last());
     test('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
-    test('padEnd()', array.oneToTen, seq => seq.padEnd(11));
+    test('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -181,6 +181,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test2('startsWith() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test('sum()', array.zeroToTen, seq => seq.sum());
     test('take()', array.zeroToTen, seq => seq.take(10));
+    test2('takeByKeys()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeByKeys(other, n => n));
     test('takeLast()', array.zeroToTen, seq => seq.takeLast(10));
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));
