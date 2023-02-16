@@ -94,6 +94,14 @@ export interface Seq<T> extends Iterable<T> {
 
   diffDistinct(items: Iterable<T>, keySelector?: (item: T) => unknown): Seq<T>;
 
+  diffMatch(second: Iterable<T>): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+
+  diffMatch(second: Iterable<T>, keySelector: (item: T) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+
+  diffMatch<U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U> };
+
+  diffMatch<R, U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown, resultSelector: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R): R;
+
   distinct(keySelector?: Selector<T, unknown>): Seq<T>;
 
   distinctUntilChanged(keySelector?: Selector<T, unknown>): Seq<T>;

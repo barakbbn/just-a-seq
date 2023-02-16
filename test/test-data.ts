@@ -330,8 +330,8 @@ export class TestableArray<T> extends Array<T> {
     }
   }
 
-  x(multiplyBy: number): TestableArray<T> {
-    return new TestableArray<T>().concat(...Array.from({length: multiplyBy}, _ => this)) as TestableArray<T>;
+  x(duplicateFactor: number): TestableArray<T> {
+    return new TestableArray<T>().concat(...Array.from({length: duplicateFactor}, _ => this)) as TestableArray<T>;
   }
 
   randomize(seed?: number): this {

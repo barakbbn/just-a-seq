@@ -951,6 +951,162 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('diffMath()', () => {
+      describe('matched sequences', () => {
+        this.it2('should return only matching items',
+          array.oneToTen.x(2), array.range(12, 8, 2).x(3), (first, second, firstArray, secondArray) => {
+
+            const firstExpected = firstArray.filter(f => secondArray.includes(f));
+            const secondExpected = secondArray.filter(f => firstArray.includes(f));
+
+            const sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+
+            assert.sameOrderedMembers(diffMatch.firstMatched.array as number[], firstExpected, 'firstMatched');
+            assert.sameOrderedMembers(diffMatch.secondMatched.array as number[], secondExpected, 'secondMatched');
+          });
+
+        this.it2('should return empty sequence if non of the items exists in the second sequence',
+          array.tenZeros, array.tenOnes, (first, second) => {
+            let sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+            assert.isEmpty(diffMatch.firstMatched.array, 'firstMatched');
+            assert.isEmpty(diffMatch.secondMatched.array, 'secondMatched');
+          });
+      });
+      describe('first diff sequences', () => {
+        this.it2('should return only items from first sequence not matching any items in the second sequence',
+          array.oneToTen.x(2), array.range(12, 8, 2).x(3), (first, second, firstArray, secondArray) => {
+
+            const firstExpected = firstArray.filter(f => !secondArray.includes(f));
+
+            const sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+
+            assert.sameOrderedMembers(diffMatch.firstDiff.array as number[], firstExpected);
+          });
+
+        this.it2('should return empty firstDiff sequence if all the items from the first sequence exists in the second sequence',
+          [1, 2, 3], [1, 2, 2, 3, 3, 3, 4], (first, second) => {
+            let sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+            assert.isEmpty(diffMatch.firstDiff.array);
+          });
+      });
+      describe('second diff sequences', () => {
+        this.it2('should return only items from second sequence not matching any items in the first sequence',
+          array.oneToTen.x(2), array.range(12, 8, 2).x(3), (first, second, firstArray, secondArray) => {
+
+            const secondExpected = secondArray.filter(f => !firstArray.includes(f));
+
+            const sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+
+            assert.sameOrderedMembers(diffMatch.secondDiff.array as number[], secondExpected);
+          });
+
+        this.it2('should return empty secondDiff sequence if all the items from the second sequence exists in the first sequence',
+          [1, 2, 2, 3, 3, 3, 4], [1, 2, 3], (first, second) => {
+            let sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second);
+            assert.isEmpty(diffMatch.secondDiff.array);
+          });
+      });
+
+      describe('with keySelector', () => {
+        describe('matched sequences', () => {
+          this.it2('should return only matching items',
+            array.grades, array.gradesFiftyAndBelow, (first, second, firstArray, secondArray) => {
+
+              const firstExpected = firstArray.filter(f => secondArray.find(s => s.name === f.name));
+              const secondExpected = secondArray.filter(f => firstArray.find(s => s.name === f.name));
+
+              const sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second, grade => grade.name);
+
+              assert.sameOrderedMembers(diffMatch.firstMatched.array as { name: string; grade: number; }[], firstExpected, 'firstMatched');
+              assert.sameOrderedMembers(diffMatch.secondMatched.array as { name: string; grade: number; }[], secondExpected, 'secondMatched');
+            });
+
+          this.it2('should return empty sequence if non of the items exists in the second sequence',
+            array.gradesFiftyAndBelow, array.gradesAboveFifty, (first, second) => {
+              let sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second);
+              assert.isEmpty(diffMatch.firstMatched.array, 'firstMatched');
+              assert.isEmpty(diffMatch.secondMatched.array, 'secondMatched');
+            });
+
+
+        });
+        describe('first diff sequences', () => {
+          this.it2('should return only items from first sequence not matching any items in the second sequence',
+            array.grades, array.gradesFiftyAndBelow, (first, second, firstArray, secondArray) => {
+
+              const firstExpected = firstArray.filter(f => !secondArray.find(s => s.name === f.name));
+
+              const sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second, grade => grade.name);
+
+              assert.sameOrderedMembers(diffMatch.firstDiff.array as { name: string; grade: number; }[], firstExpected);
+            });
+
+          this.it2('should return empty firstDiff sequence if all the items from the first sequence exists in the second sequence',
+            array.gradesFiftyAndBelow, array.grades, (first, second, firstArray, secondArray) => {
+              const sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second, grade => grade.name);
+
+              assert.isEmpty(diffMatch.firstDiff.array);
+            });
+        });
+        describe('second diff sequences', () => {
+          this.it2('should return only items from second sequence not matching any items in the first sequence',
+            array.gradesFiftyAndBelow, array.grades, (first, second, firstArray, secondArray) => {
+
+              const secondExpected = secondArray.filter(f => !firstArray.find(s => s.name === f.name));
+
+              const sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second, grade => grade.name);
+
+              assert.sameOrderedMembers(diffMatch.secondDiff.array as { name: string; grade: number; }[], secondExpected);
+            });
+
+          this.it2('should return empty secondDiff sequence if all the items from the second sequence exists in the first sequence',
+            array.grades, array.gradesFiftyAndBelow, (first, second, firstArray, secondArray) => {
+              const sut = this.createSut(first);
+              const diffMatch = sut.diffMatch(second, grade => grade.name);
+
+              assert.isEmpty(diffMatch.secondDiff.array, 'secondMatched');
+            });
+        });
+      });
+
+      describe('with resultSelector', () => {
+
+        this.it2('resultSelector should return expected value',
+          array.gradesFiftyAndAbove.x(2), array.gradesFiftyAndAbove, (first, second, firstArray, secondArray) => {
+
+            const expected = {
+              firstMatched: firstArray.filter(f => secondArray.find(s => s.name === f.name)),
+              firstDiff: firstArray.filter(f => !secondArray.find(s => s.name === f.name)),
+              secondMatched: secondArray.filter(f => firstArray.find(s => s.name === f.name)),
+              secondDiff: secondArray.filter(f => !firstArray.find(s => s.name === f.name))
+            };
+
+
+            const sut = this.createSut(first);
+            const diffMatch = sut.diffMatch(second, grade => grade.name);
+            const actual = {
+              firstMatched: diffMatch.firstMatched.array,
+              firstDiff: diffMatch.firstDiff.array,
+              secondMatched: diffMatch.secondMatched.array,
+              secondDiff: diffMatch.secondDiff.array,
+            };
+
+            assert.deepEqual(actual, expected);
+          });
+      });
+    });
+
     describe("distinct()", () => {
       this.it1('should return distinct values from non empty sequence', array.oneToTen.concat(array.zeroToNine).concat(array.oneToNine), (input) => {
         const expected = array.zeroToTen;
@@ -3318,7 +3474,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       describe('by Set', () => {
         this.it1('should remove all occurrences of items from the source sequence that exists in the Set of keys, according to key-selector',
-          array.grades.x( 2), first => {
+          array.grades.x(2), first => {
 
             const expected = array.gradesAboveFifty.x(2);
             const second = new Set(array.gradesAboveFifty.map(x => x.grade));
@@ -3331,7 +3487,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       describe('by Map', () => {
         this.it1('should remove all occurrences of items from the source sequence that exists in the Map parameter, according to key-selector',
-          array.grades.x( 2), first => {
+          array.grades.x(2), first => {
 
             const expected = array.gradesAboveFifty.x(2);
             const second = new Map(array.gradesAboveFifty.map(x => [x.grade, x]));
@@ -3718,8 +3874,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should provide correct arguments to selectChildren function anf filter function when filtering', array.folders, input => {
 
-        const expectedFilter = array.flatFoldersBreadthFirst.map(item => ({item, parent: item.parent, depth: item.depth}));
-        const expectedChildrenSelector = expectedFilter.map(expected => ({...expected, filteredOut: !(+expected.item.name[0] > 1)}));
+        const expectedFilter = array.flatFoldersBreadthFirst.map(item => ({
+          item,
+          parent: item.parent,
+          depth: item.depth
+        }));
+        const expectedChildrenSelector = expectedFilter.map(expected => ({
+          ...expected,
+          filteredOut: !(+expected.item.name[0] > 1)
+        }));
 
         const actualChildrenSelector: any[] = [];
         const actualFilter: any[] = [];
@@ -3728,7 +3891,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             return item.subFolders;
           },
           (item, parent, depth) => {
-            actualFilter.push({item, parent, depth})
+            actualFilter.push({item, parent, depth});
             return +item.name[0] > 1;
           });
 
@@ -3775,8 +3938,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
       this.it1('should provide correct arguments to selectChildren function anf filter function when filtering', array.folders, input => {
 
-        const expectedFilter = array.flatFoldersDepthFirst.map(item => ({item, parent: item.parent, depth: item.depth}));
-        const expectedChildrenSelector = expectedFilter.map(expected => ({...expected, filteredOut: !(+expected.item.name[0] > 1)}));
+        const expectedFilter = array.flatFoldersDepthFirst.map(item => ({
+          item,
+          parent: item.parent,
+          depth: item.depth
+        }));
+        const expectedChildrenSelector = expectedFilter.map(expected => ({
+          ...expected,
+          filteredOut: !(+expected.item.name[0] > 1)
+        }));
 
         const actualChildrenSelector: any[] = [];
         const actualFilter: any[] = [];
@@ -3785,7 +3955,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             return item.subFolders;
           },
           (item, parent, depth) => {
-            actualFilter.push({item, parent, depth})
+            actualFilter.push({item, parent, depth});
             return +item.name[0] > 1;
           });
 

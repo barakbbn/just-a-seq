@@ -18,7 +18,7 @@ import {
   consume,
   Dict,
   entries,
-  Gen,
+  Gen, generate,
   getIterator,
   IDENTITY,
   IGNORED_ITEM,
@@ -345,6 +345,100 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  diffMatch(second: Iterable<T>): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+
+  diffMatch(second: Iterable<T>, keySelector: (item: T) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+
+  diffMatch<U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U> };
+
+  diffMatch<R, U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown, resultSelector: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R): R;
+
+  diffMatch<R, U = T>(
+    second: Iterable<U>,
+    keySelector: (item: T | U) => unknown = IDENTITY,
+    resultSelector?: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R
+  ): R {
+
+    const self = this;
+
+    const firstMatched: T[] = [];
+    const firstDiff: T[] = [];
+    const secondMatched: U[] = [];
+    const secondDiff: U[] = [];
+    const secondByKey: [unknown, U][] = [];
+    const keys = new Set<unknown>();
+    const matchedKeys = new Set<unknown>();
+
+    let iterated = false;
+
+    function IterateAndPopulateItems(): void {
+      if (iterated) return;
+
+      for (const value of second) {
+        const key = keySelector(value);
+        keys.add(key);
+        secondByKey.push([key, value]);
+      }
+
+      for (const value of self.getSourceForNewSequence()) {
+        const key = keySelector(value);
+        const hasMatch = keys.has(key);
+        if (hasMatch) {
+          firstMatched.push(value);
+          matchedKeys.add(key);
+        } else {
+          firstDiff.push(value);
+        }
+      }
+
+      keys.clear();
+
+      for (const [k, v] of secondByKey) {
+        if (matchedKeys.has(k)) secondMatched.push(v);
+        else secondDiff.push(v);
+      }
+
+      matchedKeys.clear();
+      secondByKey.length = 0;
+
+      iterated = true;
+    }
+
+    const firstMatchedGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* firstMatched;
+    });
+
+    const secondMatchedGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* secondMatched;
+    });
+
+    const firstDiffGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* firstDiff;
+    });
+
+    const secondDiffGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* secondDiff;
+    });
+
+    const firstMatchedSeq = factories.CachedSeq(firstMatchedGen);
+    const secondMatchedSeq = factories.CachedSeq(secondMatchedGen);
+    const firstDiffSeq = factories.CachedSeq(firstDiffGen);
+    const secondDiffSeq = factories.CachedSeq(secondDiffGen);
+
+    return resultSelector?
+      resultSelector(firstMatchedSeq, firstDiffSeq, secondMatchedSeq, secondDiffSeq):
+      {
+        firstMatched: firstMatchedSeq,
+        secondMatched: secondMatchedSeq,
+        firstDiff: firstDiffSeq,
+        secondDiff: secondDiffSeq
+      } as unknown as R;
+  }
+
   distinct(keySelector: Selector<T, unknown> = IDENTITY): Seq<T> {
     return this.generate(function* distinct(self) {
       const keys = new Set<unknown>();
@@ -483,9 +577,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   firstAndRest(defaultIfEmpty?: T): [first: T, second: Seq<T>] & { first: T; rest: Seq<T>; } {
     const first = this.first(defaultIfEmpty) as T;
     const rest = this.skip(1);
-    const result: any = [first, rest];
-    result.first = first;
-    result.rest = rest;
+    const result: [T, Seq<T>] = [first, rest];
+    (result as any).first = first;
+    (result as any).rest = rest;
     return result as ([first: T, second: Seq<T>] & { first: T; rest: Seq<T>; });
   }
 
@@ -1190,12 +1284,16 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
   partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
-  partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(condition: (item: T, index: number) => item is S, resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U {
+  partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(
+    condition: (item: T, index: number) => item is S,
+    resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U
+  ): U {
+
     if (!resultSelector) resultSelector = (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => {
-      const result: any = [matched, unmatched];
-      result.matched = matchedSeq;
-      result.unmatched = unmatchedSeq;
-      return result;
+      const result: [CachedSeq<S>, CachedSeq<T>] = [matched, unmatched];
+      (result as any).matched = matchedSeq;
+      (result as any).unmatched = unmatchedSeq;
+      return result as unknown as U;
     };
     const matched: S[] = [];
     const unmatched: T[] = [];

@@ -115,6 +115,9 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   private getCached(): readonly T[] {
     if (this._cache) return this._cache;
     if (SeqTags.cacheable(this.source)) return this._cache = this.source.array;
+    if(this.source instanceof Array && Object.isFrozen(this.source)) {
+      return this._cache = this.source
+    }
     return this._cache = [...this.source];
   }
 }
