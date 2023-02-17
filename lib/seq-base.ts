@@ -345,11 +345,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  diffMatch(second: Iterable<T>): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+  diffMatch(second: Iterable<T>): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<T>; secondDiff: CachedSeq<T>; };
 
-  diffMatch(second: Iterable<T>, keySelector: (item: T) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<T>, secondDiff: CachedSeq<T> };
+  diffMatch(second: Iterable<T>, keySelector: (item: T) => unknown): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<T>; secondDiff: CachedSeq<T>; };
 
-  diffMatch<U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown): { firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U> };
+  diffMatch<U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<U>; secondDiff: CachedSeq<U>; };
 
   diffMatch<R, U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown, resultSelector: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R): R;
 
@@ -1831,13 +1831,13 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.takeInternal(count);
   }
 
-  takeByKeys<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+  takeBy<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
 
-  takeByKeys<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+  takeBy<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
 
-  takeByKeys<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+  takeBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
 
-  takeByKeys<K>(keys: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T> {
+  takeBy<K>(keys: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T> {
     return (isHashable(keys))?
       this.filter(item => keys.has(keySelector(item))):
       this.takeItemsInternal(keys, keySelector, IDENTITY, true);

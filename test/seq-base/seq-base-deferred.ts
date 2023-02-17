@@ -3458,7 +3458,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
-    describe('takeByKeys()', () => {
+    describe('takeBy()', () => {
 
       this.it2('should keep all occurrences of items from the source sequence that exists on the seconds sequence according to key-selector',
         array.grades,
@@ -3466,7 +3466,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         (first, second) => {
           const expected = array.gradesAboveFifty;
 
-          const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+          const sut = this.createSut(first).takeBy(second, g => g.grade);
           const actual = [...sut];
 
           assert.deepEqual(actual, expected);
@@ -3478,7 +3478,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
             const expected = array.gradesAboveFifty.x(2);
             const second = new Set(array.gradesAboveFifty.map(x => x.grade));
-            const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+            const sut = this.createSut(first).takeBy(second, g => g.grade);
             const actual = [...sut];
 
             assert.deepEqual(actual, expected);
@@ -3492,7 +3492,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             const expected = array.gradesAboveFifty.x(2);
             const second = new Map(array.gradesAboveFifty.map(x => [x.grade, x]));
 
-            const sut = this.createSut(first).takeByKeys(second, g => g.grade);
+            const sut = this.createSut(first).takeBy(second, g => g.grade);
             const actual = [...sut];
 
             assert.deepEqual(actual, expected);

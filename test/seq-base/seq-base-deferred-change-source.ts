@@ -273,7 +273,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('take(all)', array.zeroToTen, seq => seq.take(10));
     test('take(more)', array.zeroToTen, seq => seq.take(12));
     test('take(less)', array.zeroToTen, seq => seq.take(2));
-    test2('takeByKeys()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeByKeys(other, n => n));
+    test2('takeBy()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeBy(other, n => n));
     test('takeLast()', array.zeroToTen, seq => seq.takeLast(10));
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));

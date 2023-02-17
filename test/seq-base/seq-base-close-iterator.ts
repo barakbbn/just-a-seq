@@ -181,7 +181,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test2('startsWith() => second is longer', array.zeroToNine, array.zeroToTen, (seq, other) => seq.startsWith(other));
     test('sum()', array.zeroToTen, seq => seq.sum());
     test('take()', array.zeroToTen, seq => seq.take(10));
-    test2('takeByKeys()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeByKeys(other, n => n));
+    test2('takeBy()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeBy(other, n => n));
     test('takeLast()', array.zeroToTen, seq => seq.takeLast(10));
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));
