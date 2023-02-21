@@ -2039,8 +2039,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const overflowRight = actualOpts?.rightOverflow && !rightPadding && !actualOpts.exactSize;
 
     const optimize = SeqTags.optimize(this);
-    const createSeq = (window: Iterable<T>): Seq<T> => {
-      const innerSeq = factories.Seq(window);
+    const createSeq = (window: T[]): Seq<T> => {
+      const innerSeq = factories.Seq(Object.freeze(window));
       return this.tagAsOptimized(innerSeq, optimize);
     };
 
