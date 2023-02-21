@@ -1,24 +1,25 @@
-# just-a-seq [![GitHub last commit](https://img.shields.io/github/last-commit/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq) [![GitHub license](https://img.shields.io/github/license/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq/LICENSE)  
+# just-a-seq [![GitHub last commit](https://img.shields.io/github/last-commit/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq) [![GitHub license](https://img.shields.io/github/license/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq/LICENSE)
 
 This is just a **sequence** that provides LINQ functionalities (and more)</br>
 But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
 It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3])` , `asSeq(map.values())`)
-___
+
+---
 
 ### Features
+
 * Typescript type definitions
-* Fluent API - chain functions calls to simplify the code:  `seq.filter().map().sorted().toArray()`  
+* Fluent API - chain functions calls to simplify the code:  `seq.filter().map().sorted().toArray()`
 * Lazy/Deferred functionalities, similar to .NET LINQ.
-  
+
   Instead of immediately producing a new Array from methods such as `map`, `filter`, it iterates the items only once
   when being consumed (i.e. `toArray()`, `foreach()`, `count()` ).
 * Immutable - actions on the sequence won't change it, but return a new sequence with the changes
-
-* API that more resemble to JavaScript Array  
+* API that more resemble to JavaScript Array
   (Since most existing libraries already mimics .Net IEnumerable).
 * Additional useful functionalities that can make you more productive.
 
-See: [![GitHub docs](https://img.shields.io/static/v1?label=docs&message=Full%20API&color=blueviolet)](https://github.com/barakbbn/just-a-seq/wiki/docs) [![NPM Badge](https://img.shields.io/npm/v/@barakbbn/just-a-seq)](https://www.npmjs.com/package/@barakbbn/just-a-seq)  
+See: [![GitHub docs](https://img.shields.io/static/v1?label=docs&message=Full%20API&color=blueviolet)](https://github.com/barakbbn/just-a-seq/wiki/docs) [![NPM Badge](https://img.shields.io/npm/v/@barakbbn/just-a-seq)](https://www.npmjs.com/package/@barakbbn/just-a-seq)
 
 #### Examples
 
@@ -45,7 +46,9 @@ asSeq(files)
   // Output:
   // count of each file type: Map(3) { '.txt' => 24, '.docx' => 28, '.csv' => 24 }
 ```
+
 <!-- Example 2 -->
+
 <details>
 <summary><i>Example 2</i></summary>
 
@@ -203,8 +206,9 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 
 #### Immediate actions
 
+
 |            |                    |                    |                     |       |          |
-|------------|--------------------|--------------------|---------------------|-------|----------|
+| ---------- | ------------------ | ------------------ | ------------------- | ----- | -------- |
 | all        | any                | at                 | average             |       |          |
 | consume    | count              |                    |                     |       |          |
 | endsWith   | every              |                    |                     |       |          |
@@ -214,20 +218,21 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | includes   | includesAll        | includesAny        | includesSubSequence |       |          |
 | indexOf    | indexOfSubSequence | isEmpty            |                     |       |          |
 | last       | lastIndexOf        | length             |                     |       |          |
-| max        | min                |                    |                     |       |          |
+| max        | maxItem            | min                | minItem             |       |          |
 | reduce     | reduceRight        |                    |                     |       |          |
 | sameItems  | sameOrderedItems   | some               | startsWith          | sum   |          |
-| toArray    | toMap              | toMapOfOccurrences | [toObject]          | toSet | toString | 
+| toArray    | toMap              | toMapOfOccurrences | [toObject]          | toSet | toString |
 
 #### Deferred actions
+
 
 |            |                      |                    |                |                      |                    |
 |------------|----------------------|--------------------|----------------|----------------------|--------------------|
 | append     | aggregate            | aggregateRight     |                |                      |                    |
 | cache      | cartesian            | chunk              | chunkBy        | chunkByLimit         | concat             |
-| diff       | diffDistinct         | diffMath           | distinct       | distinctUntilChanged |                    |
+| diff       | diffDistinct         | diffMatch          | distinct       | distinctUntilChanged |                    |
 | entries    |                      |                    |                |                      |                    |
-| filter     | firstAndRest         | flat               | flatMap        | **flatHierarchy**    |                    |
+| filter     | firstAndRest         | flat               | flatMap        |                      |                    |
 | groupBy    | **groupBy$**         | groupJoin          | groupJoinRight |                      |                    |
 | ifEmpty    | innerJoin            | insert             | insertAfter    | insertBefore         |                    |
 | intersect  | interleave           | intersectBy        | intersperse    | intersperseBy        |                    |
@@ -240,16 +245,17 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | scan       | skip                 | skipFirst          | skipLast       |                      |                    |
 | skipWhile  | slice                | sort               | sortBy         | [thenGroupBy]        | &lt;thenSortBy&gt; |
 | sorted     | split                | splitAt            |                |                      |                    |
-| take       | takeLast             | takeOnly           | takeWhile      | **tap**              |                    |
+| take       | takeBy               | takeLast           | takeOnly       | takeWhile            | **tap**            |                    
 | transform  | traverseBreadthFirst | traverseDepthFirst |                |                      |                    |
-| [ungroup]  | [ungroupAll]         | union              | unionRight     | unshift              |                    |                       
+| [ungroup]  | [ungroupAll]         | union              | unionRight     | unshift              |                    |
 | window     |                      |                    |                |                      |                    |
 | zip        | zipAll               | zipWithIndex       |                |                      |                    |
 
 #### Factories
 
+
 |        |         |        |
-|--------|---------|--------|
+| ------ | ------- | ------ |
 | asSeq  | indexes | empty  |
 | random | range   | repeat |
 
@@ -261,7 +267,7 @@ To use the optimized mode either:
 
 ```ts
 import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
-```  
+```
 
 Or enable global optimization flag as follows:
 
