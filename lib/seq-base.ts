@@ -1202,6 +1202,45 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     throw new Error('selector or comparer parameter must be a function');
   }
 
+  move(from: number, count: number, to: number): Seq<T> {
+    if (from < 0) from = 0;
+    if (to < 0) to = 0;
+    if (from === to || count <= 0) return this;
+
+    const initialYieldCount = Math.min(from, to);
+    const [bufferSize, shiftRightCount] = to > from?
+      [count, to - from]:
+      [from - to, count];
+
+    return this.generate(function* move(items, iterationContext) {
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+
+      let _next = iterator.next();
+      let done = _next.done;
+
+      function nextValue(): T {
+        const value = _next.value;
+        _next = iterator.next();
+        done = _next.done;
+        return value;
+      }
+
+      for (let i = 0; i < initialYieldCount && !done; i++) yield nextValue();
+
+      const buffer: T[] = new Array<T>(done? 0: bufferSize);
+      let counter = 0;
+
+      for (; counter < bufferSize && !done; counter++) buffer[counter] = nextValue();
+
+      buffer.length = counter;
+
+      for (let i = 0; i < shiftRightCount && !done; i++) yield nextValue();
+
+      yield* buffer;
+      while (!done) yield nextValue();
+    });
+  }
+
   ofType(type: 'number'): Seq<number>;
 
   ofType(type: 'string'): Seq<string>;
@@ -2091,6 +2130,72 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  frame(start: number, end: number, step: number, opts: { padWith?: T; exactSize?: boolean; } = {}): Seq<Seq<T>> {
+    const size = end - start;
+    if (size < 1) return internalEmpty<Seq<T>>();
+    const defaultOpts: { padWith?: T; exactSize?: boolean; } = {};
+    const actualOpts = opts ?? defaultOpts;
+
+    if (step < 1) step = 1;
+
+    const leftPadding = start < 0 && actualOpts?.padWith !== undefined;
+    const rightPadding = end > 0 && actualOpts?.padWith !== undefined;
+    const overflowRight = end > 0 && !rightPadding && !actualOpts.exactSize;
+
+    const optimize = SeqTags.optimize(this);
+    const createSeq = (window: T[]): Seq<T> => {
+      const innerSeq = factories.Seq(Object.freeze(window));
+      return this.tagAsOptimized(innerSeq, optimize);
+    };
+
+    return this.generate(function* window(items, iterationContext) {
+      function* iterate() {
+        let isEmpty = true;
+
+        for (const item of items) {
+          yield item;
+          isEmpty = false;
+        }
+
+        if (isEmpty) return;
+
+        if (rightPadding && size > 1) {
+          for (let i = 1; i < size; i++) yield actualOpts.padWith!;
+        }
+      }
+
+      let window = new SlidingWindow<T>(iterate(), size);
+      iterationContext.onClose(() => window.dispose());
+
+      if (leftPadding) window.fill(actualOpts.padWith!, -start);
+
+      const initialSize = start < 0? 1: size + start;
+      let lastSlidCount = window.slide(initialSize);
+
+      if (actualOpts.exactSize && window.count < size) return;
+
+      while (lastSlidCount) {
+
+        yield createSeq([...window]);
+        if (window.done) break;
+
+        lastSlidCount = window.slide(step);
+
+        const stepsLeft = step - lastSlidCount;
+        if (stepsLeft > 0) {
+          if (overflowRight) lastSlidCount += window.overflow(stepsLeft);
+          else break; // When not overflow right, we expect to have full window slide, otherwise reached end of sequence without enough items
+          if (!window.count) break; // in case overflowed over the edge
+        }
+      }
+
+      while (overflowRight && window.count > step) {
+        window.overflow(step);
+        yield createSeq([...window]);
+      }
+    });
+  }
+
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
@@ -2619,7 +2724,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       lazyScan.dispose();
     });
   }
-
 }
 
 class CyclicBuffer<T> implements Iterable<T> {
@@ -2678,9 +2782,11 @@ class CyclicBuffer<T> implements Iterable<T> {
     return count;
   }
 
-  fill(value: T): this {
+  fill(value: T, count?: number): this {
+    if (count == null) count = this.bufferSize;
     const emptySpace = this.bufferSize - this.count;
-    for (let i = 0; i < emptySpace; i++) this.write(value);
+    const actualFillCount = count == null? emptySpace: Math.min(count, emptySpace);
+    for (let i = 0; i < actualFillCount; i++) this.write(value);
     return this;
   }
 
@@ -2726,8 +2832,8 @@ class SlidingWindow<T> implements Iterable<T> {
     return this.buffer[Symbol.iterator]();
   }
 
-  fill(value: T): this {
-    this.buffer.fill(value);
+  fill(value: T, count?: number): this {
+    this.buffer.fill(value, count);
     return this;
   }
 

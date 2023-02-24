@@ -99,6 +99,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('map()', (input) => test(input, sut => sut.map(() => 1)));
 
+      it1('move()', (input) => test(input, sut => sut.move(0,1,2)));
+
       it1('ofType()', (input) => test(input, sut => sut.ofType(Number)));
 
       it1('padEnd()', (input) => test(input, sut => sut.padEnd(3, 0)));

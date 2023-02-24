@@ -137,6 +137,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('last()', array.oneToTen, seq => seq.last());
     test('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
+    test('move()', array.oneToTen, seq => seq.move(0,1,2));
     test('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);

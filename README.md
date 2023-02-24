@@ -208,7 +208,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 
 
 |            |                    |                    |                     |       |          |
-| ---------- | ------------------ | ------------------ | ------------------- | ----- | -------- |
+|------------|--------------------|--------------------|---------------------|-------|----------|
 | all        | any                | at                 | average             |       |          |
 | consume    | count              |                    |                     |       |          |
 | endsWith   | every              |                    |                     |       |          |
@@ -229,7 +229,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 |            |                      |                    |                |                      |                    |
 |------------|----------------------|--------------------|----------------|----------------------|--------------------|
 | append     | aggregate            | aggregateRight     |                |                      |                    |
-| cache      | cartesian            | chunk              | chunkBy        | chunkByLimit         | concat             |
+| cache      | cartesian            | chunk              | chunkBy        | **chunkByLimit**     | concat             |
 | diff       | diffDistinct         | diffMatch          | distinct       | distinctUntilChanged |                    |
 | entries    |                      |                    |                |                      |                    |
 | filter     | firstAndRest         | flat               | flatMap        |                      |                    |
@@ -237,7 +237,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | ifEmpty    | innerJoin            | insert             | insertAfter    | insertBefore         |                    |
 | intersect  | interleave           | intersectBy        | intersperse    | intersperseBy        |                    |
 | join       |                      |                    |                |                      |                    |
-| map        | [mapInGroup]         | padEnd             | partition      | partitionWhile       |                    |
+| map        | [mapInGroup]         | move               | padEnd         | partition            | partitionWhile     |
 | ofType     |                      |                    |                |                      |                    |
 | prepend    | push                 |                    |                |                      |                    |
 | reduce     | reduceRight          | remove             | removeAll      | removeFalsy          |                    |
@@ -255,7 +255,7 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 
 
 |        |         |        |
-| ------ | ------- | ------ |
+|--------|---------|--------|
 | asSeq  | indexes | empty  |
 | random | range   | repeat |
 

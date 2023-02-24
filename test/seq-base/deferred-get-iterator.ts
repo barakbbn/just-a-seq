@@ -1,7 +1,7 @@
 import {Seq} from "../../lib";
 import {assert} from "chai";
-import {TestableArray, TestableDerivedSeq} from "../test-data";
-import {TestIt} from "../test-harness";
+import {TestableArray} from "../test-data";
+import {TestableDerivedSeq, TestIt} from "../test-harness";
 
 export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
   constructor(optimized: boolean) {
@@ -108,6 +108,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('intersperseBy()', () => testGetIterator(sut => sut.intersperseBy(() => ',')));
 
     describe('map()', () => testGetIterator(sut => sut.map(() => 1)));
+
+    describe('move()', () => testGetIterator(sut => sut.move(0,1,2)));
 
     describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1, 0)));
 

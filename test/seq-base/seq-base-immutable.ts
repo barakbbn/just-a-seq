@@ -80,6 +80,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('last()', array.oneToTen, seq => seq.last());
     testImmutable('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     testImmutable('map()', array.oneToTen, seq => seq.map(n => n - n));
+    testImmutable('move()', array.oneToTen, seq => seq.move(0,1,2));
     testImmutable('max()', array.oneToTen, seq => seq.max());
     testImmutable('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     testImmutable('partition({matched}})', array.grades, seq => seq.partition(() => true).matched);

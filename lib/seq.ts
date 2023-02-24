@@ -327,6 +327,8 @@ export interface Seq<T> extends Iterable<T> {
 
   minItem({comparer}: { comparer: (a: T, b: T) => number; findLast?: boolean; }): T | undefined;
 
+  move(from: number, count: number, to: number): Seq<T>;
+
   ofType(type: 'number'): Seq<number>; // Overload
   ofType(type: 'string'): Seq<string>; // Overload
   ofType(type: 'boolean'): Seq<boolean>; // Overload

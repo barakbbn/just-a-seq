@@ -1,7 +1,7 @@
 import {describe, it} from "mocha";
 import {Condition, Seq} from "../../lib";
 import {assert} from "chai";
-import {array, Folder, generator, Sample} from "../test-data";
+import {array, Folder, generator, Sample, TestableArray} from "../test-data";
 import {TestHarness, TestIt} from "../test-harness";
 
 export abstract class SeqBase_Deferred_Tests extends TestIt {
@@ -2544,6 +2544,43 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         let sut = this.createSut(input);
         let actual = [...sut.map(mapFn)];
         assert.sameDeepOrderedMembers(actual, expected);
+      });
+    });
+
+    describe('move()', () => {
+      this.it1('should return a sequence where the items to move-to are relocated to expected position',
+        [0, 1, 2, 3], (input, inputArray) => {
+
+          for (let count = 0; count <= inputArray.length + 1; count++) {
+            for (let fromIndex = -1; fromIndex <= inputArray.length + 1; fromIndex++) {
+              for (let toIndex = -1; toIndex <= inputArray.length * 2; toIndex++) {
+
+                const expectedFrom = Math.max(fromIndex, 0);
+                const expectedTo = Math.min(Math.max(toIndex, 0), inputArray.length);
+                const expectedCount = Math.max(count, 0);
+
+                let expected = inputArray.slice();
+                const syntacticFiller = TestableArray.fill(Number.NaN, expectedTo > expectedFrom? 0: expectedCount);
+                const toMove = expected.splice(expectedFrom, expectedCount, ...syntacticFiller);
+                expected.splice(expectedTo, 0, ...toMove);
+                expected = expected.filter(n => !Number.isNaN(n));
+
+                const sut = this.createSut(input).move(fromIndex, count, toIndex);
+                const actual = [...sut];
+                assert.deepEqual(actual, expected, `move(${fromIndex}, ${count}, ${toIndex})`);
+              }
+            }
+          }
+        });
+
+      this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+        let sut = this.createSut(input).move(0, 1, 2);
+        let actual = [...sut];
+        assert.isEmpty(actual, `move(0, 1, 2`);
+
+        sut = this.createSut(input).move(1, 1, 0);
+        actual = [...sut];
+        assert.isEmpty(actual, `move(1, 1, 0`);
       });
     });
 

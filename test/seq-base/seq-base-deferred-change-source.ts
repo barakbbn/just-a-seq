@@ -243,6 +243,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     test('intersperseBy()', array.oneToTen, seq => seq.intersperseBy(() => ','));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
+    test('move()', array.oneToTen, seq => seq.move(0,1,2));
     test('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
