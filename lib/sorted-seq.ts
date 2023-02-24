@@ -382,7 +382,7 @@ export class SortedSeqImpl<T, K = T> extends SeqBase<T> implements SortedSeq<T> 
       }
     };
 
-    const stable = this.opts?.stable ?? Seq.stablePartialSoring;
+    const stable = this.opts?.stable ?? Seq.stablePartialSorting;
     return (!stable && maxLength <= Math.max(MAX_ARRAY_OPTIMAL_SIZE, count))?
       topOptimized():
       topUnoptimized();

@@ -18,7 +18,7 @@ import {
   consume,
   Dict,
   entries,
-  Gen,
+  Gen, generate,
   getIterator,
   IDENTITY,
   IGNORED_ITEM,
@@ -345,6 +345,100 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  diffMatch(second: Iterable<T>): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<T>; secondDiff: CachedSeq<T>; };
+
+  diffMatch(second: Iterable<T>, keySelector: (item: T) => unknown): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<T>; secondDiff: CachedSeq<T>; };
+
+  diffMatch<U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown): { firstMatched: CachedSeq<T>; firstDiff: CachedSeq<T>; secondMatched: CachedSeq<U>; secondDiff: CachedSeq<U>; };
+
+  diffMatch<R, U = T>(second: Iterable<U>, keySelector: (item: T | U) => unknown, resultSelector: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R): R;
+
+  diffMatch<R, U = T>(
+    second: Iterable<U>,
+    keySelector: (item: T | U) => unknown = IDENTITY,
+    resultSelector?: (firstMatched: CachedSeq<T>, firstDiff: CachedSeq<T>, secondMatched: CachedSeq<U>, secondDiff: CachedSeq<U>) => R
+  ): R {
+
+    const self = this;
+
+    const firstMatched: T[] = [];
+    const firstDiff: T[] = [];
+    const secondMatched: U[] = [];
+    const secondDiff: U[] = [];
+    const secondByKey: [unknown, U][] = [];
+    const keys = new Set<unknown>();
+    const matchedKeys = new Set<unknown>();
+
+    let iterated = false;
+
+    function IterateAndPopulateItems(): void {
+      if (iterated) return;
+
+      for (const value of second) {
+        const key = keySelector(value);
+        keys.add(key);
+        secondByKey.push([key, value]);
+      }
+
+      for (const value of self.getSourceForNewSequence()) {
+        const key = keySelector(value);
+        const hasMatch = keys.has(key);
+        if (hasMatch) {
+          firstMatched.push(value);
+          matchedKeys.add(key);
+        } else {
+          firstDiff.push(value);
+        }
+      }
+
+      keys.clear();
+
+      for (const [k, v] of secondByKey) {
+        if (matchedKeys.has(k)) secondMatched.push(v);
+        else secondDiff.push(v);
+      }
+
+      matchedKeys.clear();
+      secondByKey.length = 0;
+
+      iterated = true;
+    }
+
+    const firstMatchedGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* firstMatched;
+    });
+
+    const secondMatchedGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* secondMatched;
+    });
+
+    const firstDiffGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* firstDiff;
+    });
+
+    const secondDiffGen = generate(function* () {
+      IterateAndPopulateItems();
+      yield* secondDiff;
+    });
+
+    const firstMatchedSeq = factories.CachedSeq(firstMatchedGen);
+    const secondMatchedSeq = factories.CachedSeq(secondMatchedGen);
+    const firstDiffSeq = factories.CachedSeq(firstDiffGen);
+    const secondDiffSeq = factories.CachedSeq(secondDiffGen);
+
+    return resultSelector?
+      resultSelector(firstMatchedSeq, firstDiffSeq, secondMatchedSeq, secondDiffSeq):
+      {
+        firstMatched: firstMatchedSeq,
+        secondMatched: secondMatchedSeq,
+        firstDiff: firstDiffSeq,
+        secondDiff: secondDiffSeq
+      } as unknown as R;
+  }
+
   distinct(keySelector: Selector<T, unknown> = IDENTITY): Seq<T> {
     return this.generate(function* distinct(self) {
       const keys = new Set<unknown>();
@@ -483,9 +577,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   firstAndRest(defaultIfEmpty?: T): [first: T, second: Seq<T>] & { first: T; rest: Seq<T>; } {
     const first = this.first(defaultIfEmpty) as T;
     const rest = this.skip(1);
-    const result: any = [first, rest];
-    result.first = first;
-    result.rest = rest;
+    const result: [T, Seq<T>] = [first, rest];
+    (result as any).first = first;
+    (result as any).rest = rest;
     return result as ([first: T, second: Seq<T>] & { first: T; rest: Seq<T>; });
   }
 
@@ -1108,6 +1202,45 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     throw new Error('selector or comparer parameter must be a function');
   }
 
+  move(from: number, count: number, to: number): Seq<T> {
+    if (from < 0) from = 0;
+    if (to < 0) to = 0;
+    if (from === to || count <= 0) return this;
+
+    const initialYieldCount = Math.min(from, to);
+    const [bufferSize, shiftRightCount] = to > from?
+      [count, to - from]:
+      [from - to, count];
+
+    return this.generate(function* move(items, iterationContext) {
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+
+      let _next = iterator.next();
+      let done = _next.done;
+
+      function nextValue(): T {
+        const value = _next.value;
+        _next = iterator.next();
+        done = _next.done;
+        return value;
+      }
+
+      for (let i = 0; i < initialYieldCount && !done; i++) yield nextValue();
+
+      const buffer: T[] = new Array<T>(done? 0: bufferSize);
+      let counter = 0;
+
+      for (; counter < bufferSize && !done; counter++) buffer[counter] = nextValue();
+
+      buffer.length = counter;
+
+      for (let i = 0; i < shiftRightCount && !done; i++) yield nextValue();
+
+      yield* buffer;
+      while (!done) yield nextValue();
+    });
+  }
+
   ofType(type: 'number'): Seq<number>;
 
   ofType(type: 'string'): Seq<string>;
@@ -1190,12 +1323,16 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U
   partition(condition: Condition<T>): [matched: CachedSeq<T>, unmatched: CachedSeq<T>] & { matched: CachedSeq<T>, unmatched: CachedSeq<T> };
   partition<U>(condition: Condition<T>, resultSelector: (matched: CachedSeq<T>, unmatched: CachedSeq<T>) => U): U;
-  partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(condition: (item: T, index: number) => item is S, resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U {
+  partition<S extends T, U = [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; }>(
+    condition: (item: T, index: number) => item is S,
+    resultSelector?: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U
+  ): U {
+
     if (!resultSelector) resultSelector = (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => {
-      const result: any = [matched, unmatched];
-      result.matched = matchedSeq;
-      result.unmatched = unmatchedSeq;
-      return result;
+      const result: [CachedSeq<S>, CachedSeq<T>] = [matched, unmatched];
+      (result as any).matched = matchedSeq;
+      (result as any).unmatched = unmatchedSeq;
+      return result as unknown as U;
     };
     const matched: S[] = [];
     const unmatched: T[] = [];
@@ -1733,6 +1870,18 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     return this.takeInternal(count);
   }
 
+  takeBy<K>(keys: Iterable<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeBy<K>(keys: ReadonlySet<K>, keySelector: (item: T) => K): Seq<T>;
+
+  takeBy<K>(keys: ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T>;
+
+  takeBy<K>(keys: Iterable<K> | ReadonlySet<K> | ReadonlyMap<K, unknown>, keySelector: (item: T) => K): Seq<T> {
+    return (isHashable(keys))?
+      this.filter(item => keys.has(keySelector(item))):
+      this.takeItemsInternal(keys, keySelector, IDENTITY, true);
+  }
+
   takeLast(count: number): Seq<T> {
     count = Math.trunc(count);
     if (count <= 0) return internalEmpty<T>();
@@ -1758,20 +1907,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector: Selector<T, K>, secondKeySelector: Selector<U, K>): Seq<T>;
 
   takeOnly<U, K = T>(items: Iterable<U>, firstKeySelector?: Selector<T, K>, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>): Seq<T> {
-    return this.generate(function* takeOnly(self, iterationContext) {
-      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
-      iterationContext.onClose(() => lazyScan.dispose());
-
-
-      let firstIndex = 0;
-      for (const first of self) {
-        const firstKey = firstKeySelector? firstKeySelector(first, firstIndex++): first as unknown as K;
-        const exists = lazyScan.includesNext(firstKey);
-        if (exists) yield first;
-      }
-
-      lazyScan.dispose();
-    });
+    return this.takeItemsInternal(items, firstKeySelector, secondKeySelector, false);
   }
 
   takeWhile(condition: Condition<T>): Seq<T> {
@@ -1824,7 +1960,9 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
     return map;
   }
+
   toSet(keySelector?: Selector<T, unknown>): Set<T>;
+
   toSet<V>(keySelector: Selector<T, unknown>, valueSelector: Selector<T, V>): Set<V>;
 
   toSet<V>(keySelector?: Selector<T, unknown>, valueSelector: Selector<T, V> = IDENTITY): Set<V> {
@@ -1854,20 +1992,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number) => Iterable<T>): Seq<T>;
 
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
-                     filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+                       filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
   traverseBreadthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
-                     filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
+                       filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
 
     if (!filter) filter = () => true;
     return this.generate(function* tree(items): Generator<T> {
-      const queue: {items: Iterable<T>, depth: number, parent: T}[] = [{items, depth: 0, parent: undefined as unknown as T}];
-      while (queue.length){
+      const queue: { items: Iterable<T>, depth: number, parent: T }[] = [{
+        items,
+        depth: 0,
+        parent: undefined as unknown as T
+      }];
+      while (queue.length) {
         const nextBatch = queue.shift()!;
         for (const item of nextBatch.items) {
           const includeItem = filter!(item, nextBatch.parent!, nextBatch.depth);
           if (includeItem) yield item;
           const children = childrenSelector(item, nextBatch.parent!, nextBatch.depth, !includeItem);
-          queue.push({items:children,parent: item, depth: nextBatch.depth + 1});
+          queue.push({items: children, parent: item, depth: nextBatch.depth + 1});
         }
       }
     });
@@ -1877,6 +2020,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
                      filter: (item: T, parent: T, depth: number) => boolean): Seq<T>;
+
   traverseDepthFirst(childrenSelector: (item: T, parent: T, depth: number, filteredOut: boolean) => Iterable<T>,
                      filter?: (item: T, parent: T, depth: number) => boolean): Seq<T> {
 
@@ -1904,11 +2048,17 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   }
 
   window(size: number): Seq<Seq<T>>;
+
   window(size: number, step: number): Seq<Seq<T>>;
+
   window(size: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+
   window(size: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
+
   window(size: number, step: number, opts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; }): Seq<Seq<T>>;
+
   window(size: number, step: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
+
   window(size: number, stepOrOpts?: number | { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }, opts?: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; }): Seq<Seq<T>> {
     if (size < 1) return internalEmpty<Seq<T>>();
     const defaultOpts: { leftOverflow?: boolean; rightOverflow?: boolean; padWith?: T; exactSize?: boolean; } = {
@@ -1928,8 +2078,8 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     const overflowRight = actualOpts?.rightOverflow && !rightPadding && !actualOpts.exactSize;
 
     const optimize = SeqTags.optimize(this);
-    const createSeq = (window: Iterable<T>): Seq<T> => {
-      const innerSeq = factories.Seq(window);
+    const createSeq = (window: T[]): Seq<T> => {
+      const innerSeq = factories.Seq(Object.freeze(window));
       return this.tagAsOptimized(innerSeq, optimize);
     };
 
@@ -1954,6 +2104,72 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
       if (leftPadding) window.fill(actualOpts.padWith!);
       const initialSize = actualOpts.leftOverflow? 1: size;
+      let lastSlidCount = window.slide(initialSize);
+
+      if (actualOpts.exactSize && window.count < size) return;
+
+      while (lastSlidCount) {
+
+        yield createSeq([...window]);
+        if (window.done) break;
+
+        lastSlidCount = window.slide(step);
+
+        const stepsLeft = step - lastSlidCount;
+        if (stepsLeft > 0) {
+          if (overflowRight) lastSlidCount += window.overflow(stepsLeft);
+          else break; // When not overflow right, we expect to have full window slide, otherwise reached end of sequence without enough items
+          if (!window.count) break; // in case overflowed over the edge
+        }
+      }
+
+      while (overflowRight && window.count > step) {
+        window.overflow(step);
+        yield createSeq([...window]);
+      }
+    });
+  }
+
+  frame(start: number, end: number, step: number, opts: { padWith?: T; exactSize?: boolean; } = {}): Seq<Seq<T>> {
+    const size = end - start;
+    if (size < 1) return internalEmpty<Seq<T>>();
+    const defaultOpts: { padWith?: T; exactSize?: boolean; } = {};
+    const actualOpts = opts ?? defaultOpts;
+
+    if (step < 1) step = 1;
+
+    const leftPadding = start < 0 && actualOpts?.padWith !== undefined;
+    const rightPadding = end > 0 && actualOpts?.padWith !== undefined;
+    const overflowRight = end > 0 && !rightPadding && !actualOpts.exactSize;
+
+    const optimize = SeqTags.optimize(this);
+    const createSeq = (window: T[]): Seq<T> => {
+      const innerSeq = factories.Seq(Object.freeze(window));
+      return this.tagAsOptimized(innerSeq, optimize);
+    };
+
+    return this.generate(function* window(items, iterationContext) {
+      function* iterate() {
+        let isEmpty = true;
+
+        for (const item of items) {
+          yield item;
+          isEmpty = false;
+        }
+
+        if (isEmpty) return;
+
+        if (rightPadding && size > 1) {
+          for (let i = 1; i < size; i++) yield actualOpts.padWith!;
+        }
+      }
+
+      let window = new SlidingWindow<T>(iterate(), size);
+      iterationContext.onClose(() => window.dispose());
+
+      if (leftPadding) window.fill(actualOpts.padWith!, -start);
+
+      const initialSize = start < 0? 1: size + start;
       let lastSlidCount = window.slide(initialSize);
 
       if (actualOpts.exactSize && window.count < size) return;
@@ -2489,6 +2705,25 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       lazyScan.dispose();
     });
   }
+
+  private takeItemsInternal<U, K>(items: Iterable<U>, firstKeySelector: Selector<T, K> = IDENTITY, secondKeySelector: Selector<U, K> = firstKeySelector as unknown as Selector<U, K>, all: boolean): Seq<T> {
+    return this.generate(function* takeItemsInternal(self, iterationContext) {
+      const lazyScan = new LazyScanAndMark(items, secondKeySelector);
+      iterationContext.onClose(() => lazyScan.dispose());
+
+
+      let firstIndex = 0;
+      for (const first of self) {
+        const key = firstKeySelector? firstKeySelector(first, firstIndex++): first as unknown as K;
+        const exists = all?
+          lazyScan.everExistedNext(key):
+          lazyScan.includesNext(key);
+        if (exists) yield first;
+      }
+
+      lazyScan.dispose();
+    });
+  }
 }
 
 class CyclicBuffer<T> implements Iterable<T> {
@@ -2547,9 +2782,11 @@ class CyclicBuffer<T> implements Iterable<T> {
     return count;
   }
 
-  fill(value: T): this {
+  fill(value: T, count?: number): this {
+    if (count == null) count = this.bufferSize;
     const emptySpace = this.bufferSize - this.count;
-    for (let i = 0; i < emptySpace; i++) this.write(value);
+    const actualFillCount = count == null? emptySpace: Math.min(count, emptySpace);
+    for (let i = 0; i < actualFillCount; i++) this.write(value);
     return this;
   }
 
@@ -2595,8 +2832,8 @@ class SlidingWindow<T> implements Iterable<T> {
     return this.buffer[Symbol.iterator]();
   }
 
-  fill(value: T): this {
-    this.buffer.fill(value);
+  fill(value: T, count?: number): this {
+    this.buffer.fill(value, count);
     return this;
   }
 

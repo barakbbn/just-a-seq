@@ -243,7 +243,8 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('intersperse()', array.oneToTen, seq => seq.intersperse(','));
     test('intersperseBy()', array.oneToTen, seq => seq.intersperseBy(() => ','));
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
-    test('padEnd()', array.oneToTen, seq => seq.padEnd(11));
+    test('move()', array.oneToTen, seq => seq.move(0,1,2));
+    test('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -273,6 +274,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('take(all)', array.zeroToTen, seq => seq.take(10));
     test('take(more)', array.zeroToTen, seq => seq.take(12));
     test('take(less)', array.zeroToTen, seq => seq.take(2));
+    test2('takeBy()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeBy(other, n => n));
     test('takeLast()', array.zeroToTen, seq => seq.takeLast(10));
     test('takeWhile()', array.zeroToTen, seq => seq.takeWhile(() => true));
     test2('takeOnly()', array.zeroToTen, array.zeroToTen, (seq, other) => seq.takeOnly(other, n => n));

@@ -1,8 +1,9 @@
-import {SeqTags} from "../lib/common";
+import {EMPTY_ARRAY, SeqTags} from "../lib/common";
 import {it} from "mocha";
 import {generator} from "./test-data";
 import {asSeq, Seq} from "../lib";
 import {asSeq as asSeqOptimized} from "../lib/optimized";
+import {SeqBase} from "../lib/seq-base";
 
 export class TestHarness {
   private static $getIteratorInvoked = Symbol('[[$getIteratorInvoked]]');
@@ -129,5 +130,31 @@ export abstract class TestIt {
       return seq;
     }
     return undefined;
+  }
+}
+
+export class TestableDerivedSeq<T> extends SeqBase<T> {
+  private _wasIterated = false;
+
+  constructor(
+    protected readonly source: Iterable<T> = EMPTY_ARRAY,
+    tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
+
+    super();
+
+    SeqTags.setTagsIfMissing(this, tags);
+  }
+
+  get wasIterated(): boolean {
+    return this._wasIterated;
+  }
+
+  * [Symbol.iterator](): Iterator<T> {
+    this._wasIterated = true;
+    yield* this.source;
+  }
+
+  protected getSourceForNewSequence(): Iterable<T> {
+    return this.source;
   }
 }

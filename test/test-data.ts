@@ -1,6 +1,3 @@
-import {SeqBase} from "../lib/seq-base";
-import {EMPTY_ARRAY, generate, SeqTags} from "../lib/common";
-
 export const array = new class {
   get falsyValues(): any[] {
     return [0, '', null, false, undefined, Number.NaN];
@@ -318,8 +315,20 @@ export class TestableArray<T> extends Array<T> {
   getIteratorCount = 0;
   yieldCount = 0;
 
+  constructor(length?: number);
+  constructor(arrayLength: number);
+  constructor(...items: T[]);
   constructor(...items: T[]) {
     super(...items);
+  }
+
+  static fill<T>(value: T, count: number): TestableArray<T> {
+    const instance = new TestableArray<T>();
+    if (count > 0) {
+      instance.length = count;
+      instance.fill(value);
+    }
+    return instance;
   }
 
   * [Symbol.iterator](): IterableIterator<T> {
@@ -330,8 +339,8 @@ export class TestableArray<T> extends Array<T> {
     }
   }
 
-  x(multiplyBy: number): TestableArray<T> {
-    return new TestableArray<T>().concat(...Array.from({length: multiplyBy}, _ => this)) as TestableArray<T>;
+  x(duplicateFactor: number): TestableArray<T> {
+    return new TestableArray<T>().concat(...Array.from({length: duplicateFactor}, _ => this)) as TestableArray<T>;
   }
 
   randomize(seed?: number): this {
@@ -392,28 +401,3 @@ export class TestableArray<T> extends Array<T> {
 Object.defineProperty(TestableArray, 'getIteratorCount', {enumerable: false});
 Object.defineProperty(TestableArray, 'yieldCount', {enumerable: false});
 
-export class TestableDerivedSeq<T> extends SeqBase<T> {
-  private _wasIterated = false;
-
-  constructor(
-    protected readonly source: Iterable<T> = EMPTY_ARRAY,
-    tags: readonly [tag: symbol, value: any][] = EMPTY_ARRAY) {
-
-    super();
-
-    SeqTags.setTagsIfMissing(this, tags);
-  }
-
-  get wasIterated(): boolean {
-    return this._wasIterated;
-  }
-
-  * [Symbol.iterator](): Iterator<T> {
-    this._wasIterated = true;
-    yield* this.source;
-  }
-
-  protected getSourceForNewSequence(): Iterable<T> {
-    return this.source;
-  }
-}

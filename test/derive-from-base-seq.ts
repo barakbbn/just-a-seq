@@ -11,8 +11,8 @@ import {SeqBase_Close_Iterator_Tests} from "./seq-base/seq-base-close-iterator";
 import {SeqBase} from "../lib/seq-base";
 import {SeqBase_Deferred_Change_Source_Tests} from "./seq-base/seq-base-deferred-change-source";
 import {SeqTags} from "../lib/common";
-import {array, TestableDerivedSeq} from "./test-data";
-import {TestIt} from "./test-harness";
+import {array} from "./test-data";
+import {TestableDerivedSeq, TestIt} from "./test-harness";
 import {SeqBase_Immediate_Change_Source_Tests} from "./seq-base/seq-base-immediate-change-source";
 
 
