@@ -1,7 +1,7 @@
 import {describe} from "mocha";
-import {array, Grade, Sample} from "../test-data";
+import {array, Sample} from "../test-data";
 import {assert} from "chai";
-import {Comparer, Selector, Seq, ToComparableKey} from "../../lib";
+import {Comparer, Seq, ToComparableKey} from "../../lib";
 import {TestIt} from "../test-harness";
 import {DEFAULT_COMPARER} from "../../lib/sort-util";
 
@@ -831,7 +831,7 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
             this.it1('should return empty sequence when top count zero',
               array.grades.randomize(0).pollute(1, 1).concat(array.grades.map(g => ({...g, name: g.name + '+'}))),
-              (input, inputArray) => {
+              (input) => {
 
                 const sut = this.createSut(input)
                   .sortBy(x => -(x?.grade ?? Number.MAX_SAFE_INTEGER), 0)
@@ -917,7 +917,6 @@ export abstract class SeqBase_Sorting_Tests extends TestIt {
 
                 const top1 = inputArray.length / 2;
                 const top2 = top1 + 1;
-                const comparer: Comparer<{ name: string; grade: number; }> = (a, b) => safeNumber(a?.grade) - safeNumber(b?.grade) || ('' + a?.name).localeCompare('' + b?.name);
 
                 const expected = this.createSut(input)
                   .sortBy(x => safeNumber(x?.grade), top1, {stable: true})

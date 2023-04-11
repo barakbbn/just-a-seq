@@ -1,12 +1,28 @@
-import {factories} from "./seq";
+import {factories, Seq, SeqOfGroups} from './seq';
+import type {Selector, ToComparableKey} from './seq';
+
+import {createSeq} from './seq-impl';
+import {CachedSeqImpl} from './cached-seq';
+import {SortedSeqImpl} from './sorted-seq';
+import {SeqOfMultiGroupsImpl} from './grouped-seq';
+import {FilterMapSeqImpl} from './filter-map-seq';
+
 type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 const writableFactories = factories as Writeable<typeof factories>;
-if (!factories.Seq) writableFactories.Seq = require('./seq-impl').createSeq;
-if (!factories.CachedSeq) writableFactories.CachedSeq = require('./cached-seq').CachedSeqImpl.create;
-if (!factories.SortedSeq) writableFactories.SortedSeq = require('./sorted-seq').SortedSeqImpl.create;
-if (!factories.SeqOfGroups) writableFactories.SeqOfGroups = require('./grouped-seq').SeqOfMultiGroupsImpl.create;
-if (!factories.FilterMapSeq) writableFactories.FilterMapSeq = require('./filter-map-seq').FilterMapSeqImpl.create;
+
+if (!factories.Seq) writableFactories.Seq =
+  createSeq as <T, U = T, TSeq extends Iterable<T> = Iterable<T>>(source?: Iterable<T>,
+                                                                  generator?: (source: TSeq) => Iterator<U>,
+                                                                  tags?: readonly [tag: symbol, value: any][]) => Seq<U>;
+
+if (!factories.CachedSeq) writableFactories.CachedSeq = CachedSeqImpl.create;
+if (!factories.SortedSeq) writableFactories.SortedSeq = SortedSeqImpl.create;
+if (!factories.SeqOfGroups) writableFactories.SeqOfGroups =
+  SeqOfMultiGroupsImpl.create as unknown as <K, T = K, U = T>(source: Iterable<T>,
+                                                              keySelector?: Selector<T, K>,
+                                                              toComparableKey?: ToComparableKey<K>,
+                                                              valueSelector?: (x: T, index: number, key: K) => U) => SeqOfGroups<K, U>;
+if (!factories.FilterMapSeq) writableFactories.FilterMapSeq = FilterMapSeqImpl.create;
 
 export * from './seq';
 export {Seq, asSeq} from './seq-factory';
-export {Seq as Optimized} from './optimized'

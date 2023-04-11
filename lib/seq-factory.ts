@@ -12,6 +12,12 @@ export function asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]):
 export type Seq<T> = ISeq<T>;
 export namespace Seq {
 
+  export function asSeq<T>(...items: Iterable<T>[]): ISeq<T>;
+  export function asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
+  export function asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]): ISeq<T> {
+    return asSeqInternal(itemsProvider);
+  }
+
   export const empty = internalEmpty;
 
   export function range(start: number, end?: number, step: number = 1): ISeq<number> {
@@ -49,7 +55,7 @@ export namespace Seq {
 
     return factories.Seq<T>(generate(function* repeat() {
       while (count--) yield value;
-    }), undefined, tags)
+    }), undefined, tags);
   }
 
   export function random(): ISeq<number> {
@@ -60,15 +66,22 @@ export namespace Seq {
 export declare namespace Seq {
   export let enableOptimization: boolean;
 
-  export function asSeq<T>(items: Iterable<T>, ...moreItems: Iterable<T>[]): ISeq<T>;
-  export function asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
+  export let stablePartialSorting: boolean;
 }
-Seq.asSeq = asSeq as any;
 
 Object.defineProperty(Seq, 'enableOptimization', {
   get(): any {
     return ISeq.enableOptimization;
   }, set(v: any) {
     ISeq.enableOptimization = v;
+    if(!v) ISeq.stablePartialSorting = true;
   }
-})
+});
+
+Object.defineProperty(Seq, 'stablePartialSorting', {
+  get(): any {
+    return ISeq.stablePartialSorting;
+  }, set(v: any) {
+    ISeq.stablePartialSorting = v;
+  }
+});

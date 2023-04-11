@@ -1,47 +1,49 @@
 import {assert} from "chai";
 import {array} from "./test-data";
-import {asSeq, Seq, Optimized} from "../lib";
+import {Seq} from '../lib'
+import {asSeqInternal, randomInternal} from "../lib/internal";
 import {createSeq} from "../lib/seq-impl";
 import {describe} from "mocha";
+import {SeqTags, TaggedSeq} from '../lib/common';
 
 export class SeqFactory_Tests {
   constructor(protected optimized: boolean) {
   }
 
   get asSeq() {
-    return this.optimized ? Optimized.asSeq : asSeq;
+    return (...items: Iterable<T>[]) => asSeqInternal(items, this.optimized);
   }
 
   get empty() {
-    return this.optimized ? Optimized.empty : Seq.empty;
+    return Seq.empty;
   }
 
   get indexes() {
-    return this.optimized ? Optimized.indexes : Seq.indexes;
+    return Seq.indexes;
   }
 
   get random() {
-    return this.optimized ? Optimized.random : Seq.random;
+    return () => randomInternal(this.optimized);
   }
 
   get range() {
-    return this.optimized ? Optimized.range : Seq.range;
+    return Seq.range;
   }
 
   get repeat() {
-    return this.optimized ? Optimized.repeat : Seq.repeat;
+    return Seq.repeat;
   }
 
   readonly run = () => describe('Seq Factories', () => {
     describe('asSeq()', () => {
       it('should create new SeqImpl instance that produce provided array', () => {
-        let sut = asSeq<number>([]);
+        let sut = this.asSeq<number>([]);
         assert.sameOrderedMembers([...sut], []);
 
-        sut = asSeq(array.oneToTen);
+        sut = this.asSeq(array.oneToTen);
         assert.sameOrderedMembers([...sut], array.oneToTen);
 
-        sut = asSeq(createSeq(array.oneToTen));
+        sut = this.asSeq(createSeq(array.oneToTen));
         assert.sameOrderedMembers([...sut], array.oneToTen);
       });
 
@@ -58,7 +60,7 @@ export class SeqFactory_Tests {
         assert.sameOrderedMembers([...sut], input);
       });
 
-      it('should create new SeqImpl instance that produce provided generator',  () => {
+      it('should create new SeqImpl instance that produce provided generator', () => {
         function* emptyGenerator() {
         }
 
@@ -159,7 +161,7 @@ export class SeqFactory_Tests {
         const singleValue = 3;
         const sut = this.range(singleValue, singleValue);
         const actual = [...sut];
-        assert.sameOrderedMembers(actual, [singleValue])
+        assert.sameOrderedMembers(actual, [singleValue]);
       });
 
       it('should produce new sequence with last value less than end if step skip the end value', () => {
@@ -206,6 +208,10 @@ export class SeqFactory_Tests {
       });
     });
   });
+
+  private applyOptimization<T>(seq: Seq<T>): void {
+    if (this.optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
+  }
 }
 
 
