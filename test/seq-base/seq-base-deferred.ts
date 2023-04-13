@@ -1051,7 +1051,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             });
 
           this.it2('should return empty firstDiff sequence if all the items from the first sequence exists in the second sequence',
-            array.gradesFiftyAndBelow, array.grades, (first, second, firstArray, secondArray) => {
+            array.gradesFiftyAndBelow, array.grades, (first, second) => {
               const sut = this.createSut(first);
               const diffMatch = sut.diffMatch(second, grade => grade.name);
 
@@ -1071,7 +1071,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             });
 
           this.it2('should return empty secondDiff sequence if all the items from the second sequence exists in the first sequence',
-            array.grades, array.gradesFiftyAndBelow, (first, second, firstArray, secondArray) => {
+            array.grades, array.gradesFiftyAndBelow, (first, second) => {
               const sut = this.createSut(first);
               const diffMatch = sut.diffMatch(second, grade => grade.name);
 
@@ -3935,6 +3935,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         TestHarness.materialize(sut);
 
         assert.deepEqual(actualChildrenSelector, expectedChildrenSelector);
+        assert.deepEqual(actualFilter, expectedFilter);
       });
     });
 
@@ -3999,6 +4000,7 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         TestHarness.materialize(sut);
 
         assert.deepEqual(actualChildrenSelector, expectedChildrenSelector);
+        assert.deepEqual(actualFilter, expectedFilter);
       });
     });
 

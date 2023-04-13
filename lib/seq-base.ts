@@ -702,7 +702,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         const parents = context.slice();
         parents.unshift(0);
         for (const entry of entries(children)) {
-          const subChildren: Iterable<any> = selector?.(entry.value, ...context, entry.index, absoluteIndexes[level]++);
+          const subChildren = selector? selector(entry.value, ...context, entry.index, absoluteIndexes[level]++): undefined;
           parents[0] = entry.value;
 
           if (isIterable(subChildren, true)) {

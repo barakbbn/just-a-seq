@@ -68,6 +68,7 @@ class SeqImpl_Deferred_Change_Source_Tests extends SeqBase_Deferred_Change_Sourc
 class SeqImpl_Immediate_Change_Source_Tests extends SeqBase_Immediate_Change_Source_Tests {
   protected readonly createSut = createSut(this.optimized);
 }
+
 class GeneratorSeqImpl_Optimized_Tests {
   constructor(protected optimized: boolean) {
   }
@@ -153,7 +154,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         source.all = condition => {
           allCalledOnSource = true;
           return inner.bind(source)(condition);
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -182,7 +183,7 @@ class GeneratorSeqImpl_Optimized_Tests {
             everyCalledOnSource = true;
             return super.every(predicate, thisArg);
           }
-        }
+        };
 
 
         let iterated = false;
@@ -288,7 +289,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         source.any = condition => {
           anyCalledOnSource = true;
           return inner.bind(source)(condition);
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -317,7 +318,7 @@ class GeneratorSeqImpl_Optimized_Tests {
             someCalledOnSource = true;
             return super.some(predicate, thisArg);
           }
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -515,7 +516,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         source.count = condition => {
           countCalledOnSource = true;
           return inner.bind(source)(condition);
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -607,7 +608,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         source.hasAtLeast = condition => {
           hasAtLeastCalledOnSource = true;
           return inner.bind(source)(condition);
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -700,7 +701,7 @@ class GeneratorSeqImpl_Optimized_Tests {
         source.includes = (item, from) => {
           includesCalledOnSource = true;
           return inner.bind(source)(item, from);
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {
@@ -725,11 +726,12 @@ class GeneratorSeqImpl_Optimized_Tests {
             super(...array.oneToTen);
           }
 
+          // noinspection JSUnusedGlobalSymbols
           includes(searchElement: number, fromIndex?: number): boolean {
             includesCalledOnSource = true;
             return super.includes(searchElement, fromIndex);
           }
-        }
+        };
 
         let iterated = false;
         const sut = this.createSut(source, function* (source) {

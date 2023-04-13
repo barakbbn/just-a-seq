@@ -1,7 +1,7 @@
 # just-a-seq [![GitHub last commit](https://img.shields.io/github/last-commit/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq) [![GitHub license](https://img.shields.io/github/license/barakbbn/just-a-seq)](https://github.com/barakbbn/just-a-seq/LICENSE)
 
-This is just a **sequence** that provides LINQ functionalities (and more)</br>
-But with an API that resembles JavaScript Array ( `map()` instead of `select()`, `filter()` instead of `where()`).</br>
+This is just a **sequence** that provides LINQ functionalities (and more)  
+But with an API that resembles JavaScript Array ( `map()` instead of `Select()`, `filter()` instead of `Where()`).  
 It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3])` , `asSeq(map.values())`)
 
 ---
@@ -22,9 +22,10 @@ It wraps an array or other Iterable object, Generator function.  (`asSeq([1,2,3]
 See: [![GitHub docs](https://img.shields.io/static/v1?label=docs&message=Full%20API&color=blueviolet)](https://github.com/barakbbn/just-a-seq/wiki/docs) [![NPM Badge](https://img.shields.io/npm/v/@barakbbn/just-a-seq)](https://www.npmjs.com/package/@barakbbn/just-a-seq)
 
 #### Examples
-
+ 
 ```typescript
-import {asSeq} from '@barakbbn/just-a-seq/optimized';
+// Zip upto 64KB of files or max of 100 files into separate zip file
+import {asSeq} from '@barakbbn/just-a-seq';
 
 const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
 
@@ -37,23 +38,23 @@ asSeq(files)
 ```
 
 ```typescript
-  const extensions = new Set(['.txt', '.docx', '.xlsx', '.csv']);
-  const countOfEachFileType = asSeq(getListOfFiles())
-    .filter( file => extensions.has(file.ext))
-    .toMapOfOccurrences(file => file.ext)
+// Count how many files for each file-extension
+const extensions = new Set(['.txt', '.docx', '.xlsx', '.csv']);
+const countOfEachFileType = asSeq(getListOfFiles())
+  .filter( file => extensions.has(file.ext))
+  .toMapOfOccurrences(file => file.ext)
 
-  console.log('count of each file type:', countOfEachFileType);
-  // Output:
-  // count of each file type: Map(3) { '.txt' => 24, '.docx' => 28, '.csv' => 24 }
+console.log('count of each file type:', countOfEachFileType);
+// Output:
+// count of each file type: Map(3) { '.txt' => 24, '.docx' => 28, '.csv' => 24 }
 ```
-
-<!-- Example 2 -->
 
 <details>
 <summary><i>Example 2</i></summary>
 
 ```typescript
-import {asSeq} from '@barakbbn/just-a-seq/optimized';
+// Join arrays of users-groups and groups-premissions to produce a sinlge array of users with their permissions
+import {asSeq} from '@barakbbn/just-a-seq';
 
 const users = [
   {user: 'sa', group: 'admins'},
@@ -88,18 +89,18 @@ const usersPermissions = asSeq(users)
           //    {key: 'guest', __group__: [ 'read' ]},
           //    {key: 'any',   __group__: [ 'read' ]},
           //    {key: 'me' ,   __group__: [ 'read', 'write', 'exec' ]}
-  // Map items into object with username and sorted array of permissions
+  // Map items into object with username and sorted array of its permissions
   .map(group => ({user: group.key, permissions: group.sorted().toArray()}))
-      // -> {user: 'sa',    permissions: [ 'read', 'write', 'exec' ]},
+      // -> {user: 'sa',    permissions: [ 'exec', 'read', 'write' ]},
       //    {user: 'guest', permissions: [ 'read' ]},
       //    {user: 'any',   permissions: [ 'read' ]},
-      //    {user: 'me' ,   permissions: [ 'read', 'write', 'exec' ]}
+      //    {user: 'me' ,   permissions: [ 'exec', 'read', 'write' ]}
   // Sort by username
   .sortBy(x => x.user)
         // -> {user: 'any',   permissions: [ 'read' ]},
         //    {user: 'guest', permissions: [ 'read' ]},
-        //    {user: 'me' ,   permissions: [ 'read', 'write', 'exec' ]}
-        //    {user: 'sa',    permissions: [ 'read', 'write', 'exec' ]},
+        //    {user: 'me' ,   permissions: [ 'exec', 'read', 'write' ]}
+        //    {user: 'sa',    permissions: [ 'exec', 'read', 'write' ]},
   .toArray();
 
 console.log('Users Permissions:', usersPermissions);
@@ -111,15 +112,42 @@ console.log('Users Permissions:', usersPermissions);
 //   { user: 'sa', permissions: [ 'exec', 'read', 'write' ] }
 // ]
 ```
-
+![innerJoin() animation](https://github.com/barakbbn/just-a-seq/wiki/images/inner-join-small.gif) <a href="https://github.com/barakbbn/just-a-seq/wiki/images/inner-join-large.gif"><samp>[+]</samp></a>
 </details>
 <br>
+
+### Breaking changes
+Version 1.2.0
+* Optimized mode is enabled by default !   
+  importing/requiring '@barakbbn/just-a-seq/optimized' is **no longer supported**.  
+  To disable optimized mode:
+  ```ts
+  import {asSeq, Seq} from '@barakbbn/just-a-seq';
+  Seq.enableOptimization = false;
+  ```
+* Package become a bundled CommonJS javascript file wrapped as UMD module (index.js).  
+  In order to be able to use both in Node.JS and **Browser** (exported as global variable **jas**eq).
+  ```html
+  <html>
+    <script src="file://node_modules/@barakbbn/just-a-seq/dist/index.js"></script>
+    <script>
+        var seq = jaseq.asSeq([1, 2]);
+        var len = seq.length();
+        document.getElementById("my-size").innerText = len;
+    </script>
+  </html>
+  ```
+
+#### More Examples
+
+<!-- Example 2 -->
+
 <!-- Example 3 -->
 <details>
 <summary><i>Example 3</i></summary>
 
 ```typescript
-import {asSeq} from '@barakbbn/just-a-seq/optimized';
+import {asSeq} from '@barakbbn/just-a-seq';
 
 const layers = [
   {layerId: 1, name: 'L-01', points: [{x: 0, y: 0, tag: 'center'}, {x: 1, y: 1, tag: 'opt'}], type: 'static'},
@@ -149,7 +177,7 @@ console.log(asSeq(layers)
 <summary><i>Example 4</i></summary>
 
 ```typescript
-import {asSeq} from '@barakbbn/just-a-seq/optimized';
+import {asSeq} from '@barakbbn/just-a-seq';
 
 const graphA = [
   {x: 0, y: 0}, {x: 1, y: 2}, {x: 2, y: 4}, {x: 3, y: 6}, {x: 4, y: 8}, {x: 5, y: 10}
@@ -183,7 +211,7 @@ console.log('Average difference', averageDiff);
 <summary><i>Example 5</i></summary>
 
 ```typescript
-import {asSeq} from '@barakbbn/just-a-seq/optimized';
+import {asSeq} from '@barakbbn/just-a-seq';
 
 const files: { name: string; size: number; ext: string; }[] = getListOfFiles();
 
@@ -259,32 +287,27 @@ chunksOfRecords.forEach(recordsSeq => saveToDatabase(recordsSeq));
 | asSeq  | indexes | empty  |
 | random | range   | repeat |
 
-### Optimized Mode
+## Optimized Mode
 
-There is an optimization mode (disabled by default) that optimize some functionalities in certain conditions.  
-It assumes no side effects are being performed. (especially through map() ). for side effect should use tap().  
-To use the optimized mode either:
+By default, some functionalities, in certain conditions are being optimized by doing "shortcuts".  
+This behavior assumes no side effects are being done by your code. (especially through map() ).  
+( for side effect should use tap(). )  
 
+
+If witnessing some mis-behaviours in optimized mode (Enabled by default),  
+It might be since relying on the optimized behaviours.  
+In that case disable optimized mode.
+
+##### Disabling optimized mode:
 ```ts
-import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
+import {asSeq, Seq} from '@barakbbn/just-a-seq';
+Seq.enableOptimization = false;
 ```
 
-Or enable global optimization flag as follows:
+Example of side effect
 
 ```ts
 import {asSeq, Seq} from '@barakbbn/just-a-seq';
-
-Seq.enableOptimization = true;
-```
-
-If witnessing some mis-behaviours in optimized mode,  
-It is probably since relying on behaviours that optimization mode do shortcuts for.  
-In that case either switch to non-optimized mode, or consider adjusting the code.
-
-Examples
-
-```ts
-import {asSeq, Seq} from '@barakbbn/just-a-seq/optimized';
 
 let students = loadStudents();
 let gotTopGrade = false;
@@ -300,9 +323,9 @@ students = students.tap(s => gotTopGrade |= (s.grade === 100));
 
 processStudents(students);
 ```
-
+Example of optimization of sorted sequence
 ```ts
-import {random, Seq} from '@barakbbn/just-a-seq/optimized';
+import {random, Seq} from '@barakbbn/just-a-seq';
 
 class PointsComponent {
   points: Seq<{ x: number; y: number; }>;
@@ -316,15 +339,18 @@ class PointsComponent {
       if (comparable === 0) samePoints++; // Side Effect
       return comparable;
     });
-    // The comparer function is not guranteed to run in optimization mode, in case a re-sort is performed.
-    // In that case don't use optimized mode. i.e. import {asSeq, random} from '@barakbbn/just-a-seq';
+    // The comparer function is not guranteed to run in optimization mode, 
+    // i.e When re-sort is performed, or performing functionality that not requires sorting (count, includes).
+    // IF the side effect is required, disable optimized.
   }
 
   onUserSelectedPoint(selectedPoint: { x: number; y: number; }) {
-    if (!this.points.includes(selectedPoint)) { // Optimization-mode might skip the sorting
+    // Optimization-mode might skip the sorting since includes() can be performed without sorting first
+    if (!this.points.includes(selectedPoint)) {
       this.points = this.points.push(selectedPoint);
     }
-    console.log('Total Points:', this.points.count()); // Optimization-mode might skip the sorting
+    // Optimization-mode might skip the sorting since count() can be performed without sorting first
+    console.log('Total Points:', this.points.count());
   }
 }
 ```

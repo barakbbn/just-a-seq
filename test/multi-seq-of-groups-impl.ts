@@ -1,10 +1,7 @@
 import {SeqOfMultiGroupsImpl} from "../lib/grouped-seq";
 import {describe} from "mocha";
-import {assert} from "chai";
 import {SeqTags, TaggedSeq} from "../lib/common";
-import {Seq, SeqOfMultiGroups} from "../lib";
-
-
+import {SeqOfMultiGroups} from "../lib";
 
 
 export class SeqOfMultiGroupsImpl_Tests {

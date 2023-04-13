@@ -527,7 +527,7 @@ export interface Seq<T> extends Iterable<T> {
 }
 
 export namespace Seq {
-  export let enableOptimization = false;
+  export let enableOptimization = true;
   export let stablePartialSorting = false;
 }
 

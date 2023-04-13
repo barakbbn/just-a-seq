@@ -1,8 +1,9 @@
 import {EMPTY_ARRAY, SeqTags} from "../lib/common";
 import {it} from "mocha";
 import {generator} from "./test-data";
-import {asSeq, Seq} from "../lib";
-import {asSeq as asSeqOptimized} from "../lib/optimized";
+import {Seq} from "../lib";
+import {asSeqInternal} from "../lib/internal";
+
 import {SeqBase} from "../lib/seq-base";
 
 export class TestHarness {
@@ -55,11 +56,13 @@ export class TestHarness {
 }
 
 export abstract class TestIt {
-  protected abstract createSut: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> };
+  protected abstract createSut: (<T>(input?: Iterable<T>) => Seq<T>) & {
+    fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T>
+  };
   private asSeq: (input: Iterable<any>) => Seq<any>;
 
   protected constructor(protected optimized: boolean) {
-    this.asSeq = optimized? asSeq: asSeqOptimized;
+    this.asSeq = (input: Iterable<any>) => asSeqInternal([input], optimized);
   }
 
   it1 = <T>(title: string, input: readonly T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void): void => {
@@ -70,7 +73,7 @@ export abstract class TestIt {
     if (generatorFunctionSut != null) {
       it(title + ' - generator function', () => testFn(generatorFunctionSut, input));
     }
-  }
+  };
 
   it2 = <T, U = T>(title: string, first: readonly T[], second: readonly U[], testFn: (first: Iterable<T>, second: Iterable<U>, firstArray: readonly T[], secondArray: readonly U[]) => void): void => {
     const generatorFunctionSut1 = this.tryCreateSutForGeneratorFunction(first);
@@ -105,7 +108,7 @@ export abstract class TestIt {
         it(title + ' - first generator fn, second generator fn', () => testFn(this.createSut(first), generatorFunctionSut2, first, second));
       }
     }
-  }
+  };
 
   itx = <T, U = T>(title: string, input: readonly T[], others: readonly U[][], testFn: (input: Iterable<T>, others: readonly Iterable<U>[], inputArray: readonly T[], otherArrays: readonly U[][]) => void): void => {
     it(title + ' - input array, others array', () => testFn(input, others, input, others));
@@ -119,15 +122,14 @@ export abstract class TestIt {
     it(title + ' - input sequence, others array', () => testFn(this.createSut(input), others, input, others));
     it(title + ' - input sequence, others generator', () => testFn(this.createSut(input), others.map(x => generator.from(x)), input, others));
     it(title + ' - input sequence, others sequence', () => testFn(this.createSut(input), others.map(x => this.createSut(x)), input, others));
-  }
+  };
 
   private tryCreateSutForGeneratorFunction<T>(input: Iterable<T>) {
     if (this.createSut.fromGenerator != null) {
       const generator = function* testGenerator() {
         yield* input;
       };
-      const seq = this.createSut.fromGenerator(generator);
-      return seq;
+      return this.createSut.fromGenerator(generator);
     }
     return undefined;
   }
