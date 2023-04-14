@@ -11,6 +11,9 @@
   },
   "author": "barakbbn",
   "license": "ISC",
+  "engines": {
+    "npm": ">=7.0.0"
+  },
   "repository": "https://github.com/barakbbn/just-a-seq",
   "homepage": "https://github.com/barakbbn/just-a-seq/wiki/docs",
   "devDependencies": {
