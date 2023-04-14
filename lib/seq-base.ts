@@ -484,12 +484,14 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   endsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
-  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+  endsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector?: (item: U) => K): boolean {
     if (this === items) return true;
 
     function isEqualsFunc(param?: any): param is { equals(t: T, u: U): unknown; } {
       return typeof param?.equals === 'function';
     }
+
+    if(!secondKeySelector) secondKeySelector = firstKeySelector as unknown as ((item: U) => K) | undefined;
 
     let equals: (t: T, u: U) => unknown = isEqualsFunc(firstKeySelector)? firstKeySelector.equals: sameValueZero;
 
@@ -497,8 +499,11 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
       Array.from(this, (item: T) => firstKeySelector(item)):
       Array.from(this) as unknown as K[];
 
-    const second = (!secondKeySelector && Array.isArray(items))? items as K[]: secondKeySelector && !isEqualsFunc(firstKeySelector)?
-      Array.from(items, (item: U) => secondKeySelector(item)):
+    const useSecondKeySelector = secondKeySelector && !isEqualsFunc(firstKeySelector);
+
+    const second = useSecondKeySelector?
+      Array.from(items, (item: U) => secondKeySelector!(item)):
+      Array.isArray(items)? items as K[]:
       Array.from(items) as unknown as K[];
 
     let offset = first.length - second.length;
@@ -2130,72 +2135,6 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
-  frame(start: number, end: number, step: number, opts: { padWith?: T; exactSize?: boolean; } = {}): Seq<Seq<T>> {
-    const size = end - start;
-    if (size < 1) return internalEmpty<Seq<T>>();
-    const defaultOpts: { padWith?: T; exactSize?: boolean; } = {};
-    const actualOpts = opts ?? defaultOpts;
-
-    if (step < 1) step = 1;
-
-    const leftPadding = start < 0 && actualOpts?.padWith !== undefined;
-    const rightPadding = end > 0 && actualOpts?.padWith !== undefined;
-    const overflowRight = end > 0 && !rightPadding && !actualOpts.exactSize;
-
-    const optimize = SeqTags.optimize(this);
-    const createSeq = (window: T[]): Seq<T> => {
-      const innerSeq = factories.Seq(Object.freeze(window));
-      return this.tagAsOptimized(innerSeq, optimize);
-    };
-
-    return this.generate(function* window(items, iterationContext) {
-      function* iterate() {
-        let isEmpty = true;
-
-        for (const item of items) {
-          yield item;
-          isEmpty = false;
-        }
-
-        if (isEmpty) return;
-
-        if (rightPadding && size > 1) {
-          for (let i = 1; i < size; i++) yield actualOpts.padWith!;
-        }
-      }
-
-      let window = new SlidingWindow<T>(iterate(), size);
-      iterationContext.onClose(() => window.dispose());
-
-      if (leftPadding) window.fill(actualOpts.padWith!, -start);
-
-      const initialSize = start < 0? 1: size + start;
-      let lastSlidCount = window.slide(initialSize);
-
-      if (actualOpts.exactSize && window.count < size) return;
-
-      while (lastSlidCount) {
-
-        yield createSeq([...window]);
-        if (window.done) break;
-
-        lastSlidCount = window.slide(step);
-
-        const stepsLeft = step - lastSlidCount;
-        if (stepsLeft > 0) {
-          if (overflowRight) lastSlidCount += window.overflow(stepsLeft);
-          else break; // When not overflow right, we expect to have full window slide, otherwise reached end of sequence without enough items
-          if (!window.count) break; // in case overflowed over the edge
-        }
-      }
-
-      while (overflowRight && window.count > step) {
-        window.overflow(step);
-        yield createSeq([...window]);
-      }
-    });
-  }
-
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]> {
     return this.generate(function* zip(self, iterationContext) {
       const allIterables: any[] = [self, items, ...moreItems];
@@ -2239,6 +2178,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   abstract [Symbol.iterator](): Iterator<T>;
 
+  // noinspection JSUnusedGlobalSymbols
   /**
    * Used by JSON.stringify
    * @see {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#tojson_behavior}

@@ -1,5 +1,5 @@
 import {CachedSeq, Condition, Selector} from "./seq";
-import {SeqTags, TaggedSeq, tapGenerator} from "./common";
+import {SeqTags, tapGenerator} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
