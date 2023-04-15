@@ -1,6 +1,6 @@
 import {describe, it} from "mocha";
 import {assert} from "chai";
-import {array, generator, Sample} from "../test-data";
+import {array, generator, Grade, Sample} from "../test-data";
 import {Seq, Selector} from "../../lib";
 import {TestIt} from "../test-harness";
 
@@ -338,8 +338,16 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
         this.it1('should return true if sequence is checked with itself', array.oneToTen, (input) => {
           const sut = this.createSut(input);
+
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<number> {
+            iterated = true;
+            return iteratorFn();
+          };
           let actual = sut.endsWith(sut);
           assert.isTrue(actual);
+          assert.isFalse(iterated);
         });
       });
 
@@ -381,8 +389,15 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
         this.it1('should return true if sequence is checked with itself', array.grades, (input) => {
           const sut = this.createSut(input);
-          let actual = sut.endsWith(sut, x => x.grade);
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<Grade> {
+            iterated = true;
+            return iteratorFn();
+          };
+          const actual = sut.endsWith(sut, x => x.grade);
           assert.isTrue(actual);
+          assert.isFalse(iterated);
         });
 
         describe('second is partial type of first', () => {
@@ -390,7 +405,9 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             {id: 0, name: '0'}, {id: 1, name: '1'}, {id: 2, name: '2'}, {id: 3, name: '3'},
             {id: 4, name: '4'}, {id: 5, name: '5'}, {id: 6, name: '6'}, {id: 7, name: '7'}
           ];
-          const SECOND: readonly { id: number; }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
+          const SECOND: readonly {
+            id: number;
+          }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
 
           this.it2("should return false if sequence doesn't end with all the specified items",
             FIRST.map((x, i) => FIRST[FIRST.length - i - 1]),
@@ -490,8 +507,15 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
           score: x.grade
         })), (input) => {
           const sut = this.createSut(input);
-          let actual = sut.endsWith(sut, first => first.score, second => second.grade);
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<Grade & { score: number; }> {
+            iterated = true;
+            return iteratorFn();
+          };
+          const actual = sut.endsWith(sut, first => first.score, second => second.grade);
           assert.isTrue(actual);
+          assert.isFalse(iterated);
         });
       });
 
@@ -550,8 +574,15 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
           array.grades.map(x => ({...x, score: x.grade})),
           (input) => {
             const sut = this.createSut(input);
-            let actual = sut.endsWith(sut, {equals: (f, s) => f.grade === s.score});
+            let iterated = false;
+            const iteratorFn = sut[Symbol.iterator].bind(sut);
+            sut[Symbol.iterator] = function (): Iterator<Grade & { score: number; }> {
+              iterated = true;
+              return iteratorFn();
+            };
+            const actual = sut.endsWith(sut, {equals: (f, s) => f.grade === s.score});
             assert.isTrue(actual);
+            assert.isFalse(iterated);
           });
       });
     });
@@ -1532,426 +1563,262 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     });
 
     describe('includesSubSequence()', () => {
-      it('should return true if sequence contains entire sub-sequence is same order', () => {
-        const first = array.zeroToTen;
-        const second = array.oneToNine;
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
+      this.it2('should return true if sequence contains entire sub-sequence is same order - numbers',
+        array.zeroToTen,
+        array.oneToNine,
+        (first, second) => {
+          const sut = this.createSut(first);
+          const actual = sut.includesSubSequence(second);
+          assert.isTrue(actual);
+        });
+
+      this.it1('should return true if sequence contains entire sub-sequence is same order - objects',
+        array.grades,
+        (input, inputArray) => {
+          const second = inputArray.slice(5, 8);
+          const sut = this.createSut(input);
+          const actual = sut.includesSubSequence(second);
+          assert.isTrue(actual);
+        });
+
+      this.it2('should return false if sequence contains entire sub-sequence but not in same order - numbers',
+        array.oneToTen,
+        array.range(5, 2),
+        (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return false if sequence contains entire sub-sequence but not in same order - objects',
+        array.grades,
+        array.gradesAboveFifty.reverse(),
+        (first, second) => {
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return false if sequence contains part of sub-sequence - numbers',
+        array.oneToTen,
+        [9, 10, 11],
+        (first, second) => {
+
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second);
+          assert.isFalse(actual);
+
+          const first2 = array.grades;
+          const missing = {name: "missing", grade: -1};
+          const second2 = first2.slice(-3).concat([missing]);
+          let sut2 = this.createSut(first2);
+          let actual2 = sut2.includesSubSequence(second2);
+          assert.isFalse(actual2);
+          sut2 = this.createSut(generator.from(first2));
+          actual2 = sut2.includesSubSequence(generator.from(second2));
+          assert.isFalse(actual2);
+        });
+
+      this.it2('should return false if sequence contains part of sub-sequence - objects',
+        array.grades,
+        array.gradesAboveFifty.concat([{name: "missing", grade: -1}]),
+        (first, second) => {
+
+          let sut = this.createSut(first);
+          let actual = sut.includesSubSequence(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return false if sequence has less items than sub-sequence',
+        array.oneToNine,
+        array.oneToTen,
+        (first, second) => {
+          const sut = this.createSut(first);
+          const actual = sut.includesSubSequence(second);
+          assert.isFalse(actual);
+        });
+
+      this.it2('should return false if sequence is empty', [] as number[], array.oneToTen, (first, second) => {
+        const sut = this.createSut(first);
+        const actual = sut.includesSubSequence(second);
+        assert.isFalse(actual);
+      });
+
+      this.it2('should return true if sub-sequence is empty', array.oneToTen, [] as number[], (first, second) => {
+        const sut = this.createSut(first);
+        const actual = sut.includesSubSequence(second);
         assert.isTrue(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isTrue(actual);
-
-        const first2 = array.grades;
-        const second2 = first2.filter(x => x.grade > 50);
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isTrue(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isTrue(actual2);
-      });
-
-      it('should return false if sequence contains entire sub-sequence but not in same order', () => {
-        const first = array.oneToTen;
-        const second = array.range(5, 2);
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
-        assert.isFalse(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isFalse(actual);
-
-        const first2 = array.grades;
-        const second2 = first2.filter(x => x.grade > 50).reverse();
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isFalse(actual2);
-      });
-
-      it('should return false if sequence contains part of sub-sequence', () => {
-        const first = array.oneToTen;
-        const second = [9, 10, 11];
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
-        assert.isFalse(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isFalse(actual);
-
-        const first2 = array.grades;
-        const missing = {name: "missing", grade: -1};
-        const second2 = first2.slice(-3).concat([missing]);
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isFalse(actual2);
-      });
-
-      it('should return false if sequence has less items than sub-sequence', () => {
-        const first = array.oneToNine;
-        const second = array.oneToTen;
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
-        assert.isFalse(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isFalse(actual);
-
-        const first2 = array.grades.slice(0, array.grades.length - 2);
-        const second2 = array.grades;
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isFalse(actual2);
-      });
-
-      it('should return false if sequence is empty', () => {
-        const first: number[] = [];
-        const second = array.oneToTen;
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
-        assert.isFalse(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isFalse(actual);
-
-        const first2: { name: string, grade: number; }[] = [];
-        const second2 = array.grades;
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isFalse(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isFalse(actual2);
-      });
-
-      it('should return true if sub-sequence is empty', () => {
-        const first = array.oneToTen;
-        const second: number[] = [];
-        let sut = this.createSut(first);
-        let actual = sut.includesSubSequence(second);
-        assert.isTrue(actual);
-
-        sut = this.createSut(generator.from(first));
-        actual = sut.includesSubSequence(generator.from(second));
-        assert.isTrue(actual);
-
-        const second2: { name: string, grade: number; }[] = [];
-        const first2 = array.grades;
-        let sut2 = this.createSut(first2);
-        let actual2 = sut2.includesSubSequence(second2);
-        assert.isTrue(actual2);
-        sut2 = this.createSut(generator.from(first2));
-        actual2 = sut2.includesSubSequence(generator.from(second2));
-        assert.isTrue(actual2);
       });
 
       describe('from index', () => {
-        it('should return true if sequence contains entire sub-sequence is same order starting from-index', () => {
-          const first = array.tenOnes;
-          const second = [1, 1, 1];
-          const fromIndex = 5;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.strictEqual(actual, true);
+        this.it2('should return true if sequence contains entire sub-sequence is same order starting from-index',
+          array.tenOnes, [1, 1, 1], (first, second) => {
 
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.strictEqual(actual, true);
-        });
+            const fromIndex = 5;
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, fromIndex);
+            assert.strictEqual(actual, true);
+          });
 
-        it('should return false if sequence contains entire sub-sequence but not in same order', () => {
-          const first = array.tenOnes.concat(array.tenZeros);
-          const second = [0, 0, 0, 1, 1, 1];
-          const fromIndex = 6;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.isFalse(actual);
+        this.it2('should return false if sequence contains entire sub-sequence but not in same order',
+          array.tenOnes.concat(array.tenZeros), [0, 0, 0, 1, 1, 1], (first, second) => {
+            const fromIndex = 6;
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, fromIndex);
+            assert.isFalse(actual);
+          });
 
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.isFalse(actual);
-        });
+        this.it2('should return false if sequence contains part of sub-sequence',
+          array.tenOnes.concat(array.tenZeros), [1, 1, 1, 9999], (first, second) => {
+            const fromIndex = 6;
+            let sut = this.createSut(first);
+            let actual = sut.includesSubSequence(second, fromIndex);
+            assert.isFalse(actual);
+          });
 
-        it('should return false if sequence contains part of sub-sequence', () => {
-          const first = array.tenOnes.concat(array.tenZeros);
-          const second = [1, 1, 1, 9999];
-          const fromIndex = 6;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.isFalse(actual);
+        this.it2('should return false if sequence has less items than sub-sequence',
+          array.tenOnes.concat(array.tenZeros), array.tenZeros.concat([0]), (first, second) => {
+            const fromIndex = 6;
+            let sut = this.createSut(first);
+            let actual = sut.includesSubSequence(second, fromIndex);
+            assert.isFalse(actual);
+          });
 
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.isFalse(actual);
-        });
+        this.it2('should return false if sequence is empty',
+          [] as number[], array.tenZeros.concat([0]), (first, second) => {
+            const fromIndex = 6;
+            let sut = this.createSut(first);
+            let actual = sut.includesSubSequence(second, fromIndex);
+            assert.isFalse(actual);
+          });
 
-        it('should return false if sequence has less items than sub-sequence', () => {
-          const first = array.tenOnes.concat(array.tenZeros);
-          const second = array.tenZeros.concat([0]);
-          const fromIndex = 6;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.isFalse(actual);
-        });
-
-        it('should return false if sequence is empty', () => {
-          const first: number[] = [];
-          const second = array.tenZeros.concat([0]);
-          const fromIndex = 6;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.isFalse(actual);
-        });
-
-        it('should return true if sub-sequence is empty', () => {
-          const second: number[] = [];
-          const first = array.tenZeros.concat([0]);
-          const fromIndex = 6;
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, fromIndex);
-          assert.isTrue(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), fromIndex);
-          assert.isTrue(actual);
-        });
+        this.it2('should return true if sub-sequence is empty',
+          array.tenZeros.concat([0]), [] as number[], (first, second) => {
+            const fromIndex = 6;
+            let sut = this.createSut(first);
+            let actual = sut.includesSubSequence(second, fromIndex);
+            assert.isTrue(actual);
+          });
       });
 
       describe('with key-selector', () => {
-        it('should return true if sequence contains entire sub-sequence is same order', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade}));
+        this.it2('should return true if sequence contains entire sub-sequence is same order',
+          array.grades, array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade})), (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isTrue(actual);
+          });
 
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isTrue(actual);
+        this.it2('should return false if sequence contains entire sub-sequence but not in same order',
+          array.grades, array.gradesFiftyAndAbove.reverse(), (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
+        this.it2('should return false if sequence contains part of sub-sequence',
+          array.grades, array.gradesFiftyAndAbove.concat({name: "missing", grade: -1}), (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-        it('should return false if sequence contains entire sub-sequence but not in same order', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndAbove.reverse();
+        this.it2('should return false if sequence has less items than sub-sequence',
+          array.grades, array.grades.concat({name: "missing", grade: -1}), (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isFalse(actual);
+        this.it2('should return false if sequence is empty',
+          [] as { name: string; grade: number; }[], array.grades, (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isFalse(actual);
+          });
 
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
-
-        it('should return false if sequence contains part of sub-sequence', () => {
-          const first = array.grades;
-          const missing = {name: "missing", grade: -1};
-          const second = array.gradesFiftyAndAbove.concat(missing);
-
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
-
-        it('should return false if sequence has less items than sub-sequence', () => {
-          const first = array.grades;
-          const missing = {name: "missing", grade: -1};
-          const second = array.grades.concat(missing);
-
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
-
-        it('should return false if sequence is empty', () => {
-          const first: { name: string; grade: number; }[] = [];
-          const second = array.grades;
-
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isFalse(actual);
-        });
-
-        it('should return true if sub-sequence is empty', () => {
-          const second: { name: string; grade: number; }[] = [];
-          const first = array.grades;
-
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, x => x.grade);
-          assert.isTrue(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
+        this.it2('should return true if sub-sequence is empty',
+          array.grades, [] as { name: string; grade: number; }[], (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, x => x.grade);
+            assert.isTrue(actual);
+          });
 
         describe('from index', () => {
-          it('should return true if sequence contains entire sub-sequence is same order', () => {
-            const input = [...'.'.repeat(10)].map(() => ({x: 0, y: 0}));
-            const first = input;
-            const second = input.slice(0, 3);
-            const fromIndex = 5;
+          const fromIndex = 5;
+          this.it2('should return true if sequence contains entire sub-sequence is same order',
+            array.grades, array.grades.slice(fromIndex, fromIndex+3), (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isTrue(actual);
+            });
 
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.strictEqual(actual, true);
+          this.it2('should return false if sequence contains entire sub-sequence but not in same order',
+            array.grades, array.grades.slice(fromIndex, fromIndex+3).reverse(), (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isFalse(actual);
+            });
 
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.strictEqual(actual, true);
-          });
+          this.it2('should return false if sequence contains part of sub-sequence',
+            array.grades,
+            array.grades.slice(fromIndex, fromIndex+3).concat([{name: "missing", grade: -1}]),
+            (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isFalse(actual);
+            });
 
-          it('should return false if sequence contains entire sub-sequence but not in same order', () => {
-            const first = array.oneToTen.map((y) => ({x: 0, y}));
-            const second = first.slice(-3).reverse();
-            const fromIndex = 5;
+          this.it2('should return false if sequence has less items than sub-sequence',
+            array.gradesAboveFifty, array.gradesFiftyAndAbove, (first, second) => {
+              const fromIndex = 0;
 
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isFalse(actual);
+            });
 
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-          });
+          this.it2('should return false if sequence is empty',
+            [] as Grade[], array.grades, (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isFalse(actual);
+            });
 
-          it('should return false if sequence contains part of sub-sequence', () => {
-            const first = array.oneToTen.map((y) => ({x: 0, y}));
-            const second = first.slice(-3).concat([{x: 0, y: -9999}]);
-            const fromIndex = 5;
-
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-          });
-
-          it('should return false if sequence has less items than sub-sequence', () => {
-            const first = array.oneToTen.map((y) => ({x: 0, y}));
-            const second = first.concat([{x: 0, y: 11}]);
-            const fromIndex = 5;
-
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-          });
-
-          it('should return false if sequence is empty', () => {
-            const first: { x: number; y: number; }[] = [];
-            const second = array.oneToTen.map((y) => ({x: 0, y}));
-            const fromIndex = 5;
-
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isFalse(actual);
-          });
-
-          it('should return true if sub-sequence is empty', () => {
-            const first = array.oneToTen.map((y) => ({x: 0, y}));
-            const second: { x: number; y: number; }[] = [];
-            const fromIndex = 5;
-
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isTrue(actual);
-
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, p => `[${p.x},${p.y}]`);
-            assert.isTrue(actual);
-          });
+          this.it2('should return true if sub-sequence is empty',
+            array.grades, [] as Grade[], (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, p => `${p.name}|${p.grade}`);
+              assert.isTrue(actual);
+            });
         });
 
         // TODO: second sequence of different type
       });
 
       describe('with equality function', () => {
-        it('should return true if sequence contains entire sub-sequence is same order', () => {
-          const first = array.grades;
-          const second = array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade}));
+        this.it2('should return true if sequence contains entire sub-sequence is same order',
+          array.grades, array.gradesFiftyAndAbove.map(x => ({...x, score: x.grade})), (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, {equals: (a, b) => a.grade === b.score});
+            assert.isTrue(actual);
+          });
 
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, {equals: (a, b) => a.grade === b.score});
-          assert.isTrue(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), x => x.grade);
-          assert.isTrue(actual);
-        });
-
-        it('should return false if sequence do not contain sub-sequence', () => {
-          const first = array.grades;
-          const second = first;
-
-          let sut = this.createSut(first);
-          let actual = sut.includesSubSequence(second, {equals: () => false});
-          assert.isFalse(actual);
-
-          sut = this.createSut(generator.from(first));
-          actual = sut.includesSubSequence(generator.from(second), {equals: () => false});
-          assert.isFalse(actual);
-        });
+        this.it2('should return false if sequence do not contain sub-sequence',
+          array.grades, array.grades, (first, second) => {
+            const sut = this.createSut(first);
+            const actual = sut.includesSubSequence(second, {equals: () => false});
+            assert.isFalse(actual);
+          });
 
         describe('from index', () => {
-          it('should return true if sequence contains entire sub-sequence is same order', () => {
-            const input = [...'.'.repeat(10)].map(() => ({x: 0, y: 0}));
-            const first = input;
-            const second = input.slice(0, 3);
-            const fromIndex = 5;
-
-            let sut = this.createSut(first);
-            let actual = sut.includesSubSequence(second, fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
-            assert.strictEqual(actual, true);
-
-            sut = this.createSut(generator.from(first));
-            actual = sut.includesSubSequence(generator.from(second), fromIndex, {equals: (a, b) => a.x === b.x && a.y === b.y});
-            assert.strictEqual(actual, true);
-          });
+          const fromIndex = 5;
+          this.it2('should return true if sequence contains entire sub-sequence is same order',
+            array.grades, array.grades.slice(fromIndex, fromIndex+3), (first, second) => {
+              const sut = this.createSut(first);
+              const actual = sut.includesSubSequence(second, fromIndex, {equals: (a, b) => a.name === b.name && a.grade === b.grade});
+              assert.strictEqual(actual, true);
+            });
         });
       });
     });
@@ -3015,7 +2882,9 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
       });
 
-      this.it1('should throws is selector parameter is not a function or has comparer function', <{ age: number; }[]>[], input => {
+      this.it1('should throws is selector parameter is not a function or has comparer function', <{
+        age: number;
+      }[]>[], input => {
         const sut = this.createSut(input);
         assert.throw(() => sut.maxItem(undefined as unknown as Selector<{ age: number; }, any>));
       });
@@ -3111,7 +2980,9 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
         });
       });
 
-      this.it1('should throws is selector parameter is not a function or has comparer function', <{ age: number; }[]>[], input => {
+      this.it1('should throws is selector parameter is not a function or has comparer function', <{
+        age: number;
+      }[]>[], input => {
         const sut = this.createSut(input);
         assert.throw(() => sut.minItem(undefined as unknown as Selector<{ age: number; }, any>));
       });
@@ -3766,45 +3637,61 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
     });
 
     describe('startsWith()', () => {
-      this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
-        array.oneToTen,
-        (input, inputArray) => {
+      describe("without key selector", () => {
+        this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
+          array.oneToTen,
+          (input, inputArray) => {
+            const sut = this.createSut(input);
+
+            for (let take = 1; take < inputArray.length; take++) {
+              const second = inputArray.slice(0, take);
+              let actual = sut.startsWith(second);
+              assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
+            }
+          });
+
+        this.it2("should return false if sequence doesn't start with second sequence",
+          array.oneToTen,
+          array.oneToNine.concat(9),
+          (first, second) => {
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second));
+          });
+
+        this.it2('should return false if second sequence has more items',
+          array.oneToNine,
+          array.tenOnes,
+          (first, second) => {
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second));
+          });
+
+        this.it2('should return false if second sequence starts with first sequence',
+          array.oneToNine,
+          array.oneToTen,
+          (first, second) => {
+            const sut = this.createSut(first);
+            assert.isFalse(sut.startsWith(second));
+          });
+
+        this.it2('should return true if second sequence is empty', array.oneToNine, [], (first, second) => {
+          const sut = this.createSut(first);
+          assert.isTrue(sut.startsWith(second));
+        });
+
+        this.it1('should return true if sequence is checked with itself', array.oneToTen, (input) => {
           const sut = this.createSut(input);
 
-          for (let take = 1; take < inputArray.length; take++) {
-            const second = inputArray.slice(0, take);
-            let actual = sut.startsWith(second);
-            assert.isTrue(actual, `[${input}] doesn't starts with [${second}]`);
-          }
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<number> {
+            iterated = true;
+            return iteratorFn();
+          };
+          let actual = sut.startsWith(sut);
+          assert.isTrue(actual);
+          assert.isFalse(iterated);
         });
-
-      this.it2("should return false if sequence doesn't start with second sequence",
-        array.oneToTen,
-        array.oneToNine.concat(9),
-        (first, second) => {
-          const sut = this.createSut(first);
-          assert.isFalse(sut.startsWith(second));
-        });
-
-      this.it2('should return false if second sequence has more items',
-        array.oneToNine,
-        array.tenOnes,
-        (first, second) => {
-          const sut = this.createSut(first);
-          assert.isFalse(sut.startsWith(second));
-        });
-
-      this.it2('should return false if second sequence starts with first sequence',
-        array.oneToNine,
-        array.oneToTen,
-        (first, second) => {
-          const sut = this.createSut(first);
-          assert.isFalse(sut.startsWith(second));
-        });
-
-      this.it2('should return true if second sequence is empty', array.oneToNine, [], (first, second) => {
-        const sut = this.createSut(first);
-        assert.isTrue(sut.startsWith(second));
       });
 
       describe('with key selector', () => {
@@ -3867,12 +3754,27 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             assert.isTrue(sut.startsWith(second, x => x.grade));
           });
 
+        this.it1('should return true if sequence is checked with itself', array.grades, (input) => {
+          const sut = this.createSut(input);
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<Grade> {
+            iterated = true;
+            return iteratorFn();
+          };
+          const actual = sut.startsWith(sut, x => x.grade);
+          assert.isTrue(actual);
+          assert.isFalse(iterated);
+        });
+
         describe('second is partial type of first', () => {
           const FIRST: readonly { id: number; name: string; }[] = [
             {id: 0, name: '0'}, {id: 1, name: '1'}, {id: 2, name: '2'}, {id: 3, name: '3'},
             {id: 4, name: '4'}, {id: 5, name: '5'}, {id: 6, name: '6'}, {id: 7, name: '7'}
           ];
-          const SECOND: readonly { id: number; }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
+          const SECOND: readonly {
+            id: number;
+          }[] = [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}, {id: 6}, {id: 7}];
 
           this.it1('should return true if sequence contains second sequence from the beginning with exact same items and same order',
             FIRST,
@@ -3993,6 +3895,23 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             const sut = this.createSut(first);
             assert.isTrue(sut.startsWith(second, first => first.grade, second => second.score));
           });
+
+        this.it1('should return true if sequence is checked with itself', array.grades.map(x => ({
+          ...x,
+          score: x.grade
+        })), (input) => {
+          const sut = this.createSut(input);
+          let iterated = false;
+          const iteratorFn = sut[Symbol.iterator].bind(sut);
+          sut[Symbol.iterator] = function (): Iterator<Grade & { score: number; }> {
+            iterated = true;
+            return iteratorFn();
+          };
+          const actual = sut.startsWith(sut, first => first.score, second => second.grade);
+          assert.isTrue(actual);
+          assert.isFalse(iterated);
+        });
+
       });
 
       describe('with equality comparer', () => {
@@ -4052,6 +3971,21 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
 
             const sut = this.createSut(first);
             assert.isTrue(sut.startsWith(second, {equals: (f, s) => f.grade === s.score}));
+          });
+
+        this.it1('should return true if sequence is checked with itself',
+          array.grades.map(x => ({...x, score: x.grade})),
+          (input) => {
+            const sut = this.createSut(input);
+            let iterated = false;
+            const iteratorFn = sut[Symbol.iterator].bind(sut);
+            sut[Symbol.iterator] = function (): Iterator<Grade & { score: number; }> {
+              iterated = true;
+              return iteratorFn();
+            };
+            const actual = sut.startsWith(sut, {equals: (f, s) => f.grade === s.score});
+            assert.isTrue(actual);
+            assert.isFalse(iterated);
           });
       });
     });
@@ -4325,7 +4259,7 @@ export abstract class SeqBase_Immediate_Tests extends TestIt {
             array.grades.concat(array.gradesFiftyAndAbove), (input, inputArray) => {
               const keysSet = new Set<number>();
               const expected = new Set<string>();
-              for(const item of inputArray) {
+              for (const item of inputArray) {
                 if (keysSet.has(item.grade)) continue;
                 keysSet.add(item.grade);
                 expected.add(item.name);

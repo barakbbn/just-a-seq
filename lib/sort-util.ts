@@ -55,8 +55,7 @@ export function binarySearch<T = any>(items: ArrayLike<T>, item: T, comparer: (a
 
 export function createComparer<T, K = T>(keySelector: ((x: T) => K) | undefined,
                                          comparer: Comparer<K> | undefined,
-                                         reverse: boolean): ((a: any, b: any) => number) | undefined {
-  if (comparer === LEGACY_COMPARER && !reverse) return undefined;
+                                         reverse: boolean): ((a: any, b: any) => number) {
   if (comparer === DONT_COMPARE) return comparer;
 
   let baseComparer: (a: any, b: any) => number = comparer ?? DEFAULT_COMPARER;

@@ -59,10 +59,8 @@ export abstract class TestIt {
   protected abstract createSut: (<T>(input?: Iterable<T>) => Seq<T>) & {
     fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T>
   };
-  private asSeq: (input: Iterable<any>) => Seq<any>;
 
   protected constructor(protected optimized: boolean) {
-    this.asSeq = (input: Iterable<any>) => asSeqInternal([input], optimized);
   }
 
   it1 = <T>(title: string, input: readonly T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void): void => {
