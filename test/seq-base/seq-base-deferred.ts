@@ -705,7 +705,9 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
           this.it2("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence",
             FIRST, SECOND, (first, second) => {
 
-              let expected: ({ id: number; name: string; } | { id: number; })[] = [...FIRST.filter(x => x.id > 10), ...SECOND.filter(x => x.id > 100)];
+              let expected: ({ id: number; name: string; } | {
+                id: number;
+              })[] = [...FIRST.filter(x => x.id > 10), ...SECOND.filter(x => x.id > 100)];
 
               const sut = this.createSut(first);
               const actual = sut.diff(second, x => x.id);
@@ -771,7 +773,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         this.it2("should return items from first sequence not existing in second sequence and items from second sequence not existing in first sequence",
           FIRST, SECOND, (first, second) => {
 
-            let expected: ({ id: number; name: string; } | number)[] = [...FIRST.filter(f => f.id > 10), ...SECOND.filter(s => s > 100)];
+            let expected: ({
+              id: number;
+              name: string;
+            } | number)[] = [...FIRST.filter(f => f.id > 10), ...SECOND.filter(s => s > 100)];
 
             const sut = this.createSut(first);
             const actual = sut.diff(second, f => f.id, s => s);
@@ -1024,8 +1029,14 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               const sut = this.createSut(first);
               const diffMatch = sut.diffMatch(second, grade => grade.name);
 
-              assert.sameOrderedMembers(diffMatch.firstMatched.array as { name: string; grade: number; }[], firstExpected, 'firstMatched');
-              assert.sameOrderedMembers(diffMatch.secondMatched.array as { name: string; grade: number; }[], secondExpected, 'secondMatched');
+              assert.sameOrderedMembers(diffMatch.firstMatched.array as {
+                name: string;
+                grade: number;
+              }[], firstExpected, 'firstMatched');
+              assert.sameOrderedMembers(diffMatch.secondMatched.array as {
+                name: string;
+                grade: number;
+              }[], secondExpected, 'secondMatched');
             });
 
           this.it2('should return empty sequence if non of the items exists in the second sequence',
@@ -1067,7 +1078,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
               const sut = this.createSut(first);
               const diffMatch = sut.diffMatch(second, grade => grade.name);
 
-              assert.sameOrderedMembers(diffMatch.secondDiff.array as { name: string; grade: number; }[], secondExpected);
+              assert.sameOrderedMembers(diffMatch.secondDiff.array as {
+                name: string;
+                grade: number;
+              }[], secondExpected);
             });
 
           this.it2('should return empty secondDiff sequence if all the items from the second sequence exists in the first sequence',
@@ -1132,7 +1146,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         assert.sameMembers([...actual], expected);
       });
 
-      this.it1('should return empty sequence when source sequence is empty and key selector is used', [], (input: Iterable<{ name: string; grade: number; }>) => {
+      this.it1('should return empty sequence when source sequence is empty and key selector is used', [], (input: Iterable<{
+        name: string;
+        grade: number;
+      }>) => {
         const expected: { name: string; grade: number; }[] = [];
         const sut = this.createSut(input);
         const actual = sut.distinct(x => x.grade);
@@ -1408,7 +1425,17 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
         this.it1('should flattened items from a sequence of items having child items', array.folders, (input) => {
-          let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string }[] = [];
+          let expected: {
+            v0: string;
+            v1: string;
+            v2: string;
+            v3: string;
+            v4: string;
+            v5: string;
+            v6: string;
+            v7: string;
+            v8: string
+          }[] = [];
           const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
           [...input].forEach(v0 => safeChildren(v0)
             .forEach(v1 => safeChildren(v1)
@@ -1543,7 +1570,17 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
 
         this.it1('should flattened items from a sequence of items having child items expect children of type string (sequence of chars)', array.folders, (input) => {
-          let expected: { v0: string; v1: string; v2: string; v3: string; v4: string; v5: string; v6: string; v7: string; v8: string; }[] = [];
+          let expected: {
+            v0: string;
+            v1: string;
+            v2: string;
+            v3: string;
+            v4: string;
+            v5: string;
+            v6: string;
+            v7: string;
+            v8: string;
+          }[] = [];
           const safeChildren = (v: Folder): Folder[] => v.subFolders.length? v.subFolders: [v];
           [...input].forEach(v0 => safeChildren(v0)
             .forEach(v1 => safeChildren(v1)
@@ -1615,7 +1652,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         assert.sameOrderedMembers(actual, expected);
       });
 
-      this.it1('should return default value if sequence is empty - default object', [], (input: Iterable<{ name: string, grade: number }>) => {
+      this.it1('should return default value if sequence is empty - default object', [], (input: Iterable<{
+        name: string,
+        grade: number
+      }>) => {
         const defaultValue = {name: "defaultStudent", grade: 100};
         const expected = [defaultValue];
         let sut = this.createSut(input);
@@ -2095,7 +2135,10 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
             assert.sameDeepMembers(actual, expected);
           });
 
-        this.it2('should return empty sequence if first sequence is empty', [], array.grades, (first: Iterable<{ name: string; grade: number }>, second) => {
+        this.it2('should return empty sequence if first sequence is empty', [], array.grades, (first: Iterable<{
+          name: string;
+          grade: number
+        }>, second) => {
           const expected: { name: string; grade: number; }[] = [];
           let sut = this.createSut(first);
           let actual = [...sut.intersect(second, x => x.grade)];
@@ -2248,7 +2291,11 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
     });
 
     describe('intersperse()', () => {
-      const testIntersperse = <T>(input: Iterable<T>, separator: any, opts?: { insideOut?: boolean; prefix?: any; suffix?: any }) => {
+      const testIntersperse = <T>(input: Iterable<T>, separator: any, opts?: {
+        insideOut?: boolean;
+        prefix?: any;
+        suffix?: any
+      }) => {
         const expected: any[] = [...input].reduce((res, item) => [...res, item, separator], <any[]>[]);
         expected.pop();
         if (opts?.prefix != null || opts?.insideOut) expected.unshift(opts?.prefix ?? separator);
@@ -2337,7 +2384,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       describe('should provide correct arguments to separatorFactory function', () => {
         this.it1(`when separatorAlignment is "Inner"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+          const innerInfo: {
+            prevItem: number,
+            hasPervItem: boolean,
+            prevItemIndex: number,
+            nextItem: number,
+            hasNextItem: boolean,
+            isPrefixSeparator: boolean,
+            isSuffixSeparator: boolean
+          }[] = [
             {
               prevItem: inputArray[0],
               hasPervItem: true,
@@ -2376,7 +2431,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
         this.it1(`when separatorAlignment is "Outer"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+          const innerInfo: {
+            prevItem: number,
+            hasPervItem: boolean,
+            prevItemIndex: number,
+            nextItem: number,
+            hasNextItem: boolean,
+            isPrefixSeparator: boolean,
+            isSuffixSeparator: boolean
+          }[] = [
             {
               prevItem: undefined as unknown as number,
               hasPervItem: false,
@@ -2424,7 +2487,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
         this.it1(`when separatorAlignment is "Left"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+          const innerInfo: {
+            prevItem: number,
+            hasPervItem: boolean,
+            prevItemIndex: number,
+            nextItem: number,
+            hasNextItem: boolean,
+            isPrefixSeparator: boolean,
+            isSuffixSeparator: boolean
+          }[] = [
             {
               prevItem: undefined as unknown as number,
               hasPervItem: false,
@@ -2472,7 +2543,15 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
 
         this.it1(`when separatorAlignment is "Right"`, [0, 1, 2], (input, inputArray) => {
           let i = 0;
-          const innerInfo: { prevItem: number, hasPervItem: boolean, prevItemIndex: number, nextItem: number, hasNextItem: boolean, isPrefixSeparator: boolean, isSuffixSeparator: boolean }[] = [
+          const innerInfo: {
+            prevItem: number,
+            hasPervItem: boolean,
+            prevItemIndex: number,
+            nextItem: number,
+            hasNextItem: boolean,
+            isPrefixSeparator: boolean,
+            isSuffixSeparator: boolean
+          }[] = [
             {
               prevItem: inputArray[0],
               hasPervItem: true,
@@ -3108,14 +3187,25 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const count = 5;
         const input = [...source];
         const expected = input.concat(input, input, input, input);
-        let sut = this.createSut(input);
-        let actual = [...sut.repeat(count)];
+        const sut = this.createSut(input).repeat(count);
+        const actual = [...sut];
         assert.deepEqual(actual, expected);
       });
 
-      it('should throw exception if count is not positive', () => {
-        assert.throw(() => this.createSut().repeat(0));
-        assert.throw(() => this.createSut().repeat(-1));
+      this.it1('should throw exception if count is not negative', array.oneToTen, input => {
+        assert.throw(() => this.createSut(input).repeat(-1));
+      });
+
+      this.it1('should return itself when count is 1', array.oneToTen, input => {
+        const sut = this.createSut(input);
+        const actual = sut.repeat(1);
+        assert.strictEqual(actual, sut);
+      });
+
+      this.it1('should return empty sequence when count is zero', array.oneToTen, input => {
+        const sut = this.createSut(input).repeat(0);
+        const actual = [...sut];
+        assert.isEmpty(actual);
       });
     });
 
@@ -4260,7 +4350,12 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         const asArray: any[] = [shortest, inBetween1, inBetween2, longest];
         const asIterable = asArray.map(generator.from);
         const asSeq = asArray.map(arr => this.createSut(arr));
-        const defaults: [number, string, number, { type: string; period: number; score: number; ok: boolean; }] = [-9, 'default', -10, {
+        const defaults: [number, string, number, {
+          type: string;
+          period: number;
+          score: number;
+          ok: boolean;
+        }] = [-9, 'default', -10, {
           type: "default",
           period: 0,
           score: 0,

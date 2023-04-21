@@ -15,6 +15,7 @@ import {SeqBase_Deferred_Change_Source_Tests} from "./seq-base/seq-base-deferred
 import {SeqTags, TaggedSeq} from "../lib/common";
 import {Seq} from "../lib";
 import {SeqBase_Immediate_Change_Source_Tests} from "./seq-base/seq-base-immediate-change-source";
+import {SeqBase_Reproducible_Results_Tests} from './seq-base/reproducible-results';
 
 function createSut<T>(optimized: boolean) {
   const factory: (<T>(input?: Iterable<T>) => Seq<T>) & { fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T> } = <T>(input?: Iterable<T>): SeqBase<T> => {
@@ -785,6 +786,10 @@ class GeneratorSeqImpl_Optimized_Tests {
   }
 }
 
+class SeqImpl_Reproducible_Results_Tests extends SeqBase_Reproducible_Results_Tests {
+  protected createSut = createSut(this.optimized);
+}
+
 export class SeqImpl_Tests {
   protected createSut = createSut(this.optimized);
 
@@ -802,6 +807,7 @@ export class SeqImpl_Tests {
     new SeqImpl_Close_Iterator_Tests(this.optimized).run();
     new SeqImpl_Deferred_Change_Source_Tests(this.optimized).run();
     new SeqImpl_Immediate_Change_Source_Tests(this.optimized).run();
+    new SeqImpl_Reproducible_Results_Tests(this.optimized).run();
 
     describe('cache()', () => {
       it('should return same items on re-consume although source sequence changed', () => {

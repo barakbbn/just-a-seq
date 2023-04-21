@@ -1542,10 +1542,12 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
 
   repeat(count: number): Seq<T> {
     count = Math.trunc(count);
-    if (count <= 0) throw new Error('Count must be positive');
+    if (count < 0) throw new Error('Count cannot be negative');
+    if (count === 0) return internalEmpty<T>()
     if (count === 1) return this;
     return this.generate(function* repeat(self) {
-      while (count--) yield* self;
+      let counter = count;
+      while (counter--) yield* self;
     });
   }
 
@@ -2089,7 +2091,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     };
 
     return this.generate(function* window(items, iterationContext) {
-      function* iterate() {
+      function* iterate(): Generator<T> {
         let isEmpty = true;
 
         for (const item of items) {

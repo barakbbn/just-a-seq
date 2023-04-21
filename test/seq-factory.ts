@@ -1,6 +1,6 @@
 import {assert} from "chai";
 import {array} from "./test-data";
-import {Seq} from '../lib'
+import {Seq as ISeq, Seq} from '../lib';
 import {asSeqInternal, randomInternal} from "../lib/internal";
 import {createSeq} from "../lib/seq-impl";
 import {describe} from "mocha";
@@ -8,10 +8,6 @@ import {SeqTags, TaggedSeq} from '../lib/common';
 
 export class SeqFactory_Tests {
   constructor(protected optimized: boolean) {
-  }
-
-  get asSeq() {
-    return (...items: Iterable<T>[]) => asSeqInternal(items, this.optimized);
   }
 
   get empty() {
@@ -34,10 +30,18 @@ export class SeqFactory_Tests {
     return Seq.repeat;
   }
 
+  asSeq<T>(...items: Iterable<T>[]): ISeq<T>;
+
+  asSeq<T>(generator: () => Iterator<T>): ISeq<T>;
+
+  asSeq<T>(...itemsProvider: Iterable<T>[] | [() => Iterator<T>]): ISeq<T> {
+    return asSeqInternal(itemsProvider);
+  }
+
   readonly run = () => describe('Seq Factories', () => {
     describe('asSeq()', () => {
       it('should create new SeqImpl instance that produce provided array', () => {
-        let sut = this.asSeq<number>([]);
+        let sut = this.asSeq<number>([] as number[]);
         assert.sameOrderedMembers([...sut], []);
 
         sut = this.asSeq(array.oneToTen);
@@ -61,10 +65,10 @@ export class SeqFactory_Tests {
       });
 
       it('should create new SeqImpl instance that produce provided generator', () => {
-        function* emptyGenerator() {
+        function* emptyGenerator<T>(): IterableIterator<T> {
         }
 
-        let sut = this.asSeq<number>(emptyGenerator);
+        let sut = this.asSeq<number>(emptyGenerator<number>);
         assert.sameOrderedMembers([...sut], []);
 
         const input = array.oneToTen;
@@ -190,6 +194,23 @@ export class SeqFactory_Tests {
         const expected = Array(count).fill(value);
         assert.sameOrderedMembers(actual, expected);
       });
+
+      it('should be tags with $maxCount', () => {
+        const count = 10;
+        const value = 'value';
+        const sut = this.repeat(value, count);
+        const actual = SeqTags.maxCount(sut);
+        assert.strictEqual(actual, count);
+      });
+
+      it('should be able to re-iterate the sequence more than once', () => {
+        const count = 10;
+        const value = 'value';
+        const sut = this.repeat(value, count);
+        const expected = [...sut];
+        const actual = [...sut];
+        assert.sameOrderedMembers(actual, expected);
+      });
     });
 
     describe('random()', () => {
@@ -208,10 +229,6 @@ export class SeqFactory_Tests {
       });
     });
   });
-
-  private applyOptimization<T>(seq: Seq<T>): void {
-    if (this.optimized) (seq as TaggedSeq)[SeqTags.$optimize] = true;
-  }
 }
 
 

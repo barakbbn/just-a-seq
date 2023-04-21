@@ -2,7 +2,8 @@ import {Seq} from "../../lib";
 import {assert} from "chai";
 import {describe, it} from "mocha";
 import {array, TestableArray} from "../test-data";
-import {TestIt} from "../test-harness";
+import {TestIt, typeOf} from "../test-harness";
+import {SeqTags} from '../../lib/common';
 
 export abstract class SeqBase_CachedSeq_Tests extends TestIt {
   constructor(optimized: boolean) {
@@ -11,25 +12,45 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
   readonly run = () => describe('SeqBase - cache()', () => {
     const it1 = (title: string, testFn: (input: Iterable<any> & { getIteratorCount: number; }) => void) => {
+      const source = array.oneToTen;
       const iterable = {
         getIteratorCount: 0,
-        [Symbol.iterator](): Iterator<any> {
+        * [Symbol.iterator](): Iterator<any> {
           this.getIteratorCount++;
-          return [0][Symbol.iterator]();
+          yield* source;
         }
       };
-      const testableArray = new TestableArray(...array.oneToTen);
+      const testableArray = new TestableArray(...source);
+      const seq = this.createSut(source) as Seq<number> & { getIteratorCount: number; };
+      seq.getIteratorCount = 0;
+      const prevIteratorFn = seq[Symbol.iterator].bind(seq);
+      seq[Symbol.iterator] = function (): Iterator<number> {
+        seq.getIteratorCount++;
+        return prevIteratorFn();
+      };
+      if (SeqTags.cacheable(seq)) {
+        const arrayPropertyName = typeOf(seq).array;
+        const prevArrayGetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(seq), arrayPropertyName)?.get?.bind(seq);
+        assert(prevArrayGetter);
+        Object.defineProperty(seq, arrayPropertyName, {
+          get(): any {
+            seq.getIteratorCount++;
+            return prevArrayGetter();
+          }
+        });
+      }
 
       it(title + ' - array source', () => testFn(testableArray));
-      it(title + ' - generator source', () => testFn(iterable));
-    }
+      it(title + ' - iterable source', () => testFn(iterable));
+      it(title + ' - sequence source', () => testFn(seq));
+    };
     const test = (input: Iterable<any> & { getIteratorCount: number; }, onSeq: (seq: Seq<any>) => any) => {
       function tryIterate(maybeIterable?: any): boolean {
         if (typeof maybeIterable !== 'object' || typeof maybeIterable[Symbol.iterator] !== 'function') return false;
         for (const item of maybeIterable) {
           if (!tryIterate(item)) return true;
         }
-        return false
+        return false;
       }
 
       const seq = this.createSut(input).cache();
@@ -38,9 +59,9 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
       maybeIterable = onSeq(seq);
       tryIterate(maybeIterable);
       assert.strictEqual(input.getIteratorCount, 1);
-    }
-    it('should return same instance if calling cache again', () => {
-      const expected = this.createSut().cache();
+    };
+    this.it1('should return itself if calling cache again', array.oneToTen, input => {
+      const expected = this.createSut(input).cache();
       const actual = expected.cache();
 
       assert.strictEqual(actual, expected);
@@ -99,7 +120,7 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('map()', (input) => test(input, sut => sut.map(() => 1)));
 
-      it1('move()', (input) => test(input, sut => sut.move(0,1,2)));
+      it1('move()', (input) => test(input, sut => sut.move(0, 1, 2)));
 
       it1('ofType()', (input) => test(input, sut => sut.ofType(Number)));
 

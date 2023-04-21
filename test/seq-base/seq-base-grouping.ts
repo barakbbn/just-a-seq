@@ -3,7 +3,7 @@ import {describe, it} from "mocha";
 import {array, generator, Sample} from "../test-data";
 import {assert} from "chai";
 import {SeqTags} from "../../lib/common";
-import {TestIt} from "../test-harness";
+import {TestHarness, TestIt} from "../test-harness";
 
 export abstract class SeqBase_Grouping_Tests extends TestIt {
   constructor(optimized: boolean) {
@@ -128,7 +128,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
             .filter(group => group.hasAtLeast(6))
             .flat()
             .map(s => s.score)
-            .distinct()
+            .distinct();
 
           const actual = [...sut];
 
@@ -137,7 +137,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
 
       this.it1('should be able to iterate child grouped-sequence after main sequence closed', array.samples, input => {
         const firstItem = array.samples[0];
-        const expected = [...input].filter(s => s.type === firstItem.type)
+        const expected = [...input].filter(s => s.type === firstItem.type);
         const sut = this.createSut(input).groupBy(s => s.type);
         let [firstGroup] = sut; // will take first child grouped-sequence and close the iterator returned by sut
         const actual = [...firstGroup];
@@ -205,7 +205,10 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
         function expectedSamplesHierarchyWithComplexKeyAndComparableKeys() {
           const input = array.samples;
 
-          const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{ period: number; scoreAbovePeriod: boolean; }, Sample[]>>>();
+          const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{
+            period: number;
+            scoreAbovePeriod: boolean;
+          }, Sample[]>>>();
 
           const level1 = {
             cache: new Map<string, { ok: boolean; type: string; }>(),
@@ -227,7 +230,10 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
           };
           const level3 = {
             cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
-            comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod? '+': '-'),
+            comparableKey: (key: {
+              period: number;
+              scoreAbovePeriod: boolean;
+            }) => key.period + (key.scoreAbovePeriod? '+': '-'),
             key: (s: Sample) => ({period: s.period, scoreAbovePeriod: s.score > s.period}),
             cachedKey(s: Sample) {
               const [key, comparable] = [this.key(s), this.comparableKey(this.key(s))];
@@ -261,13 +267,26 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
 
         function expectedSamplesHierarchyWithComplexKeyAndComparableKeysAndValueSelectors() {
           const input = array.samples;
-          const expected = new Map<{ ok: boolean, type: string }, Map<{ scoreLevel: string }, Map<{ period: number, scoreAbovePeriod: boolean }, { scoreAbovePeriod: boolean, period: number, score: number, diff: number, scoreLevel: ScoreLevel, TYPE: string }[]>>>();
+          const expected = new Map<{ ok: boolean, type: string }, Map<{ scoreLevel: string }, Map<{
+            period: number,
+            scoreAbovePeriod: boolean
+          }, {
+            scoreAbovePeriod: boolean,
+            period: number,
+            score: number,
+            diff: number,
+            scoreLevel: ScoreLevel,
+            TYPE: string
+          }[]>>>();
 
           const level1 = {
             cache: new Map<string, { ok: boolean; type: string; }>(),
             comparableKey: (key: { ok: boolean; type: string; }) => key.type + (key.ok? '+': '-'),
             key: (s: Sample) => ({ok: s.ok, type: s.type}),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample, index: number, key: { ok: boolean; type: string; }) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample, index: number, key: {
+              ok: boolean;
+              type: string;
+            }) => {
               addKeyParametersIntoThisArray.push(key);
               return ({...s, diff: s.score - s.period});
             },
@@ -279,15 +298,22 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
           const level2 = {
             cache: new Map<string, { scoreLevel: string; }>(),
             comparableKey: (key: { scoreLevel: string; }) => key.scoreLevel,
-            key: (s: Sample & { diff: number; }) => ({scoreLevel: s.score < 50? 'low': s.score >= 80? 'high': 'middle'}),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; }, index: number, keys: any[]) => {
+            key: (s: Sample & {
+              diff: number;
+            }) => ({scoreLevel: s.score < 50? 'low': s.score >= 80? 'high': 'middle'}),
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & {
+              diff: number;
+            }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
                 scoreLevel: (s.score < 50? 'low': s.score >= 80? 'high': 'middle') as ScoreLevel
               });
             },
-            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & { diff: number; scoreLevel: ScoreLevel }, index: number, keys: any[]) => {
+            mapValue2Factory: (addKeyParametersIntoThisArray: any[]) => (s: Sample & {
+              diff: number;
+              scoreLevel: ScoreLevel
+            }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 diff: s.diff,
@@ -304,12 +330,21 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
           };
           const level3 = {
             cache: new Map<string, { period: number; scoreAbovePeriod: boolean; }>(),
-            comparableKey: (key: { period: number; scoreAbovePeriod: boolean; }) => key.period + (key.scoreAbovePeriod? '+': '-'),
+            comparableKey: (key: {
+              period: number;
+              scoreAbovePeriod: boolean;
+            }) => key.period + (key.scoreAbovePeriod? '+': '-'),
             key: (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }) => ({
               period: s.period,
               scoreAbovePeriod: s.score > s.period
             }),
-            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: { period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; }, index: number, keys: any[]) => {
+            mapValueFactory: (addKeyParametersIntoThisArray: any[]) => (s: {
+              period: number;
+              score: number;
+              diff: number;
+              scoreLevel: ScoreLevel;
+              TYPE: string;
+            }, index: number, keys: any[]) => {
               addKeyParametersIntoThisArray.push(keys);
               return ({
                 ...s,
@@ -349,7 +384,13 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
           expected.forEach((mapByType, key1) =>
             mapByType.forEach((items, key2) => {
               const map = new Map<any, any[]>();
-              (items as unknown as ({ period: number; score: number; diff: number; scoreLevel: ScoreLevel; TYPE: string; })[])
+              (items as unknown as ({
+                period: number;
+                score: number;
+                diff: number;
+                scoreLevel: ScoreLevel;
+                TYPE: string;
+              })[])
                 .forEach((s, i) => map.set(level3.cachedKey(s), [
                     ...(map.get(level3.cachedKey(s)) || []),
                     level3.mapValueFactory(expectedLevel3MapValueKeys)(s, i, [key1, key2, level3.key(s)])]
@@ -840,7 +881,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                 yield n;
               }
             }
-          }
+          };
 
           this.createSut(input).groupBy(n => n % 3).cache();
 
@@ -856,7 +897,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                 yield n;
               }
             }
-          }
+          };
 
           const sut = this.createSut(input).groupBy(n => n % 3).cache();
           for (const x of sut) {
@@ -1155,7 +1196,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
 
             const actualKeys: [boolean, string, number][] = [];
             const sut = grouped.ungroupAll((group, keys) => actualKeys.push(keys));
-            materialize(sut);
+            TestHarness.materialize(sut);
 
             assert.sameDeepMembers(actualKeys, expectedKeys);
           });
@@ -1204,18 +1245,18 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                   initialValue: 0
                 }
               );
-              materialize(sut);
+              TestHarness.materialize(sut);
 
               assert.sameDeepMembers(actualKeys, expectedKeys);
             });
 
           this.it1('should provide all inner groups and all their items to reducer function in correct order',
             array.samples, (input, inputArray) => {
-              const map = new Map<string, Sample[]>()
+              const map = new Map<string, Sample[]>();
               inputArray.forEach(s => {
                 const key = `${s.ok}|${s.type}|${s.period}`;
                 (map.get(key) ?? map.set(key, []).get(key)!).push(s);
-              })
+              });
               const expected = [...map.values()];
 
               const grouped = this.createSut(input)
@@ -1234,7 +1275,7 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
                   initialValue: inputArray[0]
                 }
               );
-              materialize(sut);
+              TestHarness.materialize(sut);
               const actual = [...actualItems.values()];
 
               assert.sameDeepMembers(actual, expected);
@@ -1265,7 +1306,10 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
           function expectedSamplesHierarchyWithComplexKey() {
             const input = array.samples;
 
-            const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{ period: number; scoreAbovePeriod: boolean; }, Sample[]>>>();
+            const expected = new Map<{ ok: boolean; type: string; }, Map<{ scoreLevel: string; }, Map<{
+              period: number;
+              scoreAbovePeriod: boolean;
+            }, Sample[]>>>();
 
             const level1 = {
               cache: new Map<string, { ok: boolean; type: string; }>(),
@@ -1487,16 +1531,4 @@ export abstract class SeqBase_Grouping_Tests extends TestIt {
     });
 
   });
-}
-
-function materialize(value: any): any {
-  function isIterable(value: any): value is Iterable<any> {
-    return value && typeof value !== 'string' && typeof value[Symbol.iterator] === 'function';
-  }
-
-  function* deepToArray(iterable: Iterable<any>): Generator<any> {
-    for (const item of iterable) yield isIterable(item)? [...deepToArray(item)]: item;
-  }
-
-  return isIterable(value)? [...deepToArray(value)]: value;
 }

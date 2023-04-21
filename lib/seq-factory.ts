@@ -54,7 +54,8 @@ export namespace Seq {
     if (ISeq.enableOptimization) tags.push([SeqTags.$optimize, true]);
 
     return factories.Seq<T>(generate(function* repeat() {
-      while (count--) yield value;
+      let counter = count;
+      while (counter--) yield value;
     }), undefined, tags);
   }
 

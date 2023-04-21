@@ -5,7 +5,7 @@ let _random: Seq<number>
 let _randomOptimized: Seq<number>
 let _empty: Seq<any>;
 
-export function internalEmpty<T = any>(_ofType?: T): Seq<T> {
+export function internalEmpty<T>(_ofType?: T): Seq<T> {
   return _empty ?? (_empty = factories.Seq(undefined, undefined, [[SeqTags.$maxCount, 0]])) as unknown as Seq<T>;
 }
 

@@ -158,3 +158,13 @@ export class TestableDerivedSeq<T> extends SeqBase<T> {
     return this.source;
   }
 }
+
+const typeOfProxy = new Proxy<object>({}, {
+  get(target: object, p: string | symbol): any {
+    return p;
+  }
+});
+
+export function typeOf<T extends object>(from?: T): { [P in keyof T]: string; } {
+  return typeOfProxy as { [P in keyof T]: string; };
+}
