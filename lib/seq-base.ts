@@ -1640,10 +1640,7 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
   skipLast(count: number = 1): Seq<T> {
     count = Math.trunc(count);
     if (count <= 0) return this;
-    return this.generate(function* skipLast(items) {
-      const array: T[] = Array.isArray(items)? items: [...items];
-      for (let i = 0; i < array.length - count; i++) yield array[i];
-    });
+    return this.slice(0, -count);
   }
 
   skipWhile(condition: Condition<T>): Seq<T> {
