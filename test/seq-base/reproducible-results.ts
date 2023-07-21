@@ -117,9 +117,7 @@ export abstract class SeqBase_Reproducible_Results_Tests extends TestIt {
     testN2('removeAll()', (seq, other) => seq.removeAll(other));
     testN('removeFalsy()', seq => seq.removeFalsy());
     testN('removeNulls()', seq => seq.removeNulls());
-    testN('repeat()', seq => {
-      return seq.repeat(2);
-    });
+    testN('repeat()', seq => seq.repeat(2));
     testN('reverse()', seq => seq.reverse());
     testN2('sameItems()', (seq, other) => seq.sameItems(other));
     test2('sameOrderedItems() => true', array.zeroToTen, array.zeroToTen, (seq, other) => seq.sameOrderedItems(other));
@@ -158,6 +156,9 @@ export abstract class SeqBase_Reproducible_Results_Tests extends TestIt {
     testN2('unionRight()', (seq, other) => seq.unionRight(other));
     testN2('unshift()', (seq, other) => seq.unshift(...other));
     testN('window()', seq => seq.window(1));
+    testN('with()', seq => {
+      return seq.with(1, 2);
+    });
     testN2('zip()', (seq, other) => seq.zip(other));
     testN2('zipAll()', (seq, other) => seq.zipAll(other));
     testN('zipWithIndex()', seq => seq.zipWithIndex());

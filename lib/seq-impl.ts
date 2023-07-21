@@ -246,6 +246,12 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
+  with(index: number, value: T): Seq<T> {
+    index = Math.trunc(index);
+    if(index < 0 && index >= -this.source.length) index += this.source.length;
+    return super.with(index, value);
+}
+
   [Symbol.iterator](): Iterator<T> {
     return this.source[Symbol.iterator]();
   }

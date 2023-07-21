@@ -4219,6 +4219,53 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('with()', () => {
+      this.it1('should replace value at specified index with new value when index parameter is not negative', array.zeroToNine, (input, inputArray) => {
+        const uniqueValue = -1;
+        for (let i = 0; i < inputArray.length; i++) {
+          const expected = inputArray.slice();
+          expected[i] = uniqueValue;
+          const sut = this.createSut(input).with(i, uniqueValue);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected, `index: ${i}`);
+        }
+      });
+
+      this.it1('should replace value at specified index with new value when index parameter is negative', array.zeroToNine, (input, inputArray) => {
+        const uniqueValue = -1;
+        for (let i = -1; i >= -inputArray.length; i--) {
+          const expected = inputArray.slice();
+          expected.splice(i, 1, uniqueValue);
+          const sut = this.createSut(input).with(i, uniqueValue);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        }
+      });
+
+      for (const index of [0, -1, 1]) {
+
+        this.it1('should return empty sequence when source sequence is empty', [] as number[], input => {
+          const sut = this.createSut(input).with(index, -1);
+          let actual = [...sut];
+          assert.isEmpty(actual, `index: ${index}`);
+        });
+      }
+
+      this.it1('should not include new value when index parameter is positive out of range', array.zeroToNine, input => {
+        const expected = [...input];
+        const sut = this.createSut(input).with(expected.length * 2, -1);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+
+      this.it1('should not include new value when index parameter is negative out of range', array.zeroToNine, input => {
+        const expected = [...input];
+        const sut = this.createSut(input).with(-expected.length * 2 - 1, -1);
+        const actual = [...sut];
+        assert.deepEqual(actual, expected);
+      });
+    });
+
     describe('window()', () => {
       const overflowLeftArgs = [false, false];
       const overflowRightArgs = [false, true];

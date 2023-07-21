@@ -137,6 +137,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('unshift()', array.oneToTen, seq => seq.unshift(0, -1, -2));
     testImmutable('zip()', array.oneToTen, seq => seq.zip(array.zeroToNine));
     testImmutable('window()', array.oneToTen, seq => seq.window(1));
+    testImmutable('with()', array.oneToTen, seq => seq.with(1, 2));
     testImmutable('zipAll()', array.oneToTen, seq => seq.zipAll(array.zeroToTen));
     testImmutable('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
   });

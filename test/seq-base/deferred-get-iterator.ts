@@ -193,6 +193,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('window()', () => testGetIterator(sut => sut.window(1)));
 
+    describe('with()', () => testGetIterator(sut => sut.with(1, 2)));
+
     describe('zip()', () => testGetIterator(sut => sut.zip([1])));
 
     describe('zipAll()', () => testGetIterator(sut => sut.zipAll([1])));

@@ -519,6 +519,8 @@ export interface Seq<T> extends Iterable<T> {
 
   window(size: number, step: number, opts: { exactSize: boolean; }): Seq<Seq<T>>;
 
+  with(index: number, value: T): Seq<T>;
+
   zip<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts>): Seq<[T, T1, ...Ts]>;
 
   zipAll<T1, Ts extends any[]>(items: Iterable<T1>, ...moreItems: Iterables<Ts> | [...Iterables<Ts>, { defaults?: [T?, T1?, ...Ts] }]): Seq<[T, T1, ...Ts]>;

@@ -186,6 +186,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('window()', (input) => test(input, sut => sut.window(1)));
 
+      it1('with()', (input) => test(input, sut => sut.with(1, 2)));
+
       it1('zip()', (input) => test(input, sut => sut.zip([1])));
 
       it1('zipAll()', (input) => test(input, sut => sut.zipAll([1])));
