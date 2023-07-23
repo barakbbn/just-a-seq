@@ -2755,6 +2755,35 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
         });
     });
 
+    describe('padStart()', () => {
+      this.it1('should prepend "pad value" items as many as the "length" parameter when source sequence is empty',
+        [] as number[], input => {
+          const padValue = 0;
+          const paddingCount = 2;
+          const expected = new Array<number>(paddingCount).fill(padValue);
+          const sut = this.createSut(input).padStart(paddingCount, padValue);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should prepend "pad value" as the number of the "length" parameter minus the length of the source sequence when source sequence length is less than length parameter',
+        array.oneToTen, (input, inputArray) => {
+          const padValue = 0;
+          const paddingCount = inputArray.length * 2;
+          const expected = new Array<number>(inputArray.length).fill(padValue).concat(inputArray);
+          const sut = this.createSut(input).padStart(paddingCount, padValue);
+          const actual = [...sut];
+          assert.deepEqual(actual, expected);
+        });
+
+      this.it1('should return the source sequence instance, when padding count is zero',
+        array.oneToTen, input => {
+          const expected = this.createSut(input);
+          const actual = expected.padStart(0, 0);
+          assert.equal(actual, expected);
+        });
+    });
+
     describe('partition()', () => {
       describe("matched sequence", () => {
         this.it1('should return only items that meet the condition - numbers', array.oneToTen, (input) => {

@@ -344,6 +344,8 @@ export interface Seq<T> extends Iterable<T> {
 
   padEnd(length: number, value: T): Seq<T>;
 
+  padStart(length: number, value: T): Seq<T>;
+
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & { matched: CachedSeq<S>, unmatched: CachedSeq<T>; };
 
   partition<S extends T, U>(typeGuard: (item: T, index: number) => item is S, resultSelector: (matched: CachedSeq<S>, unmatched: CachedSeq<T>) => U): U;

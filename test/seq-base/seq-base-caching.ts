@@ -126,6 +126,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('padEnd()', (input) => test(input, sut => sut.padEnd(3, 0)));
 
+      it1('padStart()', (input) => test(input, sut => sut.padStart(3, -1)));
+
       it1('prepend()', (input) => test(input, sut => sut.prepend([1])));
 
       it1('push()', (input) => test(input, sut => sut.push(1)));

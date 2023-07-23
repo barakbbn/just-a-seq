@@ -1375,6 +1375,38 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
     });
   }
 
+  padStart(length: number, value: T): Seq<T> {
+    length = Math.max(Math.trunc(length), 0);
+    if (length === 0) return this;
+    if (SeqTags.optimize(this)) {
+      const maxCount = SeqTags.maxCount(this);
+      if (maxCount != null) {
+        if (length <= maxCount) return this;
+        if (maxCount === 0) return SeqFactory.repeat(value, length);
+      }
+    }
+
+    return this.generate(function* padStart(items, iterationContext) {
+      const buffer = new Array<T>(length);
+      let counted = 0;
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+      while (!next.done && counted < length) {
+        buffer[counted++] = next.value;
+        next = iterator.next();
+      }
+      buffer.length = counted;
+
+      for (; length > counted; counted++) yield value;
+
+      yield* buffer;
+      while (!next.done) {
+        yield next.value;
+        next = iterator.next();
+      }
+    });
+  }
+
   partition<S extends T>(typeGuard: (item: T, index: number) => item is S): [matched: CachedSeq<S>, unmatched: CachedSeq<T>] & {
     matched: CachedSeq<S>,
     unmatched: CachedSeq<T>;

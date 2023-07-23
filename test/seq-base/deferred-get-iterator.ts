@@ -113,6 +113,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1, 0)));
 
+    describe('padStart()', () => testGetIterator(sut => sut.padStart(1, 0)));
+
     describe('partition()', () => testGetIterator(sut => sut.partition(x => x)));
 
     describe('partition().matched', () => testGetIterator(sut => sut.partition(x => x).matched));

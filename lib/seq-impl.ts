@@ -147,6 +147,19 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
       this.source.lastIndexOf(itemToFind, fromIndex);
   }
 
+  padStart(length: number, value: T): Seq<T> {
+    length = Math.max(Math.trunc(length), 0);
+    if (length === 0) return this;
+    return this.generateForSource(this.source, function* padStart(source: T[]) {
+      let counted = 0;
+      while (source.length + counted < length) {
+        yield value;
+        counted++;
+      }
+      yield* source;
+    });
+  }
+
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T): T;
   reduce(reducer: (previousValue: T, currentValue: T, currentIndex: number) => T, initialValue: T): T;
 
@@ -248,9 +261,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
 
   with(index: number, value: T): Seq<T> {
     index = Math.trunc(index);
-    if(index < 0 && index >= -this.source.length) index += this.source.length;
+    if (index < 0 && index >= -this.source.length) index += this.source.length;
     return super.with(index, value);
-}
+  }
 
   [Symbol.iterator](): Iterator<T> {
     return this.source[Symbol.iterator]();

@@ -98,6 +98,7 @@ export abstract class SeqBase_Reproducible_Results_Tests extends TestIt {
     testN('map()', seq => seq.map(n => n - n));
     testN('move()', seq => seq.move(0, 1, 2));
     testN('padEnd()', seq => seq.padEnd(11, 0));
+    testN('padStart()', seq => seq.padStart(2, -1));
     testN('partition({matched})', seq => seq.partition(() => true).matched);
     testN('partition({unmatched})', seq => seq.partition(() => false).unmatched);
     testN('partition({matched+unmatched})', seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
