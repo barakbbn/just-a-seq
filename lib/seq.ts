@@ -450,6 +450,10 @@ export interface Seq<T> extends Iterable<T> {
 
   startsWith<U>(items: Iterable<U>, keySelector: (item: T | U) => unknown): boolean;
 
+  splice(start: number): Seq<T>;
+  splice(start: number, deleteCount: number): Seq<T>;
+  splice(start: number, deleteCount: number| undefined, ...items: T[]): Seq<T>;
+
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => unknown, secondKeySelector: (item: U) => K): boolean;
 
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;

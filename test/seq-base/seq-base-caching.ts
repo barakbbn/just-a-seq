@@ -162,6 +162,8 @@ export abstract class SeqBase_CachedSeq_Tests extends TestIt {
 
       it1('sorted()', (input) => test(input, sut => sut.sorted()));
 
+      it1('splice()', (input) => test(input, sut => sut.splice(2, 2, -1)));
+
       it1('split()', (input) => test(input, sut => sut.split(x => x)));
 
       it1('splitAt()', (input) => test(input, sut => sut.splitAt(2)));

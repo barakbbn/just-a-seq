@@ -34,6 +34,7 @@ import {Seq as SeqFactory} from './seq-factory';
 import {LEGACY_COMPARER} from './sort-util';
 
 export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
+
   readonly [SeqTags.$seq] = true;
   readonly length = this.count;
 
@@ -1859,6 +1860,61 @@ export abstract class SeqBase<T> implements Seq<T>, TaggedSeq {
         [false, undefined, reverseOrTopOrOpts];
 
     return this.sortInternal(source, undefined, undefined, reverse, top, actualOpts) as any;
+  }
+
+  splice(start: number): Seq<T>;
+  splice(start: number, deleteCount: number): Seq<T>;
+  splice(start: number, deleteCount: number | undefined, ...items: T[]): Seq<T>;
+  splice(start: number, deleteCount?: number, ...itemsToAppend: T[]): Seq<T> {
+    start = Math.trunc(start);
+
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSpliced#deletecount
+    if (deleteCount === undefined) {
+      deleteCount = arguments.length > 1? 0: Infinity;
+    }
+
+    if (deleteCount <= 0 && itemsToAppend.length === 0) {
+      return this;
+    }
+
+    if (SeqTags.optimize(this)) {
+      const maxCount = SeqTags.maxCount(this);
+      if (maxCount != null && start >= maxCount) {
+        if (itemsToAppend.length === 0) return this;
+        return this.concat(itemsToAppend);
+      }
+    }
+
+    let source: Iterable<T> = this;
+    if (start < 0) {
+      const array = [...this];
+      start = array.length + start;
+      source = array;
+    }
+
+    return this.generateForSource(source, function* splice(items, iterationContext) {
+      let take = start < 0? 0: start;
+      let skip = Math.trunc(deleteCount!);
+
+      const iterator = iterationContext.closeWhenDone(getIterator(items));
+      let next = iterator.next();
+
+      for (let i = 0; i < take && !next.done; i++) {
+        yield next.value;
+        next = iterator.next();
+      }
+
+      yield* itemsToAppend;
+
+      for (let i = 0; i < skip && !next.done; i++) {
+        next = iterator.next();
+      }
+
+      while (!next.done) {
+        yield next.value;
+        next = iterator.next();
+      }
+    });
   }
 
   split(condition: Condition<T>, opts?: {

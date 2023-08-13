@@ -269,6 +269,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
     test('split()', array.zeroToTen, seq => seq.split(x => x < 5));
+    test('splice()', array.zeroToTen, seq => seq.splice(2, 2, -1));
     test('splitAt()', array.zeroToTen, seq => seq.splitAt(1));
     test('splitAt().first', array.zeroToTen, seq => seq.splitAt(2).first);
     test('splitAt().second', array.zeroToTen, seq => seq.splitAt(2).second);

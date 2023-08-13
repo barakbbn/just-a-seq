@@ -163,6 +163,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('sorted()', () => testGetIterator(sut => sut.sorted()));
 
+    describe('splice()', () => testGetIterator(sut => sut.splice(2)));
+
     describe('splitAt()', () => testGetIterator(sut => sut.splitAt(2)));
 
     describe('splitAt()[0]', () => testGetIterator(sut => sut.splitAt(2)[0]));

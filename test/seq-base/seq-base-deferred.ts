@@ -3431,6 +3431,84 @@ export abstract class SeqBase_Deferred_Tests extends TestIt {
       });
     });
 
+    describe('splice()', () => {
+      this.itx('should behave like Array.toSpliced(start)', array.oneToTen, [[] as number[]], (input, others, inputArray, otherArrays) => {
+        const inputArrays = [inputArray, ...otherArrays];
+        const inputs = [input, ...others];
+
+        for (let i = 0; i < inputs.length; i++) {
+          const input = inputs[i];
+          const inputArray = inputArrays[i];
+
+          for (let start = inputArray.length - 2; start < inputArray.length + 2; start++) {
+            const sut = this.createSut(input).splice(start);
+            const actual = [...sut];
+            const expected = [...inputArray];
+            expected.splice(start);
+            assert.deepEqual(actual, expected, `start: ${start}`);
+          }
+        }
+      });
+
+      this.itx('should behave like Array.toSpliced(start, deleteCount)', array.oneToTen, [[] as number[]], (input, others, inputArray, otherArrays) => {
+        const inputArrays = [inputArray, ...otherArrays];
+        const inputs = [input, ...others];
+
+        for (let i = 0; i < inputs.length; i++) {
+          const input = inputs[i];
+          const inputArray = inputArrays[i];
+
+          for (let start = inputArray.length - 2; start < inputArray.length + 2; start++) {
+            const deleteCounts = [
+              -1,
+              ...inputArray.map((_, i) => i),
+              inputArray.length,
+              inputArray.length + 1,
+              Infinity,
+              undefined
+            ];
+            for (const deleteCount of deleteCounts) {
+              const sut = this.createSut(input).splice(start, deleteCount);
+              const actual = [...sut];
+              const expected = [...inputArray];
+              expected.splice(start, deleteCount);
+              assert.deepEqual(actual, expected, `start: ${start}, deleteCount: ${deleteCount}`);
+            }
+          }
+        }
+      });
+
+      this.itx('should behave like Array.toSpliced(start, deleteCount, ...items)', array.oneToTen, [[] as number[]], (input, others, inputArray, otherArrays) => {
+        const inputArrays = [inputArray, ...otherArrays];
+        const inputs = [input, ...others];
+
+        for (let i = 0; i < inputs.length; i++) {
+          const input = inputs[i];
+          const inputArray = inputArrays[i];
+
+          for (const itemsToAdd of [[] as number[], [-1, -2]]) {
+            for (let start = inputArray.length - 2; start < inputArray.length + 2; start++) {
+              const deleteCounts = [
+                -1,
+                ...inputArray.map((_, i) => i),
+                inputArray.length,
+                inputArray.length + 1,
+                Infinity,
+                undefined
+              ];
+              for (const deleteCount of deleteCounts) {
+                const sut = this.createSut(input).splice(start, deleteCount, ...itemsToAdd);
+                const actual = [...sut];
+                const expected = [...inputArray];
+                expected.splice(start, deleteCount!, ...itemsToAdd);
+                assert.deepEqual(actual, expected, `start: ${start}, deleteCount: ${deleteCount}, itemsToAdd: ${itemsToAdd}`);
+              }
+            }
+          }
+        }
+      });
+    });
+
     describe('splitAt', () => {
       this.it1('should return two sequences, first one with items before the split index and the second with the rest', array.oneToTen, (input, inputArray) => {
         let sut = this.createSut(input);

@@ -118,6 +118,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('sort()', array.zeroToTen, seq => seq.sort());
     testImmutable('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     testImmutable('sorted()', array.zeroToTen, seq => seq.sorted());
+    testImmutable('splice()', array.zeroToTen, seq => seq.splice(2, 2,  -1));
     testImmutable('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
     testImmutable('splitAt()', array.zeroToTen, seq => seq.splitAt(4).reduce((a, b) => [...a, ...b], [1]));
     testImmutable('startsWith()', array.zeroToTen, seq => seq.startsWith(array.zeroToTen));

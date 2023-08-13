@@ -134,6 +134,7 @@ export abstract class SeqBase_Reproducible_Results_Tests extends TestIt {
     testN('sortBy()', seq => seq.sortBy(x => x));
     testN('sorted()', seq => seq.sorted());
     testN('split()', seq => seq.split(x => x < 5));
+    testN('splice()', seq => seq.splice(2,2,-1));
     testN('splitAt()', seq => seq.splitAt(4));
     testN('splitAt().first', seq => seq.splitAt(4).first);
     testN('splitAt().second', seq => seq.splitAt(4).second);
@@ -157,9 +158,7 @@ export abstract class SeqBase_Reproducible_Results_Tests extends TestIt {
     testN2('unionRight()', (seq, other) => seq.unionRight(other));
     testN2('unshift()', (seq, other) => seq.unshift(...other));
     testN('window()', seq => seq.window(1));
-    testN('with()', seq => {
-      return seq.with(1, 2);
-    });
+    testN('with()', seq => seq.with(1, 2));
     testN2('zip()', (seq, other) => seq.zip(other));
     testN2('zipAll()', (seq, other) => seq.zipAll(other));
     testN('zipWithIndex()', seq => seq.zipWithIndex());

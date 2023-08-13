@@ -229,6 +229,43 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
     }, [[SeqTags.$notMappingItems, true]]);
   }
 
+  splice(start: number): Seq<T>;
+  splice(start: number, deleteCount: number): Seq<T>;
+  splice(start: number, deleteCount: number | undefined, ...items: T[]): Seq<T>;
+  splice(start: number, deleteCount?: number, ...itemsToAppend: T[]): Seq<T> {
+    start = Math.trunc(start);
+    if (deleteCount === undefined) {
+      deleteCount = arguments.length > 1? 0: Infinity;
+    }
+
+    if (deleteCount <= 0 && itemsToAppend.length === 0) {
+      return this;
+    }
+
+    return this.createDefaultSeq(this.source, function* splice(source: T[]) {
+      let take = start < 0? source.length + start: start;
+      if (take < 0) take = 0;
+
+      for (let i = 0; i < take && i < source.length; i++) {
+        yield source[i];
+      }
+
+      yield* itemsToAppend;
+
+      deleteCount = Math.trunc(deleteCount!);
+      if (!Number.isFinite(deleteCount) || (deleteCount + start) >= source.length) {
+        return;
+      }
+
+      let from = take + (deleteCount < 0? 0: deleteCount);
+      for (let i = from; i < source.length; i++) {
+        yield source[i];
+      }
+    }, [
+      [SeqTags.$notMappingItems, true]
+    ]);
+  }
+
   splitAt(index: number): [Seq<T>, Seq<T>] & { first: Seq<T>; second: Seq<T>; } {
     let result: any = [];
     if (index > 0) result = [this.take(index), this.skip(index)];
@@ -244,7 +281,9 @@ export class ArraySeqImpl<T = any> extends SeqBase<T> {
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
-  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | {
+    equals(t: T, u: U): unknown;
+  }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     if (Array.isArray(items)) {
       if (items.length === 0) return true;
       if (this.source.length < items.length) return false;

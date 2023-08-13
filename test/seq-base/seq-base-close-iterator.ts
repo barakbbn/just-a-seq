@@ -174,6 +174,7 @@ export abstract class SeqBase_Close_Iterator_Tests extends TestIt {
     test('sort()', array.zeroToTen, seq => seq.sort());
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
+    test('splice()', array.zeroToTen, seq => seq.splice(2, 2, -1));
     test('split()', array.zeroToTen, seq => seq.split(x => x < 5));
     test('splitAt()', array.zeroToTen, seq => seq.splitAt(4));
     // test('splitAt().first', array.zeroToTen, seq => seq.splitAt(4).first);
