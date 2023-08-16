@@ -245,6 +245,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('map()', array.oneToTen, seq => seq.map(n => n - n));
     test('move()', array.oneToTen, seq => seq.move(0,1,2));
     test('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
+    test('padStart()', array.oneToTen, seq => seq.padStart(2, -1));
     test('partition({matched})', array.oneToTen, seq => seq.partition(() => true).matched);
     test('partition({unmatched})', array.oneToTen, seq => seq.partition(() => false).unmatched);
     test('partition({matched+unmatched})', array.oneToTen, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -268,6 +269,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     test('sorted()', array.zeroToTen, seq => seq.sorted());
     test('split()', array.zeroToTen, seq => seq.split(x => x < 5));
+    test('splice()', array.zeroToTen, seq => seq.splice(2, 2, -1));
     test('splitAt()', array.zeroToTen, seq => seq.splitAt(1));
     test('splitAt().first', array.zeroToTen, seq => seq.splitAt(2).first);
     test('splitAt().second', array.zeroToTen, seq => seq.splitAt(2).second);
@@ -285,6 +287,7 @@ export abstract class SeqBase_Deferred_Change_Source_Tests extends TestIt {
     test2('unionRight()', array.oneToTen, array.zeroToNine, (seq, other) => seq.unionRight(other));
     test2('unshift()', array.oneToTen, [0, -1, -2], (seq, other) => seq.unshift(...other));
     test('window()', array.zeroToTen, seq => seq.window(1));
+    test('with()', array.zeroToTen, seq => seq.with(1, 2));
     test2('zip()', array.oneToTen, array.zeroToNine, (seq, other) => seq.zip(other));
     test2('zipAll()', array.oneToTen, array.zeroToTen, (seq, other) => seq.zipAll(other));
     test('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());

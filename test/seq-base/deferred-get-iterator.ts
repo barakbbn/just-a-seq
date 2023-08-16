@@ -113,6 +113,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('padEnd()', () => testGetIterator(sut => sut.padEnd(1, 0)));
 
+    describe('padStart()', () => testGetIterator(sut => sut.padStart(1, 0)));
+
     describe('partition()', () => testGetIterator(sut => sut.partition(x => x)));
 
     describe('partition().matched', () => testGetIterator(sut => sut.partition(x => x).matched));
@@ -161,6 +163,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
 
     describe('sorted()', () => testGetIterator(sut => sut.sorted()));
 
+    describe('splice()', () => testGetIterator(sut => sut.splice(2)));
+
     describe('splitAt()', () => testGetIterator(sut => sut.splitAt(2)));
 
     describe('splitAt()[0]', () => testGetIterator(sut => sut.splitAt(2)[0]));
@@ -192,6 +196,8 @@ export abstract class SeqBase_Deferred_GetIterator_Tests extends TestIt {
     describe('unshift()', () => testGetIterator(sut => sut.unshift(1)));
 
     describe('window()', () => testGetIterator(sut => sut.window(1)));
+
+    describe('with()', () => testGetIterator(sut => sut.with(1, 2)));
 
     describe('zip()', () => testGetIterator(sut => sut.zip([1])));
 

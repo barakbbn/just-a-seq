@@ -3,17 +3,21 @@
   "version": "1.2.0",
   "description": "Lazy Typescript sequence/collection (Like LINQ) with api that resembles JavaScript Array.",
   "scripts": {
-    "build": "npm run tsup",
+    "build": "tsc --noEmit && tsup",
     "test": "ts-mocha -p ./tsconfig-mocha.json test/index.ts",
     "deploy": "npm install && npm run build && npm test && npm publish",
-    "coverage": "nyc --reporter=lcov npm test",
-    "tsup": "npx -y -p tsup@6.7.0 -p esbuild-plugin-umd-wrapper@1.0.7 -p @rollup/plugin-typescript@11.1.0 tsup"
+    "coverage": "nyc --reporter=lcov npm test"
   },
   "author": "barakbbn",
   "license": "ISC",
+  "engines": {
+    "npm": ">=7.0.0"
+  },
   "repository": "https://github.com/barakbbn/just-a-seq",
   "homepage": "https://github.com/barakbbn/just-a-seq/wiki/docs",
   "devDependencies": {
+    "esbuild-plugin-umd-wrapper": "1.0.7",
+    "@rollup/plugin-typescript": "11.1.0",
     "@types/chai": "4.3.3",
     "@types/mocha": "10.0.0",
     "@types/node": "14.18.36",
@@ -22,7 +26,8 @@
     "nyc": "15.1.0",
     "ts-mocha": "10.0.0",
     "ts-node": "10.9.1",
-    "typescript": "4.1.5"
+    "tsup": "6.7.0",
+    "typescript": "4.9.5"
   },
   "files": [
     "dist"
@@ -54,5 +59,9 @@
     "Typescript",
     "Javascript",
     "ES2018"
-  ]
+  ],
+  "whyDependencies": {
+    "esbuild-plugin-umd-wrapper@1.0.7": "Used by tsup to bundle as UMD module",
+    "@rollup/plugin-typescript@11.1.0": "Used by tsup to generate typescript d.ts declation file"
+  }
 }

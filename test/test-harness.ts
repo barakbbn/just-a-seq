@@ -59,10 +59,8 @@ export abstract class TestIt {
   protected abstract createSut: (<T>(input?: Iterable<T>) => Seq<T>) & {
     fromGenerator?: <T>(generator: () => Iterator<T>) => Seq<T>
   };
-  private asSeq: (input: Iterable<any>) => Seq<any>;
 
   protected constructor(protected optimized: boolean) {
-    this.asSeq = (input: Iterable<any>) => asSeqInternal([input], optimized);
   }
 
   it1 = <T>(title: string, input: readonly T[], testFn: (input: Iterable<T>, inputArray: readonly T[]) => void): void => {
@@ -159,4 +157,14 @@ export class TestableDerivedSeq<T> extends SeqBase<T> {
   protected getSourceForNewSequence(): Iterable<T> {
     return this.source;
   }
+}
+
+const typeOfProxy = new Proxy<object>({}, {
+  get(target: object, p: string | symbol): any {
+    return p;
+  }
+});
+
+export function typeOf<T extends object>(from?: T): { [P in keyof T]: string; } {
+  return typeOfProxy as { [P in keyof T]: string; };
 }

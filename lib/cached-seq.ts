@@ -1,5 +1,5 @@
 import {CachedSeq, Condition, Selector} from "./seq";
-import {SeqTags, TaggedSeq, tapGenerator} from "./common";
+import {SeqTags, tapGenerator} from "./common";
 import {SeqBase} from "./seq-base";
 
 export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
@@ -22,8 +22,10 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
     return this.getCached();
   }
 
-  static create<T>(source: Iterable<T>): CachedSeqImpl<T> {
-    return new CachedSeqImpl<T>(source);
+  static create<T>(source: Iterable<T>, now = false): CachedSeqImpl<T> {
+    const seq = new CachedSeqImpl<T>(source);
+    if (now) seq.cache(true);
+    return seq;
   }
 
   any(condition?: Condition<T>): boolean {
@@ -31,7 +33,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   }
 
   cache(now?: boolean): CachedSeq<T> {
-    if (now && !this._cache) this.consume();
+    if (now && !this._cache) this.getCached();
     return this;
   }
 
@@ -57,13 +59,13 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   last(fallback: T): T;
   last(fallback?: T): T | undefined {
     const array = this.array;
-    return array.length ? array[array.length - 1] : fallback;
+    return array.length? array[array.length - 1]: fallback;
   }
 
   lastIndexOf(itemToFind: T, fromIndex?: number): number {
     const items = this.getCached();
-    return fromIndex == null ?
-      items.lastIndexOf(itemToFind) :
+    return fromIndex == null?
+      items.lastIndexOf(itemToFind):
       items.lastIndexOf(itemToFind, fromIndex);
   }
 
@@ -84,7 +86,9 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
   startsWith<U, K>(items: Iterable<U>, firstKeySelector: (item: T) => K, secondKeySelector: (item: U) => K): boolean;
   startsWith<U = T>(items: Iterable<U>, {equals}: { equals(t: T, u: U): unknown; }): boolean;
 
-  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | { equals(t: T, u: U): unknown; }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
+  startsWith<U, K>(items: Iterable<U>, firstKeySelector?: ((item: T) => K) | {
+    equals(t: T, u: U): unknown;
+  }, secondKeySelector: (item: U) => K = firstKeySelector as unknown as (item: U) => K): boolean {
     const array = this.array;
     if (Array.isArray(items)) {
       if (items.length === 0) return true;
@@ -103,7 +107,7 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   * [Symbol.iterator](): Iterator<T> {
     let iterable: Iterable<T> = this.getCached();
-    if (this.tapCallbacks?.length) iterable = tapGenerator(iterable, this.tapCallbacks)
+    if (this.tapCallbacks?.length) iterable = tapGenerator(iterable, this.tapCallbacks);
     // TODO: Optimize when iterable is an array that
     yield* iterable;
   }
@@ -114,9 +118,11 @@ export class CachedSeqImpl<T> extends SeqBase<T> implements CachedSeq<T> {
 
   private getCached(): readonly T[] {
     if (this._cache) return this._cache;
-    if (SeqTags.cacheable(this.source)) return this._cache = this.source.array;
-    if(this.source instanceof Array && Object.isFrozen(this.source)) {
-      return this._cache = this.source
+    if (SeqTags.cacheable(this.source)) {
+      return this._cache = this.source.array;
+    }
+    if (this.source instanceof Array && Object.isFrozen(this.source)) {
+      return this._cache = this.source;
     }
     return this._cache = [...this.source];
   }

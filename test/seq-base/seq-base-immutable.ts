@@ -11,14 +11,17 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
 
   readonly run = () => describe('SeqBase - Immutable', () => {
     const testImmutable = <T>(title: string, source: T[], onSeq: (seq: Seq<T>) => any) => {
-      const sourceBeforeTest = [...source];
-      const seq = this.createSut(source);
-      const maybeIterable = onSeq(seq);
-      if (maybeIterable && typeof maybeIterable[Symbol.iterator] === 'function') {
-        for (const _ of maybeIterable) {
+
+      it(`${title} should not change source input`, () => {
+        const sourceBeforeTest = [...source];
+        const seq = this.createSut(source);
+        const maybeIterable = onSeq(seq);
+        if (maybeIterable && typeof maybeIterable[Symbol.iterator] === 'function') {
+          for (const _ of maybeIterable) {
+          }
         }
-      }
-      it(`${title} should not change source input`, () => assert.deepEqual(source, sourceBeforeTest));
+        assert.deepEqual(source, sourceBeforeTest);
+      });
     };
 
     testImmutable('aggregate()', array.oneToTen, seq => seq.aggregate(0, (prev, curr) => prev + curr, x => x));
@@ -80,9 +83,10 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('last()', array.oneToTen, seq => seq.last());
     testImmutable('lastIndexOf()', array.oneToTen, seq => seq.lastIndexOf(-1));
     testImmutable('map()', array.oneToTen, seq => seq.map(n => n - n));
-    testImmutable('move()', array.oneToTen, seq => seq.move(0,1,2));
+    testImmutable('move()', array.oneToTen, seq => seq.move(0, 1, 2));
     testImmutable('max()', array.oneToTen, seq => seq.max());
     testImmutable('padEnd()', array.oneToTen, seq => seq.padEnd(11, 0));
+    testImmutable('padStart()', array.oneToTen, seq => seq.padStart(2, -1));
     testImmutable('partition({matched}})', array.grades, seq => seq.partition(() => true).matched);
     testImmutable('partition({unmatched}})', array.grades, seq => seq.partition(() => false).unmatched);
     testImmutable('partition({matched+unmatched}})', array.grades, seq => seq.partition(() => false, (matched, unmatched) => matched.zip(unmatched)));
@@ -114,6 +118,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('sort()', array.zeroToTen, seq => seq.sort());
     testImmutable('sortBy()', array.zeroToTen, seq => seq.sortBy(x => x));
     testImmutable('sorted()', array.zeroToTen, seq => seq.sorted());
+    testImmutable('splice()', array.zeroToTen, seq => seq.splice(2, 2,  -1));
     testImmutable('split()', array.zeroToTen, seq => seq.split(x => x).reduce((a, b) => [...a, ...b], [1]));
     testImmutable('splitAt()', array.zeroToTen, seq => seq.splitAt(4).reduce((a, b) => [...a, ...b], [1]));
     testImmutable('startsWith()', array.zeroToTen, seq => seq.startsWith(array.zeroToTen));
@@ -134,6 +139,7 @@ export abstract class SeqBase_Immutable_Tests extends TestIt {
     testImmutable('unshift()', array.oneToTen, seq => seq.unshift(0, -1, -2));
     testImmutable('zip()', array.oneToTen, seq => seq.zip(array.zeroToNine));
     testImmutable('window()', array.oneToTen, seq => seq.window(1));
+    testImmutable('with()', array.oneToTen, seq => seq.with(1, 2));
     testImmutable('zipAll()', array.oneToTen, seq => seq.zipAll(array.zeroToTen));
     testImmutable('zipWithIndex()', array.oneToTen, seq => seq.zipWithIndex());
   });
